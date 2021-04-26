@@ -1,5 +1,7 @@
+#!/usr/bin/env python
 
-from modules import *
+import numpy as np
+import pandas as pd
 from functions import *
 
 '''
@@ -16,8 +18,8 @@ Htilde = unphysical_hamiltonian(H)
 Heval = np.copy(H)
 Htildeeval = np.copy(Htilde)
 
-FCI, v = LA.eigh(Heval)
-FCItilde, vtilde = LA.eigh(Htildeeval)
+eig, vec = FCI(Heval)
+eigtilde, vectilde = FCI(Htildeeval)
 
 H = H - (np.eye(HS)*HF)
 Htilde = Htilde - (np.eye(HS)*HF)
@@ -25,33 +27,16 @@ Htilde = Htilde - (np.eye(HS)*HF)
 H0 = np.diag(np.diag(H))
 H0tilde = np.diag(np.diag(Htilde))
 
-
 # Parameters
 shift = 0.0
 cycles = 1
 target = 7
 tau = 0.1
 reports = int(target/(tau*cycles))
-
-Nrows = 100000000
-seed = np.random.randint(2**32 - 1)
-np.random.seed(seed)
 beta_loops = 50
-rowoutcomes = np.arange(0,HS)
-rowweights = np.exp(-target*np.diag(Heval))
-rowweights = rowweights / rowweights.sum()
 
 for betaloop in range(1,beta_loops+1):
 
-    randomrows = np.random.choice(rowoutcomes, size=Nrows, p=rowweights)
-    randomrows = np.unique(randomrows)
-
-    allrandomrows.append(len(randomrows))
-    
-    f = np.zeros((HS,HS))
-    for row in randomrows:
-        f[row,row] = np.exp(-target*H[row,row])
-    
     ftilde = np.copy(f)
     
     iteration = 0
@@ -78,24 +63,4 @@ for betaloop in range(1,beta_loops+1):
     
             ftilde += dftilde
     
-df =    {
-        'Beta Loop':loops,
-        'e^{-beta H}':phy_energies,
-        'e^{-beta Htilde}':unp_energies,
-        'e^{-beta H0}':initphy_energies,
-        'e^{-beta Htilde0}':initunp_energies,
-        'Tr(H@rho)':phy_num,
-        'Tr(Htilde@rhotilde)':unp_num,
-        'Tr(rho)':phy_den,
-        'Tr(rhotilde)':unp_den,
-        'Unique Rows':allrandomrows,
-        }
-
-df = pd.DataFrame(df)
-name  = 'seed'+str(seed)
-name += '-'+str(beta_loops)+'loops'
-name += '-'+str(Nrows)+'Nrows-Weighted-Choice'
-name += '-analytical-IPDMQMC-STRH6STO3G.csv'
-df.to_csv(name, index=False)
-print('Saved data to:', name)
 

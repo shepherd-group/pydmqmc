@@ -1,5 +1,7 @@
+#!/usr/bin/env python
 
-from modules import *
+import numpy as np
+import pandas as pd
 from functions import *
 
 '''
@@ -15,7 +17,7 @@ H, sorted_diags, sorted_hash = sort_index_by_diagonal(H, HS)
 Heval = np.copy(H)
 H = H - (np.eye(HS)*HF)
 
-FCI, v = LA.eigh(Heval)
+eig, vec = FCI(Heval)
 
 # "QMC" Parameters
 shift = 0.0

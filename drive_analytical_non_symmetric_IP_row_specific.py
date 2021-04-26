@@ -18,8 +18,8 @@ Htilde = unphysical_hamiltonian(H)
 Heval = np.copy(H)
 Htildeeval = np.copy(Htilde)
 
-FCI, v = LA.eigh(Heval)
-FCItilde, vtilde = LA.eigh(Htildeeval)
+eig, vec = FCI(Heval)
+eigtilde, vectilde = FCI(Htildeeval)
 
 H = H - (np.eye(HS)*HF)
 Htilde = Htilde - (np.eye(HS)*HF)
@@ -34,10 +34,11 @@ target = 7
 tau = 0.1
 reports = int(target/(tau*cycles))
 
-row_slices = [1,5,10,50,100,200]
+#row_slices = [1,5,10,50,100,200]
+row_slices = np.arange(0,HS)
 
 ftotal = np.diag(np.exp(-target*np.diag(H0)))
-alldf = []
+alldf = {}
 
 for row_slice in row_slices:
 
@@ -74,7 +75,11 @@ for row_slice in row_slices:
     
             ftilde += dftilde
     
-        write_report(iteration, tau, shift, f, Heval, df=ftdf, printbool=True)
+        #write_report(iteration, tau, shift, f, Heval, df=ftdf, printbool=False)
 
-    pd.DataFrame(ftdf).to_csv('./outputs/'+csvname)
+    write_report(iteration, tau, shift, f, Heval, df=ftdf, printbool=True)
+    alldf[str(row_slice)]=pd.DataFrame(ftdf)
+    #pd.DataFrame(ftdf).to_csv('./outputs/'+csvname)
+
+pd.concat(alldf).to_csv('./outputs/alldf.csv')
 

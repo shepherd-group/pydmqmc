@@ -2,6 +2,28 @@
 
 import numpy as np
 import pandas as pd
+from numpy import linalg as LA
+
+
+def FCI(hamil):
+
+    '''
+    Do FCI on a Hamiltonian.
+
+        In:
+            hamil:
+                The Hamiltonian we want to diagonalize.
+                Assumed to be hermetian.
+        Out:
+            eigs:
+                The eigenspectrum from diagonalization.
+            vec:
+                The corresponding eigenvectors.
+    '''
+
+    eigs, vec = LA.eigh(hamil)
+
+    return eigs, vec
 
 def sum_of_states(eigenspectrum, beta):
 
@@ -272,6 +294,7 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, printbool=True):
         df['Tr(Hp)'].append(energy_numerator)
         df['Tr(p)'].append(trace)
         df['Nw'].append(psips)
+        df['<E>'].append(energy_numerator/trace)
         return df
 
     return
