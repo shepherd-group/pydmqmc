@@ -232,6 +232,44 @@ def sort_index_by_diagonal(hamil, hilbert):
     return sorted_hamil, sorted_diags, index_map
 
 
+def system_initialize(hamilf, shift=0):
+
+    '''
+    Set up a system and return relevent matrix's for running analytical
+    QMC.
+
+        In:
+            hamilf:
+                The system Hamiltonian we are interested in.
+            shift (default=0):
+                A shift to apply to the diagonal elements of the Hamiltonian
+        Out:
+            H:
+                The Hamiltonian shifted by the Hartree-Fock and the
+                provided shift.
+    '''
+
+    H, HS, HF = build_hamiltonian(hamilf)
+    H, sorted_diags, sorted_hash = sort_index_by_diagonal(H, HS)
+    Heval = np.copy(H)
+    H = H - (np.eye(HS)*HF) - (np.eye(HS)*shift)
+
+    return H, Heval, HS
+
+
+def empty_array(hilbert_space):
+
+    '''
+        In:
+            hilbert_space:
+                The hilbert space of the system.
+        Out:
+            zeros:
+                A 2D NumPy array with zeros.
+    '''
+
+    return np.zeros((hilbert_space, hilbert_space))
+
 def write_header():
 
     '''

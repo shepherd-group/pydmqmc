@@ -21,9 +21,11 @@ eig, vec = FCI(Heval)
 
 # "QMC" Parameters
 shift = 0.0
-cycles = 1
+cycles = 100
+tau = 0.001
+#cycles = 20
 target = 7
-tau = 0.1
+#tau = 0.005
 reports = int(target/(tau*cycles))
 slices = [1,5,10,50,100,200]
 datadf = {}
@@ -61,5 +63,5 @@ for rowslice in slices:
     datadf['Row 0:'+str(rowslice)] = pd.DataFrame(df)
 
 df = pd.concat(datadf, ignore_index=True)
-df.to_csv('./outputs/non-sym-DMQMC-row-slice.csv')
+df.to_csv('./outputs/non-sym-DMQMC-row-slice.csv', index=False)
 

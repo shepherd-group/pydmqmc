@@ -34,8 +34,8 @@ target = 7
 tau = 0.1
 reports = int(target/(tau*cycles))
 
-#row_slices = [1,5,10,50,100,200]
-row_slices = np.arange(0,HS)
+row_slices = [1,5,10,50,100,200]
+#row_slices = np.arange(0,HS)
 
 ftotal = np.diag(np.exp(-target*np.diag(H0)))
 alldf = {}
@@ -52,9 +52,10 @@ for row_slice in row_slices:
     report = 0
     
     ftdf = { 'Beta':[], 'Shift':[], 'Tr(Hp)':[], 'Tr(p)':[], 'Nw':[], '<E>':[]}
-    csvname = 'analytical-ip-strh6sto3g-'+str(row_slice)+'-of-200-rowslice.csv'
+    csvname = 'analytical-ip-unp-strh6sto3g-'+str(row_slice)+'-of-200-rowslice.csv'
     expectation(Heval, f, 'Energy')
-    write_report(iteration, tau, shift, f, Heval, df=ftdf, printbool=True)
+    write_report(iteration, tau, shift, ftilde, Htildeeval, df=ftdf, printbool=True)
+    #write_report(iteration, tau, shift, f, Heval, df=ftdf, printbool=True)
     
     for report in range(reports):
     
@@ -77,9 +78,10 @@ for row_slice in row_slices:
     
         #write_report(iteration, tau, shift, f, Heval, df=ftdf, printbool=False)
 
-    write_report(iteration, tau, shift, f, Heval, df=ftdf, printbool=True)
-    alldf[str(row_slice)]=pd.DataFrame(ftdf)
-    #pd.DataFrame(ftdf).to_csv('./outputs/'+csvname)
+    #write_report(iteration, tau, shift, f, Heval, df=ftdf, printbool=True)
+    write_report(iteration, tau, shift, ftilde, Htildeeval, df=ftdf, printbool=True)
+    #alldf[str(row_slice)]=pd.DataFrame(ftdf)
+    pd.DataFrame(ftdf).to_csv('./outputs/'+csvname)
 
-pd.concat(alldf).to_csv('./outputs/alldf.csv')
+#pd.concat(alldf).to_csv('./outputs/alldf.csv')
 
