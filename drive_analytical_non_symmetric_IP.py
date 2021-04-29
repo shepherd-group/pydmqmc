@@ -14,20 +14,15 @@ tau = 0.1
 reports = int(target/(tau*cycles))
 beta_loops = 50
 Nattempts = 1000
-#init = 'uniform-random'
-init = 'thermal-random'
+init = 'uniform-constant'
 H, Heval, HS = system_initialize('STRETCHED-H6-STO3G.hamil')
 H0 = np.diag(np.diag(H))
-thermal_weights = np.exp(-target*np.diag(H))
-thermal_weights /= thermal_weights.sum()
 
 # Data Saving
 data = []
 outname  = './outputs/'
-#outname += 'ip-dmqmc-' + init + '/'
-outname += 'uniform-random-rows-analytical-nonsym-ipdmqmc'
-outname += 'ip-dmqmc-' + init + '/'
-outname += 'thermal-random-rows-analytical-nonsym-ipdmqmc'
+outname += 'ip-dmqmc-init-scan/'
+outname += init + '-analytical-nonsym-ipdmqmc'
 outname += '-Nbeta' + str(beta_loops)
 outname += '-Natt' + str(Nattempts)
 outname += '-seed' + str(seed)
@@ -35,25 +30,7 @@ outname += '-seed' + str(seed)
 for betaloop in range(1,beta_loops+1):
     print(' Beta Loop:', betaloop)
 
-    if init == 'uniform-random':
-        randomrows = np.random.choice(HS, size=Nattempts)
-        randomrows = np.unique(randomrows)
-
-        f = empty_array(HS)
-        for ii in randomrows:
-            f[ii,ii] = np.exp(-target * Heval[ii,ii])
-
-    elif init == 'thermal-random':
-        randomrows = np.random.choice(HS, size=Nattempts, p=thermal_weights)
-        randomrows = np.unique(randomrows)
-
-        f = empty_array(HS)
-        for ii in randomrows:
-            f[ii,ii] = 1
-
-    else:
-        print('Unknown initalization method:', init)
-        exit()
+    f, randomrows = initialize_ip(init, Nattempts, target, Heval, HS)
 
     iteration = 0
     report = 0

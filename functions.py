@@ -257,6 +257,94 @@ def system_initialize(hamilf, shift=0):
     return H, Heval, HS
 
 
+def initialize_ip(init, Nattempts, target, Heval, HS):
+
+    '''
+    Initalizes the starting trial density matrix. There are many ways
+    to do this so we have a str check to decide.
+
+        In:
+            init:
+                The initalization method we would like to use.
+                Follows naming scheme:
+                rows selection - inital weight
+                Example: uniform - thermal
+                         uniformally generate diagonal elements and populate
+                         with the thermal weight of "walkers"
+            Nattempt:
+                The number of attempts we want to try initalization.
+                This is the random selections for stochastic initalizations
+                and the number of rows in deterministic initalization.
+            Heval:
+                The Hamiltonian we are simulating
+            HS:
+                The hilbert space so we can return the correct density matrix
+                dimensionality
+        Out:
+            f:
+                The trial density matrix.
+            randomrows:
+                The unique random rows selected by the initalization
+    '''
+
+    randomrows = []
+    f = empty_array(HS)
+    if 'thermal' in init:
+        thermal_weights = np.exp(-target*np.diag(Heval))
+        thermal_weights /= thermal_weights.sum()
+
+    if init == 'deterministic-thermal':
+        for ii in range(Nattempts):
+            if ii == HS:
+                break
+            f[ii,ii] = thermal_weights[ii]
+        return f, randomrows
+
+    if init == 'deterministic-constant':
+        for ii in range(Nattempts):
+            if ii == HS:
+                break
+            f[ii,ii] = 1
+        return f, randomrows
+
+    if init == 'uniform-thermal':
+        randomrows = np.random.choice(HS, size=Nattempts)
+        randomrows = np.unique(randomrows)
+
+        for ii in randomrows:
+            f[ii,ii] = thermal_weights[ii]
+        return f, randomrows
+
+    if init == 'uniform-constant':
+        randomrows = np.random.choice(HS, size=Nattempts)
+        randomrows = np.unique(randomrows)
+
+        for ii in randomrows:
+            f[ii,ii] = 1
+        return f, randomrows
+
+    if init == 'thermal-thermal':
+        randomrows = np.random.choice(HS, size=Nattempts, p=thermal_weights)
+        randomrows = np.unique(randomrows)
+
+        for ii in randomrows:
+            f[ii,ii] = thermal_weights[ii]
+        return f, randomrows
+
+    if init == 'thermal-constant':
+        randomrows = np.random.choice(HS, size=Nattempts, p=thermal_weights)
+        randomrows = np.unique(randomrows)
+
+        for ii in randomrows:
+            f[ii,ii] = 1
+        return f, randomrows
+
+    else:
+        print(' Unknown initalization method:', init)
+        print(' Exiting...')
+        return exit()
+
+
 def empty_array(hilbert_space):
 
     '''
