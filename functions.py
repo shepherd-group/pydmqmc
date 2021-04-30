@@ -37,20 +37,35 @@ def sum_of_states(eigenspectrum, beta):
             eigenspectrum:
                 fci eigenvalues for a system
             beta:
-                The inverse temperature where we calculate the energy
+                The inverse temperature where we calculate the energy.
+                If beta is a list, then we return as list of energies
+                at all the beta's.
         Out:
             energy:
                 The energy at beta for the system's eigenspectrum we used
     '''
 
-    numerator   = np.exp(-beta * eigenspectrum)
-    denominator = np.sum(np.copy(numerator))
-    numerator   *= eigenspectrum
-    numerator   = np.sum(numerator)
+    if isinstance(beta, (list,np.ndarray)):
+        energy = []
 
-    energy      = np.divide(numerator, denominator)
+        for b in beta:
+            numerator   = np.exp(-b * eigenspectrum)
+            denominator = np.sum(np.copy(numerator))
+            numerator   *= eigenspectrum
+            numerator   = np.sum(numerator)
+            energy.append(np.divide(numerator, denominator))
 
-    return energy
+        return energy
+
+    else:
+
+        numerator   = np.exp(-beta * eigenspectrum)
+        denominator = np.sum(np.copy(numerator))
+        numerator   *= eigenspectrum
+        numerator   = np.sum(numerator)
+        energy      = np.divide(numerator, denominator)
+
+        return energy
 
 
 def build_hamiltonian(hamilf):
@@ -257,7 +272,7 @@ def system_initialize(hamilf, shift=0):
     return H, Heval, HS
 
 
-def initialize_ip(init, Nattempts, target, Heval, HS):
+def initialize_dm(init, Nattempts, target, Heval, HS):
 
     '''
     Initalizes the starting trial density matrix. There are many ways
@@ -287,6 +302,9 @@ def initialize_ip(init, Nattempts, target, Heval, HS):
                 The unique random rows selected by the initalization
     '''
 
+    df = { 'Beta':[], 'Shift':[], 'Tr(Hp)':[], 'Tr(p)':[],
+           'Nw':[], '<E>':[], 'N_rows':[]}
+
     randomrows = []
     f = empty_array(HS)
     if 'thermal' in init:
@@ -297,47 +315,51 @@ def initialize_ip(init, Nattempts, target, Heval, HS):
         for ii in range(Nattempts):
             if ii == HS:
                 break
-            f[ii,ii] = thermal_weights[ii]
-        return f, randomrows
+            f[ii,ii] += thermal_weights[ii]
+        return f, occrows, df
 
-    if init == 'deterministic-constant':
+    if init == 'deterministic-uniform':
         for ii in range(Nattempts):
             if ii == HS:
                 break
-            f[ii,ii] = 1
-        return f, randomrows
+            f[ii,ii] += 1
+        return f, occrows, df
 
     if init == 'uniform-thermal':
         randomrows = np.random.choice(HS, size=Nattempts)
-        randomrows = np.unique(randomrows)
+        randomrows = np.bincount(randomrows, minlength=HS)
+        occrows = np.count_nonzero(randomrows)
 
-        for ii in randomrows:
-            f[ii,ii] = thermal_weights[ii]
-        return f, randomrows
+        for ii, nw in enumerate(randomrows):
+            f[ii,ii] += thermal_weights[ii]*nw
+        return f, occrows, df
 
-    if init == 'uniform-constant':
+    if init == 'uniform-uniform':
         randomrows = np.random.choice(HS, size=Nattempts)
-        randomrows = np.unique(randomrows)
+        randomrows = np.bincount(randomrows, minlength=HS)
+        occrows = np.count_nonzero(randomrows)
 
-        for ii in randomrows:
-            f[ii,ii] = 1
-        return f, randomrows
+        for ii, nw in enumerate(randomrows):
+            f[ii,ii] += nw
+        return f, occrows, df
 
     if init == 'thermal-thermal':
         randomrows = np.random.choice(HS, size=Nattempts, p=thermal_weights)
-        randomrows = np.unique(randomrows)
+        randomrows = np.bincount(randomrows, minlength=HS)
+        occrows = np.count_nonzero(randomrows)
 
-        for ii in randomrows:
-            f[ii,ii] = thermal_weights[ii]
-        return f, randomrows
+        for ii, nw in enumerate(randomrows):
+            f[ii,ii] += thermal_weights[ii]*nw
+        return f, occrows, df
 
-    if init == 'thermal-constant':
+    if init == 'thermal-uniform':
         randomrows = np.random.choice(HS, size=Nattempts, p=thermal_weights)
-        randomrows = np.unique(randomrows)
+        randomrows = np.bincount(randomrows, minlength=HS)
+        occrows = np.count_nonzero(randomrows)
 
-        for ii in randomrows:
-            f[ii,ii] = 1
-        return f, randomrows
+        for ii, nw in enumerate(randomrows):
+            f[ii,ii] += nw
+        return f, occrows, df
 
     else:
         print(' Unknown initalization method:', init)
@@ -358,6 +380,37 @@ def empty_array(hilbert_space):
 
     return np.zeros((hilbert_space, hilbert_space))
 
+
+def update_shift(shift, cycles, tau, nw, nw_old, zeta):
+
+    '''
+    Update the shift in the classical way.
+
+        In:
+            shift:
+                The current shift.
+            cycles:
+                How often we are updating the shift.
+            tau:
+                The time step of the simualtion we are performing.
+            nw:
+                The current walker population
+            nw_old:
+                The previous walker population we updated the shift at
+            zeta:
+                The damping parameter for the shift algorithm
+        Out:
+            new_shift:
+                The new shift estimate
+    '''
+
+    new_shift  = -zeta/(cycles*tau)
+    new_shift *= np.log(nw/nw_old)
+    new_shift += shift
+
+    return new_shift
+
+
 def write_header():
 
     '''
@@ -374,7 +427,7 @@ def write_header():
     return
 
 
-def write_report(iteration, tau, shift, dm, hamil, df=None, printbool=True):
+def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False):
 
     '''
         In:
@@ -390,7 +443,7 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, printbool=True):
                 The systems Hamiltonian we are simulating.
             df (optional):
                 A dictionary where we intend to store information.
-            printbool (optional):
+            stdout (optional):
                 A boolean to print out the data from the iteration.
         Out:
             stdout (optional):
@@ -409,7 +462,7 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, printbool=True):
     psips = abs(dm).sum()
     curbeta = round(iteration*tau, abs(int(np.log10(tau))))
 
-    if printbool:
+    if stdout:
         data  = ' {:>10}   {:< 1.12E}   {:< 2.12E}   {:< 3.12E}   {:< 4.12E} '
         data = data.format(curbeta,shift,energy_numerator,trace,psips)
         print(data)
@@ -421,7 +474,44 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, printbool=True):
         df['Tr(p)'].append(trace)
         df['Nw'].append(psips)
         df['<E>'].append(energy_numerator/trace)
+        df['N_rows'].append(len(np.unique(np.nonzero(dm)[0])))
         return df
 
     return
+
+
+def average_betaloops(df):
+
+    '''
+    Average the data in a Pandas DataFrame object.
+
+        In:
+            df:
+                A data frame of beta loops concat'd together
+        Out:
+            mean:
+                means of all the data from the Data Frame, and also
+                the average energy from the <Tr(Hp)> / <Tr(p)> estimate
+                with the appropriate errors.
+    '''
+
+    groupdf = df.groupby('Beta')
+    count = groupdf.count()
+    mean = groupdf.mean()
+    se = groupdf.std()/np.sqrt(count-1)
+
+    cov = groupdf.cov()
+    cov = cov['Tr(p)'].iloc[cov.index.get_level_values(1) == 'Tr(Hp)']
+    cov = cov.reset_index().set_index('Beta')['Tr(p)']
+    mean_energy = mean['Tr(Hp)']/mean['Tr(p)']
+    coverr  = (se['Tr(p)']/mean['Tr(p)'])**2
+    coverr += (se['Tr(Hp)']/mean['Tr(Hp)'])**2
+    coverr -= 2*cov/(count['Tr(Hp)']*mean['Tr(Hp)']*mean['Tr(p)'])
+    coverr  = abs(mean_energy*np.sqrt(coverr))
+
+    mean['<E> SE'] = se['<E>']
+    mean['Tr(Hp)/Tr(p)_error'] = coverr
+    mean['Tr(Hp)/Tr(p)'] = mean_energy
+
+    return mean
 

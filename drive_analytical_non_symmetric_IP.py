@@ -5,59 +5,64 @@ import pandas as pd
 from functions import *
 
 # "QMC" & System parameters
-seed = np.random.randint(2**32 - 1)
-np.random.seed(seed)
+#seed = np.random.randint(2**32 - 1)
+seeds = [7,8,9,10]
 shift = 0.0
 cycles = 1
-target = 7
+targets = np.arange(1,11)
 tau = 0.1
-reports = int(target/(tau*cycles))
+#reports = int(target/(tau*cycles))
 beta_loops = 50
-Nattempts = 1000
-init = 'uniform-constant'
-H, Heval, HS = system_initialize('STRETCHED-H6-STO3G.hamil')
+attempts = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
+init = ['thermal-thermal', 'thermal-uniform', 'uniform-thermal', 'uniform-uniform']
+simulations = zip(seeds, [attempts, attempts, attempts, attempts], methods)
+
+H, Heval, HS = system_initialize('STRETCHED-H6-STO3G.hamil', shift)
 H0 = np.diag(np.diag(H))
 
-# Data Saving
-data = []
-outname  = './outputs/'
-outname += 'ip-dmqmc-init-scan/'
-outname += init + '-analytical-nonsym-ipdmqmc'
-outname += '-Nbeta' + str(beta_loops)
-outname += '-Natt' + str(Nattempts)
-outname += '-seed' + str(seed)
+for seed, attempts, init in simulations:
+    np.random.seed(seed)
 
-for betaloop in range(1,beta_loops+1):
-    print(' Beta Loop:', betaloop)
+    for target in targets:
+        reports = int(target/(tau*cycles))
 
-    f, randomrows = initialize_ip(init, Nattempts, target, Heval, HS)
-
-    iteration = 0
-    report = 0
-    df = { 'Beta':[], 'Shift':[], 'Tr(Hp)':[], 'Tr(p)':[], 'Nw':[], '<E>':[],
-           'N_rows':[len(randomrows)]}
-    write_report(iteration, tau, shift, f, Heval, df=df, printbool=True)
-
-    for report in range(reports):
-    
-        for cycle in range(cycles):
-            iteration += 1
-    
-            '''
-                "IP-DMQMC"
-    
-                df/dtau = H0 @ f - f @ H
-            '''
-    
-            deltaf = tau * ( (H0 @ f) - (f @ H) )
+        for Nattempts in attempts:
+            # Data Saving
+            data = []
+            outname  = './outputs/ip-dmqmc-beta-scan/'
+            outname += init + '-analytical-nonsym-ipdmqmc'
+            outname += '-Nbeta' + str(beta_loops)
+            outname += '-Natt' + str(Nattempts)
+            outname += '-seed' + str(seed)
+            outname += '-tbeta' + str(target)
             
-            f += deltaf
+            for betaloop in range(1,beta_loops+1):
+                print(' Beta Loop:', betaloop)
+            
+                iteration = 0
+                report = 0
+                f, occrows, df = initialize_dm(init, Nattempts, target, Heval, HS)
+                write_report(iteration, tau, shift, f, Heval, df=df, stdout=True)
+            
+                for report in range(reports):
+                
+                    for cycle in range(cycles):
+                        iteration += 1
+                
+                        '''
+                            "IP-DMQMC"
+                
+                            df/dtau = H0 @ f - f @ H
+                        '''
+                
+                        deltaf = tau * ( (H0 @ f) - (f @ H) )
+                        
+                        f += deltaf
+                
+                        write_report(iteration, tau, shift, f, Heval, df=df)
+            
+                data.append(pd.DataFrame(df))
+            
+            data = pd.concat(data, ignore_index=True)
+            data.to_csv(outname + '.csv', index=False)
     
-            write_report(iteration, tau, shift, f, Heval, df=df, printbool=False)
-            df['N_rows'].append(len(randomrows))
-
-    data.append(pd.DataFrame(df))
-
-data = pd.concat(data, ignore_index=True)
-data.to_csv(outname + '.csv', index=False)
-
