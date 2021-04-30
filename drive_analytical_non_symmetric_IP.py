@@ -14,8 +14,8 @@ tau = 0.1
 #reports = int(target/(tau*cycles))
 beta_loops = 50
 attempts = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
-init = ['thermal-thermal', 'thermal-uniform', 'uniform-thermal', 'uniform-uniform']
-simulations = zip(seeds, [attempts, attempts, attempts, attempts], methods)
+init_dm = ['thermal-thermal', 'thermal-uniform', 'uniform-thermal', 'uniform-uniform']
+simulations = zip(seeds, [attempts, attempts, attempts, attempts], init_dm)
 
 H, Heval, HS = system_initialize('STRETCHED-H6-STO3G.hamil', shift)
 H0 = np.diag(np.diag(H))
@@ -63,6 +63,6 @@ for seed, attempts, init in simulations:
             
                 data.append(pd.DataFrame(df))
             
-            data = pd.concat(data, ignore_index=True)
-            data.to_csv(outname + '.csv', index=False)
+            #data = pd.concat(data, ignore_index=True)
+            #data.to_csv(outname + '.csv', index=False)
     
