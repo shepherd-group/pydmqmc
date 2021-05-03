@@ -272,7 +272,7 @@ def system_initialize(hamilf, shift=0):
     return H, Heval, HS
 
 
-def initialize_dm(init, Nattempts, target, Heval, HS):
+def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None):
 
     '''
     Initalizes the starting trial density matrix. There are many ways
@@ -295,6 +295,9 @@ def initialize_dm(init, Nattempts, target, Heval, HS):
             HS:
                 The hilbert space so we can return the correct density matrix
                 dimensionality
+            rowlist:
+                A list of row index's (Python) that should be occupied.
+                Currently unused!
         Out:
             f:
                 The trial density matrix.
@@ -312,17 +315,13 @@ def initialize_dm(init, Nattempts, target, Heval, HS):
         thermal_weights /= thermal_weights.sum()
 
     if init == 'deterministic-thermal':
-        for ii in range(Nattempts):
-            if ii == HS:
-                break
-            f[ii,ii] += thermal_weights[ii]
+        f = np.diag(thermal_weights)
+        occrows = np.count_nonzero(f)
         return f, occrows, df
 
     if init == 'deterministic-uniform':
-        for ii in range(Nattempts):
-            if ii == HS:
-                break
-            f[ii,ii] += 1
+        f = np.eye(HS)
+        occrows = np.count_nonzero(f)
         return f, occrows, df
 
     if init == 'uniform-thermal':
@@ -478,6 +477,42 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False):
         return df
 
     return
+
+
+def store_data(data, df, betaloop, beta_loops, csv, path=''):
+
+    '''
+    Store data in an array. When the calculation is complete concat it
+    and save it as a csv to the specified path. This really should be a
+    class object but thats another days problem.
+
+        In:
+            df:
+                A Pandas DataFrame to store our data from different
+                trajectories.
+            betaloop:
+                The current beta loop we are at.
+            beta_loops:
+                The number of beta loops we will store.
+            csv:
+                The name of the csv we want to store.
+            path (defaul = current working directory):
+                The path where we want to store the data.
+        Out:
+            Data:
+                An array of all the data we have accumulated from beta loops.
+            csv (Saved as a file):
+                An array to save as a file.
+    '''
+
+    data.append(pd.DataFrame(df))
+
+    if betaloop == beta_loops:
+        data = pd.concat(data, ignore_index=True)
+        data.to_csv(path + csv + '.csv', index=False)
+        return []
+
+    return data
 
 
 def average_betaloops(df):
