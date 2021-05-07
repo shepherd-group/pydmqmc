@@ -272,7 +272,8 @@ def system_initialize(hamilf, shift=0):
     return H, Heval, HS
 
 
-def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None):
+def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
+                  thermal_weights=None):
 
     '''
     Initalizes the starting trial density matrix. There are many ways
@@ -298,19 +299,24 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None):
             rowlist:
                 A list of row index's (Python) that should be occupied.
                 Currently unused!
+            thermal_weights:
+                Accepts thermal weights to use instead of the auto-generated
+                weights, this way the FCI weights can be passed instead.
         Out:
             f:
                 The trial density matrix.
-            randomrows:
+            occrows:
                 The unique random rows selected by the initalization
+            df:
+                A dictionary for storing accumulated statistics during the
+                simulations.
     '''
 
     df = { 'Beta':[], 'Shift':[], 'Tr(Hp)':[], 'Tr(p)':[],
            'Nw':[], '<E>':[], 'N_rows':[]}
 
-    randomrows = []
     f = empty_array(HS)
-    if 'thermal' in init:
+    if 'thermal' in init and not(isinstance(thermal_weights, np.ndarray)):
         thermal_weights = np.exp(-target*np.diag(Heval))
         thermal_weights /= thermal_weights.sum()
 
@@ -360,6 +366,12 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None):
             f[ii,ii] += nw
         return f, occrows, df
 
+    if init == 'specific-uniform':
+        for ii in rowlist:
+            f[ii,ii] += 1
+        occrows = np.count_nonzero(f)
+        return f, occrows, df
+
     else:
         print(' Unknown initalization method:', init)
         print(' Exiting...')
@@ -380,34 +392,102 @@ def empty_array(hilbert_space):
     return np.zeros((hilbert_space, hilbert_space))
 
 
-def update_shift(shift, cycles, tau, nw, nw_old, zeta):
+def update_shift(H, HS, cycles, tau, df, zeta):
 
     '''
     Update the shift in the classical way.
 
         In:
+            H:
+                The current system Hamiltonian used for propagation.
+            HS:
+                The Hilbert Space of the Hamiltonian we are propagating
             shift:
                 The current shift.
             cycles:
                 How often we are updating the shift.
             tau:
                 The time step of the simualtion we are performing.
-            nw:
-                The current walker population
-            nw_old:
-                The previous walker population we updated the shift at
+            df:
+                The dictionary of data to collect the shift, current particles
+                and old particles.
             zeta:
                 The damping parameter for the shift algorithm
         Out:
+            H:
+                Our Hamiltonian with a new diagonal shift
             new_shift:
                 The new shift estimate
     '''
 
-    new_shift  = -zeta/(cycles*tau)
-    new_shift *= np.log(nw/nw_old)
-    new_shift += shift
+    shift   = df['Shift'][-1]
+    nw      = df['Nw'][-1]
+    nw_old  = df['Nw'][-2]
 
-    return new_shift
+    dshift  = -zeta/(cycles*tau)
+    dshift *= np.log(nw/nw_old)
+
+    H = H - (dshift*np.eye(HS))
+
+    new_shift = shift + dshift
+
+    return H, new_shift
+
+
+def stochastic_round(array):
+
+    '''
+    This function performs a stochastic rounding on a NumPy array.
+
+        In:
+            array:
+                An array that we want the values to be stochastically rounded
+                in.
+        Out:
+            stoch_rounded_array:
+                The stochastically rounded version of the input array.
+    '''
+
+    shape = array.shape
+    p_matrix = np.random.random(shape)
+
+    array_sign = np.sign(array)
+    p_matrix = np.multiply(p_matrix, array_sign)
+
+    stoch_rounded_array = array + p_matrix
+    stoch_rounded_array = np.trunc(stoch_rounded_array)
+
+    return stoch_rounded_array
+
+
+def deterministic_round(array, round_method='trunc'):
+
+    '''
+    This function performs a stochastic rounding on a NumPy array.
+
+        In:
+            array:
+                An array that we want the values to be stochastically rounded
+                in.
+            round_method:
+                How do we want to deterministically round the array?
+        Out:
+            rounded_array:
+                The stochastically rounded version of the input array.
+    '''
+
+    if round_method == 'trunc':
+        rounded_array = np.trunc(array)
+
+    if round_method == 'rint':
+        rounded_array = np.rint(array)
+
+    else:
+        print(' Unknown Rounding Method', round_method)
+        print(' Exiting...')
+        return exit()
+
+    return rounded_array
 
 
 def write_header():
@@ -420,7 +500,7 @@ def write_header():
             N/A
     '''
 
-    head = ' {:>10}    {:<18}    {:<18}    {:<18}    {:<18}'
+    head = ' {:>6}    {:<18}    {:<18}    {:<18}    {:<18}'
     head = head.format('Beta','Shift','Tr(pH)', 'Tr(p)','Nw')
     print(head)
     return
@@ -453,7 +533,7 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False):
                 data 
     '''
 
-    if iteration == 0:
+    if iteration == 0 and stdout == True:
         write_header()
 
     energy_numerator = (dm @ hamil).trace()
@@ -462,7 +542,7 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False):
     curbeta = round(iteration*tau, abs(int(np.log10(tau))))
 
     if stdout:
-        data  = ' {:>10}   {:< 1.12E}   {:< 2.12E}   {:< 3.12E}   {:< 4.12E} '
+        data  = ' {:> 5}   {:< 1.12E}   {:< 2.12E}   {:< 3.12E}   {:< 4.12E}'
         data = data.format(curbeta,shift,energy_numerator,trace,psips)
         print(data)
 
@@ -510,7 +590,8 @@ def store_data(data, df, betaloop, beta_loops, csv, path=''):
     if betaloop == beta_loops:
         data = pd.concat(data, ignore_index=True)
         data.to_csv(path + csv + '.csv', index=False)
-        return []
+        data = []
+        return data
 
     return data
 
@@ -545,6 +626,7 @@ def average_betaloops(df):
     coverr  = abs(mean_energy*np.sqrt(coverr))
 
     mean['<E> SE'] = se['<E>']
+    mean['N_rows SE'] = se['N_rows']
     mean['Tr(Hp)/Tr(p)_error'] = coverr
     mean['Tr(Hp)/Tr(p)'] = mean_energy
 

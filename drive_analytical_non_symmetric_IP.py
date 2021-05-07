@@ -9,15 +9,22 @@ from functions import *
 seeds = [7,8,9,10]
 shift = 0.0
 cycles = 1
-targets = np.arange(1,11)
+targets = [7]
 tau = 0.1
 #reports = int(target/(tau*cycles))
-beta_loops = 50
-attempts = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
-init_dm = ['thermal-thermal', 'thermal-uniform', 'uniform-thermal', 'uniform-uniform']
-simulations = zip(seeds, [attempts, attempts, attempts, attempts], init_dm)
+beta_loops = 5000
+#attempts = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000,
+#            10000, 20000, 50000, 100000, 200000, 500000, 1000000,
+#            2000000]
+attempts = [1]
+#init_dm = ['thermal-thermal', 'thermal-uniform',
+#           'uniform-thermal', 'uniform-uniform']
+init_dm = ['thermal-uniform', 'uniform-thermal']
+#simulations = zip(seeds, [attempts, attempts, attempts, attempts], init_dm)
+simulations = zip(seeds, [attempts, attempts], init_dm)
 
 H, Heval, HS = system_initialize('STRETCHED-H6-STO3G.hamil', shift)
+#H0 = np.diag(np.diag(H)) + (np.eye(HS)*shift)
 H0 = np.diag(np.diag(H))
 
 for seed, attempts, init in simulations:
@@ -27,14 +34,16 @@ for seed, attempts, init in simulations:
         reports = int(target/(tau*cycles))
 
         for Nattempts in attempts:
+            print(' Nattempts:',Nattempts)
             # Data Saving
             data = []
-            outname  = './outputs/ip-dmqmc-beta-scan/'
-            outname += init + '-analytical-nonsym-ipdmqmc'
-            outname += '-Nbeta' + str(beta_loops)
-            outname += '-Natt' + str(Nattempts)
-            outname += '-seed' + str(seed)
-            outname += '-tbeta' + str(target)
+            path     = './outputs/1row-convergence/'
+            csvout   = 'str-' + init + '-analytical-nonsym-ipdmqmc'
+            csvout  += '-Nbeta' + str(beta_loops)
+            csvout  += '-Natt' + str(Nattempts)
+            csvout  += '-seed' + str(seed)
+            csvout  += '-tbeta' + str(target)
+            csvout  += '-Shift' + str(shift)
             
             for betaloop in range(1,beta_loops+1):
                 print(' Beta Loop:', betaloop)
@@ -42,7 +51,7 @@ for seed, attempts, init in simulations:
                 iteration = 0
                 report = 0
                 f, occrows, df = initialize_dm(init, Nattempts, target, Heval, HS)
-                write_report(iteration, tau, shift, f, Heval, df=df, stdout=True)
+                write_report(iteration, tau, shift, f, Heval, df=df)
             
                 for report in range(reports):
                 
@@ -54,15 +63,11 @@ for seed, attempts, init in simulations:
                 
                             df/dtau = H0 @ f - f @ H
                         '''
-                
                         deltaf = tau * ( (H0 @ f) - (f @ H) )
                         
                         f += deltaf
                 
-                        write_report(iteration, tau, shift, f, Heval, df=df)
-            
-                data.append(pd.DataFrame(df))
-            
-            #data = pd.concat(data, ignore_index=True)
-            #data.to_csv(outname + '.csv', index=False)
-    
+                    write_report(iteration, tau, shift, f, Heval, df=df)
+
+                store_data(data, df, betaloop, beta_loops, csvout, path)
+

@@ -68,4 +68,4 @@ for seed, attempts, init in simulations:
             
             data = pd.concat(data, ignore_index=True)
             data.to_csv(outname + '.csv', index=False)
-    
+

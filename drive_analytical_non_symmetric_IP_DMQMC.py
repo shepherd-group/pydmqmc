@@ -42,12 +42,12 @@ for betaloop in range(1,beta_loops+1):
                 df/dtau = H0 @ f - f @ H
             '''
 
-            if curbeta < 3.000:
+            if curbeta < 3.0:
                 deltaf = tau * ( (H0 @ f) - (f @ H) )
             
                 f += deltaf
     
-            elif curbeta >= 3.000 and curbeta < 10.001:
+            elif curbeta >= 3.0 and curbeta <= 10.0:
                 deltaf = -(tau/2)*( (H @ f) + (f @ H))
 
                 f += deltaf
