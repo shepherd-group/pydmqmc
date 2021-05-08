@@ -247,7 +247,7 @@ def sort_index_by_diagonal(hamil, hilbert):
     return sorted_hamil, sorted_diags, index_map
 
 
-def system_initialize(hamilf, shift=0):
+def system_initialize(hamilf, shift=0, return_raw=False):
 
     '''
     Set up a system and return relevent matrix's for running analytical
@@ -258,16 +258,21 @@ def system_initialize(hamilf, shift=0):
                 The system Hamiltonian we are interested in.
             shift (default=0):
                 A shift to apply to the diagonal elements of the Hamiltonian
+            return_raw (optional, default=False):
+                Return the raw Hamiltonian and the index map for the sorted?
         Out:
             H:
                 The Hamiltonian shifted by the Hartree-Fock and the
                 provided shift.
     '''
 
-    H, HS, HF = build_hamiltonian(hamilf)
-    H, sorted_diags, sorted_hash = sort_index_by_diagonal(H, HS)
+    Hraw, HS, HF = build_hamiltonian(hamilf)
+    H, sorted_diags, sorted_hash = sort_index_by_diagonal(Hraw, HS)
     Heval = np.copy(H)
     H = H - (np.eye(HS)*HF) - (np.eye(HS)*shift)
+
+    if return_raw:
+        return H, Heval, HS, Hraw, sorted_hash
 
     return H, Heval, HS
 
@@ -460,7 +465,7 @@ def stochastic_round(array):
     return stoch_rounded_array
 
 
-def deterministic_round(array, round_method='trunc'):
+def deterministic_round(array, round_method='trunc', decimals=None):
 
     '''
     This function performs a stochastic rounding on a NumPy array.
@@ -471,16 +476,24 @@ def deterministic_round(array, round_method='trunc'):
                 in.
             round_method:
                 How do we want to deterministically round the array?
+            decimals (optional, default=None):
+                round to a specifica decimal place.
         Out:
             rounded_array:
                 The stochastically rounded version of the input array.
     '''
+
+    if decimals != None:
+        array *= 10**decimals
 
     if round_method == 'trunc':
         rounded_array = np.trunc(array)
 
     if round_method == 'rint':
         rounded_array = np.rint(array)
+
+    if decimals != None:
+        rounded_array /= 10**decimals
 
     else:
         print(' Unknown Rounding Method', round_method)
