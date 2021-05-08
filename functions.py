@@ -25,6 +25,7 @@ def FCI(hamil):
 
     return eigs, vec
 
+
 def sum_of_states(eigenspectrum, beta):
 
     '''
@@ -103,13 +104,13 @@ def build_hamiltonian(hamilf):
     return hamiltonian, hilbert_space, hamiltonian[0,0]
 
 
-def tmatrix(hamiltonian, shift):
+def tmatrix(hamiltonian, shift=0):
 
     '''
         In:
             hamiltonian:
                 The system we are interested in.
-            shift:
+            shift (default = 0):
                 A shift to apply to the diagonal of the hamiltonian
         Out:
             Tpos:
@@ -160,6 +161,44 @@ def unphysical_hamiltonian(hamiltonian):
     Htilde = Htilde_pos + Htilde_neg + Htilde_diags
     
     return Htilde
+
+
+def seperate_signs(array, diagonals=False):
+
+    '''
+    Takes a NumPy array and seperates it into two matrix's one for each sign
+
+        In:
+            array:
+                The array we would like to decompose into two signed arrays.
+            diagonals (optional, defaul=False):
+                If True, generate three matrix's, two for each sign and the
+                last is the diagonals with their original signs
+        Out:
+            array_pos:
+                The positive elements of the original array
+            array_neg:
+                The negative elements of the original array, returned
+                with a positive sign. (Be warned!!!)
+            array_diags:
+                The diagonal elements of the original array as a matrix.
+                These are returned with their original sign.
+    '''
+
+    if diagonals == True:
+        array_diags = np.diag(np.diag(array))
+        array = array - array_diags
+
+        array_pos = array.clip(min=0)
+        array_neg = abs(array.clip(max=0))
+
+        return array_pos, array_neg, array_diags
+
+    else: 
+        array_pos = array.clip(min=0)
+        array_neg = abs(array.clip(max=0))
+
+        return array_pos, array_neg
 
 
 def proj_energy(hamil_matrix, rho_matrix, row):
@@ -264,6 +303,18 @@ def system_initialize(hamilf, shift=0, return_raw=False):
             H:
                 The Hamiltonian shifted by the Hartree-Fock and the
                 provided shift.
+            Heval:
+                The system Hamiltonian without any shifting so we can
+                calculate expectation values.
+            HS:
+                The Hilbert space for the system. Very useful for generating
+                matrix's and other arrays on the fly that we need for
+                many calculations.
+            Hraw (optional):
+                Returns the unsorted array if that is needed.
+            sorted_hash (optional):
+                Returns the hash map used to sort the Hamiltonian, useful
+                for mapping determinants to HANDE.
     '''
 
     Hraw, HS, HF = build_hamiltonian(hamilf)
@@ -288,10 +339,46 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
             init:
                 The initalization method we would like to use.
                 Follows naming scheme:
-                rows selection - inital weight
-                Example: uniform - thermal
-                         uniformally generate diagonal elements and populate
-                         with the thermal weight of "walkers"
+
+                    rows selection - inital weight
+
+                    Currently Implemented:
+                    -------------------------------
+                    deterministic-thermal:
+                        Rows initialized with the thermal Hartree-Fock
+                        weights on the diagonal elements. The canonical
+                        starting point for IP-DMQMC
+
+                    deterministic-uniform:
+                        Rows initalized with a weight of 1 on the diagonal
+                        elements. This works out to be just the identity
+                        matrix and is the canonical starting point for DMQMC.
+
+                    uniform-thermal:
+                        Uniformly selects random diagonal determinants and
+                        initalizes that row with a weight proportional to the
+                        thermal weight from FCI Hamiltonian.
+
+                    uniform-uniform:
+                        Randomly selects diagonal determinants and adds
+                        a weight of 1 to that determinant. This can happen
+                        multiple times. This is how HANDE initializes the
+                        density matrix.
+
+                    thermal-thermal:
+                        Selects random rows with a probability proportional
+                        to the thermal weight from the FCI Hamiltonian.
+                        This is not the correct way to initalize IP-DMQMC.
+
+                    thermal-uniform:
+                        Selects random rows based on probabilities proportional
+                        to the thermal weight of the FCI Hamiltonian diagonal
+                        elements. Then occupies that determinant with 1 walker.
+
+                    specific-uniform:
+                        Takes the optional parameter rowlist and occupies
+                        those specific rows with a weight of 1.
+
             Nattempt:
                 The number of attempts we want to try initalization.
                 This is the random selections for stochastic initalizations
@@ -468,7 +555,9 @@ def stochastic_round(array):
 def deterministic_round(array, round_method='trunc', decimals=None):
 
     '''
-    This function performs a stochastic rounding on a NumPy array.
+    This function performs a deterministic rounding on a NumPy array.
+    This is in no way complete and is for preliminary testing of deterministic
+    plateaus.
 
         In:
             array:
@@ -594,6 +683,9 @@ def store_data(data, df, betaloop, beta_loops, csv, path=''):
         Out:
             Data:
                 An array of all the data we have accumulated from beta loops.
+                Or if the beta loop cycle is compelte it returns an empty
+                array after saving the data to a specified location so we
+                can do another cycle with a different set of parameters.
             csv (Saved as a file):
                 An array to save as a file.
     '''
