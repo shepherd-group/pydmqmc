@@ -552,7 +552,7 @@ def stochastic_round(array):
     return stoch_rounded_array
 
 
-def deterministic_round(array, round_method='trunc', decimals=None):
+def deterministic_round(array, round_method, decimals=0):
 
     '''
     This function performs a deterministic rounding on a NumPy array.
@@ -565,15 +565,15 @@ def deterministic_round(array, round_method='trunc', decimals=None):
                 in.
             round_method:
                 How do we want to deterministically round the array?
-            decimals (optional, default=None):
+            decimals (optional, default=0):
                 round to a specifica decimal place.
         Out:
             rounded_array:
                 The stochastically rounded version of the input array.
     '''
 
-    if decimals != None:
-        array *= 10**decimals
+    if round_method == 'decimal':
+        rounded_array = np.around(array, decimals=decimals)
 
     if round_method == 'trunc':
         rounded_array = np.trunc(array)
@@ -581,11 +581,8 @@ def deterministic_round(array, round_method='trunc', decimals=None):
     if round_method == 'rint':
         rounded_array = np.rint(array)
 
-    if decimals != None:
-        rounded_array /= 10**decimals
-
     else:
-        print(' Unknown Rounding Method', round_method)
+        print(' Unknown or Unsupplied Rounding Method', round_method)
         print(' Exiting...')
         return exit()
 
