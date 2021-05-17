@@ -22,7 +22,7 @@ H0 = np.diag(np.diag(H))
 
 # Data Saving
 data = []
-path  = './outputs/dmqmc-variable-shift/'
+path  = ''
 csvname = 'variableshift-analytical-nonsym-dmqmc'
             
 for betaloop in range(1,beta_loops+1):
@@ -51,5 +51,5 @@ for betaloop in range(1,beta_loops+1):
         write_report(iteration, tau, shift, d, Heval, df=df, stdout=True)
         H, shift = update_shift(H, HS, cycles, tau, df, zeta)
 
-    #data = store_data(data, df, betaloop, beta_loops, csvname, path)
+    data = store_data(data, df, betaloop, beta_loops, csvname, path)
 

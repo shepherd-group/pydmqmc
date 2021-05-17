@@ -59,5 +59,5 @@ for betaloop in range(1,beta_loops+1):
 
         write_report(iteration, tau, shift, f, Heval, df=df, stdout=True)
 
-    data = store_data(data, df, betaloop, beta_loops, csvname, path)
+    store_data(data, df, betaloop, beta_loops, csvname, path)
 

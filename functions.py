@@ -5,7 +5,7 @@ import pandas as pd
 from numpy import linalg as LA
 
 
-def FCI(hamil):
+def fci(hamil):
 
     '''
     Do FCI on a Hamiltonian.
@@ -201,25 +201,26 @@ def seperate_signs(array, diagonals=False):
         return array_pos, array_neg
 
 
-def proj_energy(hamil_matrix, rho_matrix, row):
+def proj_energy(hamil_matrix, Psi, report=False):
 
     '''
         In:
             hamil_matrix:
                 THe Hamiltonian to use for the estimation
-            rho_matrix:
-                The rho matrix to use for energy estimate.
-            row:
-                The row we are interested in.
+            Psi:
+                The wavefunction for energy estimate.
         Out:
             Energy: The energy given as
           sum_i { hamil_matrix[i,row] rho_matrix[row,i] } / rho_matrix[row,row]
     '''
 
-    energy = (hamil_matrix[:,row] @ rho_matrix[row,:]).sum()
-    energy = energy / rho_matrix[row,row]
+    num = (hamil_matrix[:,0] @ Psi).sum()
+    den = Psi[0,0]
 
-    return energy
+    if report == True:
+        return num, den
+    else:
+        return num/den
 
 
 def expectation(hamil, dm, observable):
@@ -328,6 +329,33 @@ def system_initialize(hamilf, shift=0, return_raw=False):
     return H, Heval, HS
 
 
+def initialize_psi(HilbertSpace, Particles, Reference=0):
+
+    '''
+    Initalize the trial wavefunction assuming the reference is the 1,1
+    element of our Hamiltonian.
+
+        In:
+            HilbertSpace:
+                The size of the determinant space for our Hamiltonian.
+            Particles:
+                The number of Particles to initalize our trial with.
+            Reference:
+                The reference state we use as our trial wavefunction.
+        Out:
+            Psi:
+                The trial wavefunction based on our reference.
+    '''
+
+    DF = { 'Iteration':[], 'Shift':[], 'Sum H_{0j}*Psi_{j}':[], 'Psi_{0}':[],
+           'Nw':[], '<E>':[]}
+
+    Psi = empty_array(HilbertSpace,1)
+    Psi[0,Reference] += Particles
+
+    return Psi, DF
+
+
 def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
                   thermal_weights=None):
 
@@ -407,7 +435,7 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
     df = { 'Beta':[], 'Shift':[], 'Tr(Hp)':[], 'Tr(p)':[],
            'Nw':[], '<E>':[], 'N_rows':[]}
 
-    f = empty_array(HS)
+    f = empty_array(HS,HS)
     if 'thermal' in init and not(isinstance(thermal_weights, np.ndarray)):
         thermal_weights = np.exp(-target*np.diag(Heval))
         thermal_weights /= thermal_weights.sum()
@@ -470,18 +498,20 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
         return exit()
 
 
-def empty_array(hilbert_space):
+def empty_array(DimOne,DimTwo):
 
     '''
         In:
-            hilbert_space:
-                The hilbert space of the system.
+            DimOne:
+                The row length of our array.
+            DimTwo:
+                The column length of our array.
         Out:
             zeros:
                 A 2D NumPy array with zeros.
     '''
 
-    return np.zeros((hilbert_space, hilbert_space))
+    return np.zeros((DimOne, DimTwo))
 
 
 def update_shift(H, HS, cycles, tau, df, zeta):
@@ -526,10 +556,35 @@ def update_shift(H, HS, cycles, tau, df, zeta):
     return H, new_shift
 
 
-def stochastic_round(array):
+def stochastic_round(number):
+
+    '''
+    See stochastic_round_array for more information.
+
+        In:
+            number:
+                The value we want to stochastically round.
+        Out:
+            stoch_number:
+                The stochastically rounded number.
+    '''
+
+    number_sign = np.sign(number)
+    stoch_number = np.abs(number) + np.random.random()
+    stoch_number = np.trunc(stoch_number)*number_sign
+
+    return stoch_number
+
+
+def stochastic_round_array(array):
 
     '''
     This function performs a stochastic rounding on a NumPy array.
+    We can stochastically round a number by generating a uniform
+    decimal from 0 to 1 non-inclusive, then add this random number to the
+    original number. Then we truncate, if the number was 0.3, there is a 30%
+    chance we generate a number from 0.7-1.0 such that the truncated number
+    is the next decimal.
 
         In:
             array:
@@ -574,19 +629,20 @@ def deterministic_round(array, round_method, decimals=0):
 
     if round_method == 'decimal':
         rounded_array = np.around(array, decimals=decimals)
+        return rounded_array
 
     if round_method == 'trunc':
         rounded_array = np.trunc(array)
+        return rounded_array
 
     if round_method == 'rint':
         rounded_array = np.rint(array)
+        return rounded_array
 
     else:
-        print(' Unknown or Unsupplied Rounding Method', round_method)
+        print(' Unknown or Unsupplied Rounding Method:', round_method)
         print(' Exiting...')
         return exit()
-
-    return rounded_array
 
 
 def write_header():
@@ -601,8 +657,7 @@ def write_header():
 
     head = ' {:>6}    {:<18}    {:<18}    {:<18}    {:<18}'
     head = head.format('Beta','Shift','Tr(pH)', 'Tr(p)','Nw')
-    print(head)
-    return
+    return print(head)
 
 
 def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False):
@@ -641,7 +696,7 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False):
     curbeta = round(iteration*tau, abs(int(np.log10(tau))))
 
     if stdout:
-        data  = ' {:> 5}   {:< 1.12E}   {:< 2.12E}   {:< 3.12E}   {:< 4.12E}'
+        data  = ' {:<6}   {:< 1.12E}   {:< 2.12E}   {:< 3.12E}   {:< 4.12E}'
         data = data.format(curbeta,shift,energy_numerator,trace,psips)
         print(data)
 
@@ -654,8 +709,6 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False):
         df['<E>'].append(energy_numerator/trace)
         df['N_rows'].append(len(np.unique(np.nonzero(dm)[0])))
         return df
-
-    return
 
 
 def store_data(data, df, betaloop, beta_loops, csv, path=''):
@@ -733,4 +786,120 @@ def average_betaloops(df):
     mean['Tr(Hp)/Tr(p)'] = mean_energy
 
     return mean
+
+
+def fciqmc_header():
+
+    '''
+    Writes a header so we know what we are looking at from write report.
+        In:
+            N/A
+        Out:
+            N/A
+    '''
+
+    head = ' {:<10}    {:<18}    {:<18}    {:<18}    {:<18}'
+    head = head.format('Iteration','Shift','Sum H_{0j}*Psi_{j}','Psi_{0}','Nw')
+    return print(head)
+
+
+def fciqmc_report(iteration, tau, shift, Psi, hamil, df=None, stdout=False):
+
+    '''
+        In:
+            iteration:
+                The current iteration for the data.
+            tau:
+                The time step of the simulation
+            shift:
+                The current shift for the data simulation.
+            Psi:
+                The current Psi estimate.
+            hamil:
+                The systems Hamiltonian we are simulating.
+            df (optional):
+                A dictionary where we intend to store information.
+            stdout (optional):
+                A boolean to print out the data from the iteration.
+        Out:
+            stdout (optional):
+                Prints the Iteration, shift, energy_numerator, energy_denom
+                and "walkers" for the current density matrix.
+            df (optional):
+                A dictionary of data that has been updated with the current
+                data 
+    '''
+
+    if iteration == 0 and stdout == True:
+        fciqmc_header()
+
+    num, den = proj_energy(hamil, Psi, report=True) 
+    psips = abs(Psi).sum()
+
+    if stdout:
+        data  = ' {:<10}   {:< 1.12E}   {:< 2.12E}   {:< 3.12E}   {:< 4.12E}'
+        data = data.format(iteration,shift,num,den,psips)
+        print(data)
+
+    if df != None:
+        df['Iteration'].append(iteration)
+        df['Shift'].append(shift)
+        df['Sum H_{0j}*Psi_{j}'].append(num)
+        df['Psi_{0}'].append(den)
+        df['Nw'].append(psips)
+        df['<E>'].append(num/den)
+        return df
+
+
+def store_fciqmc(DF, CsvName, Path=''):
+
+    '''
+    Store the data collected during an FCIQMC simulation.
+
+        In:
+            DF:
+                The Pandas DataFrame of data.
+            CsvName:
+                What would we like to name this file?
+            Path:
+                Where would we like to store the file?
+        Out:
+            N/A
+    '''
+
+    DF = pd.DataFrame(DF)
+
+    if len(Path) > 0 and Path[-1] == '/':
+        DF.to_csv(Path+CsvName+'.csv', index=False)
+    elif len(Path) == 0:
+        DF.to_csv(Path+CsvName+'.csv', index=False)
+    else:
+        DF.to_csv(Path+'/'+CsvName+'.csv', index=False)
+
+
+def simple_reblock(DF, block=5):
+
+    '''
+    Performs a simple reblock and generates a mean of the projected
+    energy and shift energy for an fciqmc simulation. This is by no means
+    an actual reblock but a poor attempt to perform one.
+
+        In:
+            DF:
+                The Pandas DataFrame we wish to perform the reblocking
+                analysis on.
+            block (default=5):
+                The size of the block to reblock over.
+        Out:
+            means:
+                The average of all the variables.
+            errors:
+                The standard error of the means.
+    '''
+
+    # TODO Add in the covariance for the error estimate.
+    means = DF.mean()
+    errors = DF.std()/np.sqrt(DF.count()[0])
+
+    return means, errors
 

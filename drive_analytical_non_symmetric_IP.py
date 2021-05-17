@@ -12,7 +12,7 @@ cycles = 1
 targets = [7]
 tau = 0.1
 #reports = int(target/(tau*cycles))
-beta_loops = 5000
+beta_loops = 100000
 #attempts = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000,
 #            10000, 20000, 50000, 100000, 200000, 500000, 1000000,
 #            2000000]
@@ -28,6 +28,8 @@ H, Heval, HS = system_initialize('STRETCHED-H6-STO3G.hamil', shift)
 H0 = np.diag(np.diag(H))
 
 for seed, attempts, init in simulations:
+    if init == 'uniform-thermal':
+        break
     np.random.seed(seed)
 
     for target in targets:
