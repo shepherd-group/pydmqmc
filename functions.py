@@ -877,7 +877,7 @@ def store_fciqmc(DF, CsvName, Path=''):
         DF.to_csv(Path+'/'+CsvName+'.csv', index=False)
 
 
-def simple_reblock(DF, block=5):
+def simple_reblock(DF, block=5, iteration=0):
 
     '''
     Performs a simple reblock and generates a mean of the projected
@@ -897,9 +897,46 @@ def simple_reblock(DF, block=5):
                 The standard error of the means.
     '''
 
-    # TODO Add in the covariance for the error estimate.
-    means = DF.mean()
-    errors = DF.std()/np.sqrt(DF.count()[0])
+    DF = DF.drop(0).reset_index(drop=True)
+    DFdex = DF[DF['Iteration'] > iteration].index.values
+    DF = DF.iloc[DFdex].reset_index(drop=True)
 
-    return means, errors
+    new_block = block
+    while len(DF) % new_block != 0.0:
+        new_block += 1
+        if bew_block == len(DF):
+            print(' Warning, unable to find even block for data!')
+            print(' Exiting...')
+            return exit()
+
+    if block != new_block:
+        print('Changing block to:', new_block, 'to accomodate data length.')
+        block = new_block
+
+    DF['blocks'] = DF.index//block
+    reblock = DF.groupby('blocks').mean()
+
+    count = reblock.count()
+    means = reblock.mean()
+    errors = reblock.std()/np.sqrt(reblock.count()[0])
+    cov = reblock.cov()
+
+    proj = means['Sum H_{0j}*Psi_{j}']/means['Psi_{0}']
+
+    covter  = count['Psi_{0}']
+    covter *= means['Sum H_{0j}*Psi_{j}']
+    covter *= means['Psi_{0}']
+    coverr  = (errors['Sum H_{0j}*Psi_{j}']/means['Sum H_{0j}*Psi_{j}'])**2
+    coverr += (errors['Psi_{0}']/means['Psi_{0}'])**2
+    coverr -= 2*cov['Sum H_{0j}*Psi_{j}'].loc['Psi_{0}']/covter
+    coverr  = abs(proj*np.sqrt(coverr))
+
+    estimates = {
+                'Sum H_{0j}*Psi_{j}/Psi_{0}':[proj],
+                'Sum H_{0j}*Psi_{j}/Psi_{0}_error':[coverr],
+                'Shift':[means['Shift']],
+                'Shift_error':[errors['Shift']],
+                }
+
+    return pd.DataFrame(estimates)
 
