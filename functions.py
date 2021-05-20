@@ -48,24 +48,19 @@ def sum_of_states(eigenspectrum, beta):
 
     if isinstance(beta, (list,np.ndarray)):
         energy = []
-
         for b in beta:
             numerator   = np.exp(-b * eigenspectrum)
             denominator = np.sum(np.copy(numerator))
             numerator   *= eigenspectrum
             numerator   = np.sum(numerator)
             energy.append(np.divide(numerator, denominator))
-
         return energy
-
     else:
-
         numerator   = np.exp(-beta * eigenspectrum)
         denominator = np.sum(np.copy(numerator))
         numerator   *= eigenspectrum
         numerator   = np.sum(numerator)
         energy      = np.divide(numerator, denominator)
-
         return energy
 
 
@@ -653,16 +648,17 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
         print(data)
 
     if df != None:
+        occ_rows = np.unique(np.nonzero(dm)[0])
+
         df['Beta'].append(curbeta)
         df['Shift'].append(shift)
         df['Tr(Hp)'].append(energy_numerator)
         df['Tr(p)'].append(trace)
         df['Nw'].append(psips)
         df['<E>'].append(energy)
-        df['N_rows'].append(len(np.unique(np.nonzero(dm)[0])))
+        df['N_rows'].append(len(nrows))
 
         if ind_row_evals:
-            occ_rows = np.unique(np.nonzero(dm)[0])
             for row in occ_rows:
                 lab = 'E(p['+str(row+1)+',*])'
                 if iteration == 0:
