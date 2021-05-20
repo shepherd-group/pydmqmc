@@ -656,7 +656,7 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
         df['Tr(p)'].append(trace)
         df['Nw'].append(psips)
         df['<E>'].append(energy)
-        df['N_rows'].append(len(nrows))
+        df['N_rows'].append(len(occ_rows))
 
         if ind_row_evals:
             for row in occ_rows:
