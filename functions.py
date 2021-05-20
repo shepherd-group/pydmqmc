@@ -201,11 +201,11 @@ def seperate_signs(array, diagonals=False):
         return array_pos, array_neg
 
 
-def proj_energy(hamil_matrix, rho_matrix, row):
+def proj_energy(hamil, rho_matrix, row):
 
     '''
         In:
-            hamil_matrix:
+            hamil:
                 THe Hamiltonian to use for the estimation
             rho_matrix:
                 The rho matrix to use for energy estimate.
@@ -213,11 +213,10 @@ def proj_energy(hamil_matrix, rho_matrix, row):
                 The row we are interested in.
         Out:
             Energy: The energy given as
-          sum_i { hamil_matrix[i,row] rho_matrix[row,i] } / rho_matrix[row,row]
+          sum_i { hamil[i,row] rho_matrix[row,i] } / rho_matrix[row,row]
     '''
 
-    energy = (hamil_matrix[:,row] @ rho_matrix[row,:]).sum()
-    energy = energy / rho_matrix[row,row]
+    energy = (hamil[:,row] @ rho_matrix[row,:]).sum()/rho_matrix[row,row]
 
     return energy
 
@@ -235,20 +234,23 @@ def expectation(hamil, dm, observable):
         Out:
             expectation: The expectation for an operator "O":
                 <O> = Tr(O dm) / Tr(dm)
+            expectation_num:
+                The numerator of the estimator.
+            expectation_den:
+                The trace on the density matrix.
     '''
 
     if 'Energy' == observable:
         expectation_num = (hamil @ dm).trace()
         expectation_den = dm.trace()
         expectation = expectation_num/expectation_den
+        return expectation, expectation_num, expectation_den
 
     else:
         print('Unexpected observable:', observable)
         print('Please implement or check spelling!')
         print('Exiting...')
-        exit()
-
-    return expectation
+        return exit()
 
 
 def sort_index_by_diagonal(hamil, hilbert):
@@ -320,7 +322,7 @@ def system_initialize(hamilf, shift=0, return_raw=False):
     Hraw, HS, HF = build_hamiltonian(hamilf)
     H, sorted_diags, sorted_hash = sort_index_by_diagonal(Hraw, HS)
     Heval = np.copy(H)
-    H = H - (np.eye(HS)*HF) - (np.eye(HS)*shift)
+    H = H - (np.eye(HS)*HF) + (np.eye(HS)*shift)
 
     if return_raw:
         return H, Heval, HS, Hraw, sorted_hash
@@ -605,7 +607,8 @@ def write_header():
     return
 
 
-def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False):
+def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
+                 ind_row_evals=False):
 
     '''
         In:
@@ -623,6 +626,11 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False):
                 A dictionary where we intend to store information.
             stdout (optional):
                 A boolean to print out the data from the iteration.
+            ind_row_evals (optional):
+                A boolean which flags individual row energy estimates.
+                If this is true a loop is performed over the entire list
+                of rows on the density matrix, if they are non-zero an energy
+                estimate is performed and stored in df.
         Out:
             stdout (optional):
                 Prints the beta, shift, energy_numerator, trace
@@ -632,11 +640,10 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False):
                 data 
     '''
 
-    if iteration == 0 and stdout == True:
+    if iteration == 0 and stdout:
         write_header()
 
-    energy_numerator = (dm @ hamil).trace()
-    trace = dm.trace()
+    energy, energy_numerator, trace = expectation(hamil, dm, 'Energy')
     psips = abs(dm).sum()
     curbeta = round(iteration*tau, abs(int(np.log10(tau))))
 
@@ -651,8 +658,19 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False):
         df['Tr(Hp)'].append(energy_numerator)
         df['Tr(p)'].append(trace)
         df['Nw'].append(psips)
-        df['<E>'].append(energy_numerator/trace)
+        df['<E>'].append(energy)
         df['N_rows'].append(len(np.unique(np.nonzero(dm)[0])))
+
+        if ind_row_evals:
+            occ_rows = np.unique(np.nonzero(dm)[0])
+            for row in occ_rows:
+                lab = 'E(p['+str(row+1)+',*])'
+                if iteration == 0:
+                    df[lab] = []
+
+                row_ene = proj_energy(hamil, dm, row)
+                df[lab].append(row_ene)
+
         return df
 
     return
