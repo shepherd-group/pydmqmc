@@ -8,23 +8,24 @@ from functions import *
 #seed = np.random.randint(2**32 - 1)
 seeds = [7,8,9,10]
 shift = 0.0
-cycles = 1
-targets = [7]
-tau = 0.1
+cycles = 50
+targets = [10]
+tau = 0.01
 #reports = int(target/(tau*cycles))
-beta_loops = 5000
+beta_loops = 1
 #attempts = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000,
 #            10000, 20000, 50000, 100000, 200000, 500000, 1000000,
 #            2000000]
 attempts = [1]
 #init_dm = ['thermal-thermal', 'thermal-uniform',
 #           'uniform-thermal', 'uniform-uniform']
-init_dm = ['thermal-uniform', 'uniform-thermal']
+init_dm = ['thermal-uniform']
 #simulations = zip(seeds, [attempts, attempts, attempts, attempts], init_dm)
-simulations = zip(seeds, [attempts, attempts], init_dm)
+simulations = zip(seeds, [attempts], init_dm)
 
-H, Heval, HS = system_initialize('STRETCHED-H6-STO3G.hamil', shift)
+H, Heval, HS = system_initialize('EQUILIBRIUM-H4-STO3G.hamil', shift)
 #H0 = np.diag(np.diag(H)) + (np.eye(HS)*shift)
+W = np.exp(np.diag(H) * -targets[0])
 H0 = np.diag(np.diag(H))
 
 for seed, attempts, init in simulations:
@@ -51,7 +52,8 @@ for seed, attempts, init in simulations:
                 iteration = 0
                 report = 0
                 f, occrows, df = initialize_dm(init, Nattempts, target, Heval, HS)
-                write_report(iteration, tau, shift, f, Heval, df=df)
+                f = np.diag(W)
+                write_report(iteration, tau, shift, f, Heval, df=df, stdout=True)
             
                 for report in range(reports):
                 
@@ -67,7 +69,7 @@ for seed, attempts, init in simulations:
                         
                         f += deltaf
                 
-                    write_report(iteration, tau, shift, f, Heval, df=df)
+                    write_report(iteration, tau, shift, f, Heval, df=df, stdout=True)
 
-                store_data(data, df, betaloop, beta_loops, csvout, path)
+#                store_data(data, df, betaloop, beta_loops, csvout, path)
 

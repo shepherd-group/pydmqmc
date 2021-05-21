@@ -12,7 +12,7 @@ init_pop = 1
 rho = np.eye(ndets)
 det_space = 15
 semi_stochastic = True
-symmetric = True
+symmetric = True 
 '''
 the asymmetric propagator
 the change in the density matrix per change in temperature
@@ -67,10 +67,10 @@ for inverse_temp_step in range(1, nreports + 1):
     elif symmetric == True:
         if semi_stochastic == True:
 #            np.set_printoptions(linewidth=10000)
-  #          delta_rho = -0.5 * tau * ((P @ rho) + (rho @ P))
-   #         rho = rho + delta_rho
-    #        if inverse_temp_step < 4:
-     #           continue
+#            delta_rho = -0.5 * tau * ((P @ rho) + (rho @ P))
+#            rho = rho + delta_rho
+#            if inverse_temp_step < 4:
+#                continue
             #P11
             delta_rho_1a = -0.5 * tau * (P[:det_space, :det_space] @ rho[:det_space, :])
             delta_rho_1b = -0.5 * tau * (rho[:, :det_space] @ P[:det_space, :det_space])
@@ -82,7 +82,7 @@ for inverse_temp_step in range(1, nreports + 1):
             delta_rho_3b = -0.5 * tau * (rho[:, :det_space] @ P[:det_space, det_space:])
             #P21
             delta_rho_4a = -0.5 * tau * (P[det_space:, :det_space] @ rho[:det_space, :])
-            delta_rho_4b= -0.5 * tau * (rho[:, det_space:] @ P[det_space:, :det_space])
+            delta_rho_4b = -0.5 * tau * (rho[:, det_space:] @ P[det_space:, :det_space])
 #            test_P = np.zeros((ndets, ndets))
  #           test_P[det_space:, det_space:] = P[det_space:, det_space:]
   #          print("zeros + P22 is\n", test_P)
@@ -96,7 +96,20 @@ for inverse_temp_step in range(1, nreports + 1):
           #  print("rho + temp_delta_rho\n", rho + temp_delta_rho)
            # print("delta_rho_3\n", delta_rho_3)
 #            print("rho[:det_space, det_space:] += delta_rho_3\n", rho[:det_space, det_space:] + delta_rho_3)
- #           exit()         
+#            exit()         
+#            test_P = np.zeros((ndets, ndets))
+#            test_P[:det_space, det_space:] = P[:det_space, det_space:]
+#            print("zeros + P12 is\n", test_P)
+#            temp_delta_rho_3a = -0.5 * tau * ((test_P @ rho))
+#            print("temp_delta_rho_3a\n", temp_delta_rho_3a)
+#            print("delta_rho_3a\n", delta_rho_3a)
+#            test_P = np.zeros((ndets, ndets))
+#            test_P[:det_space, det_space:] = P[:det_space, det_space:]
+#            print("zeros + P12 is\n", test_P)
+#            temp_delta_rho_3b = -0.5 * tau * ((rho @ test_P))
+#            print("temp_delta_rho_3b\n", temp_delta_rho_3b)
+#            print("delta_rho_3b\n", delta_rho_3b)
+#            exit()
             rho[:det_space, :] += delta_rho_1a
             rho[:, :det_space] += delta_rho_1b
             rho[det_space:, :] += delta_rho_2a
@@ -108,6 +121,7 @@ for inverse_temp_step in range(1, nreports + 1):
         elif semi_stochastic == False:
             delta_rho = -0.5 * tau * ((P @ rho) + (rho @ P))
             rho = rho + delta_rho
+
     if (inverse_temp_step) % 50 == 0:
         energy_estimate = (H @ rho).trace()/rho.trace()
         total_walkers = (np.abs(rho)).sum()
