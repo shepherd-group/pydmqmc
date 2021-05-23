@@ -317,7 +317,7 @@ def system_initialize(hamilf, shift=0, return_raw=False):
     Hraw, HS, HF = build_hamiltonian(hamilf)
     H, sorted_diags, sorted_hash = sort_index_by_diagonal(Hraw, HS)
     Heval = np.copy(H)
-    H = H - (np.eye(HS)*HF) + (np.eye(HS)*shift)
+    H = H - (np.eye(HS)*HF) - (np.eye(HS)*shift)
 
     if return_raw:
         return H, Heval, HS, Hraw, sorted_hash
@@ -521,6 +521,24 @@ def update_shift(H, HS, cycles, tau, df, zeta):
     new_shift = shift + dshift
 
     return H, new_shift
+
+
+def stochastic_round_f(f):
+
+    '''
+    Stochastically rounds a single float.
+
+        In:
+            f:
+                A float we want to stochastically round.
+        Out:
+            i:
+                An integer that results from the stochastic rounding.
+                The type is still a float though for compatability.
+    '''
+
+    i = f + np.sign(f)*np.random.random()
+    return np.trunc(f)
 
 
 def stochastic_round(array):
