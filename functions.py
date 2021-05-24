@@ -806,10 +806,10 @@ def complex_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
     re_dm = np.real(dm)
     im_dm = np.imag(dm)
 
-    re_energy, re_energy_numerator, re_trace = expectation(hamil, re_dm, 'Energy')
+    re_energy, re_energy_num, re_trace = expectation(hamil, re_dm, 'Energy')
     re_psips = abs(re_dm).sum()
 
-    im_energy, im_energy_numerator, im_trace = expectation(hamil, im_dm, 'Energy')
+    im_energy, im_energy_num, im_trace = expectation(hamil, im_dm, 'Energy')
     im_psips = abs(im_dm).sum()
 
     curbeta = round(iteration*tau, abs(int(np.log10(tau))))
@@ -817,8 +817,8 @@ def complex_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
     if stdout:
         data  = ' {:> 5}   {:< 1.12E}   {:< 1.12E}   {:< 1.12E}   {:< 1.12E}'
         data += '   {:< 1.12E}   {:< 1.12E}   {:< 1.12E}'
-        data = data.format(curbeta,shift,re_energy_numerator,
-                           im_energy_numerator,re_trace,im_trace,
+        data = data.format(curbeta,shift,re_energy_num,
+                           im_energy_num,re_trace,im_trace,
                            re_psips,im_psips)
         print(data)
 
@@ -827,8 +827,8 @@ def complex_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
 
         df['Beta'].append(curbeta)
         df['Shift'].append(shift)
-        df['Re{Tr(Hp)}'].append(re_energy_numerator)
-        df['Im{Tr(Hp)}'].append(im_energy_numerator)
+        df['Re{Tr(Hp)}'].append(re_energy_num)
+        df['Im{Tr(Hp)}'].append(im_energy_num)
         df['Re{Tr(p)}'].append(re_trace)
         df['Im{Tr(p)}'].append(im_trace)
         df['Re{Nw}'].append(re_psips)
