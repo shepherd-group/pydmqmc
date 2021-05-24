@@ -238,7 +238,10 @@ def expectation(hamil, dm, observable):
     if 'Energy' == observable:
         expectation_num = (hamil @ dm).trace()
         expectation_den = dm.trace()
-        expectation = expectation_num/expectation_den
+        if expectation_den == 0.0:
+            expectation = np.nan
+        else:
+            expectation = np.divide(expectation_num, expectation_den)
         return expectation, expectation_num, expectation_den
 
     else:
@@ -323,6 +326,23 @@ def system_initialize(hamilf, shift=0, return_raw=False):
         return H, Heval, HS, Hraw, sorted_hash
 
     return H, Heval, HS
+
+
+def non_interacting(hamiltonian):
+
+    '''
+    Generate a non-interacting Hamiltonian from an interacting one.
+    This just converts the off-diagonal elements to zero.
+
+        In:
+            hamiltonian:
+                The Hamiltonian we want to generate a non-interacting
+                version of.
+        Out:
+            mean_field_h:
+                The non-interacting hamiltonian.
+    '''
+    return np.diag(np.diag(hamiltonian))
 
 
 def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
@@ -759,6 +779,7 @@ def average_betaloops(df):
     coverr -= 2*cov/(count['Tr(Hp)']*mean['Tr(Hp)']*mean['Tr(p)'])
     coverr  = abs(mean_energy*np.sqrt(coverr))
 
+    mean['Nw SE'] = se['Nw']
     mean['<E> SE'] = se['<E>']
     mean['N_rows SE'] = se['N_rows']
     mean['Tr(Hp)/Tr(p)_error'] = coverr
@@ -766,3 +787,56 @@ def average_betaloops(df):
 
     return mean
 
+
+def complex_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
+                   ind_row_evals=False):
+
+    '''
+    See write_report for more information. This is a version of write_report
+    which treats complex density matrix's.
+    '''
+
+    if iteration == 0 and stdout:
+        head  = ' {:>6}    {:<18}    {:<18}    {:<18}    {:<18}    '
+        head += '{:<18}    {:<18}    {:<18}'
+        head = head.format('Beta','Shift','Re{Tr(pH)}','Im{Tr(pH)}',
+                           'Re{Tr(p)}','Im{Tr(p)}','Re{Nw}','Im{Nw}')
+        print(head)
+
+    re_dm = np.real(dm)
+    im_dm = np.imag(dm)
+
+    re_energy, re_energy_numerator, re_trace = expectation(hamil, re_dm, 'Energy')
+    re_psips = abs(re_dm).sum()
+
+    im_energy, im_energy_numerator, im_trace = expectation(hamil, im_dm, 'Energy')
+    im_psips = abs(im_dm).sum()
+
+    curbeta = round(iteration*tau, abs(int(np.log10(tau))))
+
+    if stdout:
+        data  = ' {:> 5}   {:< 1.12E}   {:< 1.12E}   {:< 1.12E}   {:< 1.12E}'
+        data += '   {:< 1.12E}   {:< 1.12E}   {:< 1.12E}'
+        data = data.format(curbeta,shift,re_energy_numerator,
+                           im_energy_numerator,re_trace,im_trace,
+                           re_psips,im_psips)
+        print(data)
+
+    if df != None:
+        occ_rows = np.unique(np.nonzero(dm)[0])
+
+        df['Beta'].append(curbeta)
+        df['Shift'].append(shift)
+        df['Re{Tr(Hp)}'].append(re_energy_numerator)
+        df['Im{Tr(Hp)}'].append(im_energy_numerator)
+        df['Re{Tr(p)}'].append(re_trace)
+        df['Im{Tr(p)}'].append(im_trace)
+        df['Re{Nw}'].append(re_psips)
+        df['Im{Nw}'].append(im_psips)
+        df['Re{<E>}'].append(re_energy)
+        df['Im{<E>}'].append(im_energy)
+        df['N_rows'].append(len(occ_rows))
+
+        return df
+
+    return
