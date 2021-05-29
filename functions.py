@@ -634,7 +634,7 @@ def write_header():
             N/A
     '''
 
-    head = ' {:>6}    {:<18}    {:<18}    {:<18}    {:<18}'
+    head = ' {:>8}    {:<18}    {:<18}    {:<18}    {:<18}'
     head = head.format('Beta','Shift','Tr(pH)', 'Tr(p)','Nw')
     print(head)
     return
@@ -681,7 +681,7 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
     curbeta = round(iteration*tau, abs(int(np.log10(tau))))
 
     if stdout:
-        data  = ' {:> 5}   {:< 1.12E}   {:< 2.12E}   {:< 3.12E}   {:< 4.12E}'
+        data  = ' {:> 8}   {:< 1.12E}   {:< 2.12E}   {:< 3.12E}   {:< 4.12E}'
         data = data.format(curbeta,shift,energy_numerator,trace,psips)
         print(data)
 
