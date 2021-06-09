@@ -770,9 +770,10 @@ def average_betaloops(df):
     mean = groupdf.mean()
     se = groupdf.std()/np.sqrt(count-1)
 
-    cov = groupdf.cov()
-    cov = cov['Tr(p)'].iloc[cov.index.get_level_values(1) == 'Tr(Hp)']
-    cov = cov.reset_index().set_index('Beta')['Tr(p)']
+    cov = groupdf.cov()['Tr(Hp)'].loc[:,'Tr(p)']
+    #cov = groupdf.cov()
+    #cov = cov['Tr(p)'].iloc[cov.index.get_level_values(1) == 'Tr(Hp)']
+    #cov = cov.reset_index().set_index('Beta')['Tr(p)']
     mean_energy = mean['Tr(Hp)']/mean['Tr(p)']
     coverr  = (se['Tr(p)']/mean['Tr(p)'])**2
     coverr += (se['Tr(Hp)']/mean['Tr(Hp)'])**2
@@ -840,3 +841,26 @@ def complex_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
         return df
 
     return
+
+
+def get_occupied_rows(dm):
+
+    '''
+    Returns the occupied rows from a density matrix.
+
+        In:
+            dm:
+                The density matrix we are interested in.
+        Out:
+            occ_rows:
+                A dictionary of the occupied row vectores.
+            occ_rows_index:
+                A list of the unique row index's that are non-zero.
+    '''
+
+    occ_rows_index = np.unique(np.nonzero(dm)[0])
+
+    occ_rows = {}
+    for i in occ_rows_index:
+        occ_rows[i] = dm[i]
+    return occ_rows, occ_rows_index
