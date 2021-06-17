@@ -433,54 +433,43 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
         f = np.diag(thermal_weights)
         occrows = np.count_nonzero(f)
         return f, occrows, df
-
-    if init == 'deterministic-uniform':
+    elif init == 'deterministic-uniform':
         f = np.eye(HS)
         occrows = np.count_nonzero(f)
         return f, occrows, df
-
-    if init == 'uniform-thermal':
+    elif init == 'uniform-thermal':
         randomrows = np.random.choice(HS, size=Nattempts)
         randomrows = np.bincount(randomrows, minlength=HS)
         occrows = np.count_nonzero(randomrows)
-
         for ii, nw in enumerate(randomrows):
             f[ii,ii] += thermal_weights[ii]*nw
         return f, occrows, df
-
-    if init == 'uniform-uniform':
+    elif init == 'uniform-uniform':
         randomrows = np.random.choice(HS, size=Nattempts)
         randomrows = np.bincount(randomrows, minlength=HS)
         occrows = np.count_nonzero(randomrows)
-
         for ii, nw in enumerate(randomrows):
             f[ii,ii] += nw
         return f, occrows, df
-
-    if init == 'thermal-thermal':
+    elif init == 'thermal-thermal':
         randomrows = np.random.choice(HS, size=Nattempts, p=thermal_weights)
         randomrows = np.bincount(randomrows, minlength=HS)
         occrows = np.count_nonzero(randomrows)
-
         for ii, nw in enumerate(randomrows):
             f[ii,ii] += thermal_weights[ii]*nw
         return f, occrows, df
-
-    if init == 'thermal-uniform':
+    elif init == 'thermal-uniform':
         randomrows = np.random.choice(HS, size=Nattempts, p=thermal_weights)
         randomrows = np.bincount(randomrows, minlength=HS)
         occrows = np.count_nonzero(randomrows)
-
         for ii, nw in enumerate(randomrows):
             f[ii,ii] += nw
         return f, occrows, df
-
-    if init == 'specific-uniform':
+    elif init == 'specific-uniform':
         for ii in rowlist:
             f[ii,ii] += 1
         occrows = np.count_nonzero(f)
         return f, occrows, df
-
     else:
         print(' Unknown initalization method:', init)
         print(' Exiting...')
@@ -775,8 +764,7 @@ def average_betaloops(df):
     #cov = cov['Tr(p)'].iloc[cov.index.get_level_values(1) == 'Tr(Hp)']
     #cov = cov.reset_index().set_index('Beta')['Tr(p)']
     mean_energy = mean['Tr(Hp)']/mean['Tr(p)']
-    coverr  = (se['Tr(p)']/mean['Tr(p)'])**2
-    coverr += (se['Tr(Hp)']/mean['Tr(Hp)'])**2
+    coverr  = (se['Tr(p)']/mean['Tr(p)'])**2 + (se['Tr(Hp)']/mean['Tr(Hp)'])**2
     coverr -= 2*cov/(count['Tr(Hp)']*mean['Tr(Hp)']*mean['Tr(p)'])
     coverr  = abs(mean_energy*np.sqrt(coverr))
 
