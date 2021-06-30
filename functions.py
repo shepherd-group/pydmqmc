@@ -286,7 +286,7 @@ def sort_index_by_diagonal(hamil, hilbert):
     return sorted_hamil, sorted_diags, index_map
 
 
-def system_initialize(hamilf, shift=0, return_raw=False):
+def system_initialize(hamilf, shift=0, return_raw=False, ip=False):
 
     '''
     Set up a system and return relevent matrix's for running analytical
@@ -299,6 +299,10 @@ def system_initialize(hamilf, shift=0, return_raw=False):
                 A shift to apply to the diagonal elements of the Hamiltonian
             return_raw (optional, default=False):
                 Return the raw Hamiltonian and the index map for the sorted?
+            ip (optional, defaul=False):
+                A boolean for running Interaction Picture, if this is true
+                we return the non-interacting Hamiltonian. This does not
+                work with the "return_raw" option.
         Out:
             H:
                 The Hamiltonian shifted by the Hartree-Fock and the
@@ -315,6 +319,8 @@ def system_initialize(hamilf, shift=0, return_raw=False):
             sorted_hash (optional):
                 Returns the hash map used to sort the Hamiltonian, useful
                 for mapping determinants to HANDE.
+            H0 (optional):
+                The non-interacting Hamiltonian.
     '''
 
     Hraw, HS, HF = build_hamiltonian(hamilf)
@@ -324,6 +330,8 @@ def system_initialize(hamilf, shift=0, return_raw=False):
 
     if return_raw:
         return H, Heval, HS, Hraw, sorted_hash
+    elif ip:
+        return H, Heval, HS, np.diag(np.diag(H))
 
     return H, Heval, HS
 
@@ -490,46 +498,44 @@ def empty_array(hilbert_space):
     return np.zeros((hilbert_space, hilbert_space))
 
 
-def update_shift(H, HS, cycles, tau, df, zeta):
+def update_shift(shift, nw, nw_old, zeta, tau, cycles, hamil, fci_dets):
 
     '''
     Update the shift in the classical way.
 
         In:
-            H:
-                The current system Hamiltonian used for propagation.
-            HS:
-                The Hilbert Space of the Hamiltonian we are propagating
             shift:
-                The current shift.
-            cycles:
-                How often we are updating the shift.
-            tau:
-                The time step of the simualtion we are performing.
-            df:
-                The dictionary of data to collect the shift, current particles
-                and old particles.
+                The current shift of the simulation.
+            nw:
+                The current particle population.
+            nw_old:
+                The previous particle population.
             zeta:
                 The damping parameter for the shift algorithm
+            tau:
+                The time step of the simualtion we are performing.
+            cycles:
+                How often we are updating the shift.
+            hamil:
+                The current system Hamiltonian used for propagation.
+            fci_dets:
+                The Hilbert Space of the Hamiltonian we are propagating
         Out:
-            H:
+            hamil:
                 Our Hamiltonian with a new diagonal shift
             new_shift:
                 The new shift estimate
-    '''
 
-    shift   = df['Shift'][-1]
-    nw      = df['Nw'][-1]
-    nw_old  = df['Nw'][-2]
+        S(t) = S(t - A*tau) - zeta/(A*tau)*ln(Nw/Nw_old)
+    '''
 
     dshift  = -zeta/(cycles*tau)
     dshift *= np.log(nw/nw_old)
 
-    H = H - (dshift*np.eye(HS))
-
+    hamil = hamil - np.eye(fci_dets)*dshift
     new_shift = shift + dshift
 
-    return H, new_shift
+    return hamil, new_shift
 
 
 def stochastic_round_f(f):
@@ -550,7 +556,7 @@ def stochastic_round_f(f):
     return np.trunc(f)
 
 
-def stochastic_round(array):
+def stochastic_round(array, threshold=1.0):
 
     '''
     This function performs a stochastic rounding on a NumPy array.
@@ -559,6 +565,10 @@ def stochastic_round(array):
             array:
                 An array that we want the values to be stochastically rounded
                 in.
+            threshold (default=1.0):
+                The decimal place we would like to perform stochastic rounding 
+                too. If threshold is less than 1, then we scale and round to
+                that decimal location and rescale back after rounding.
         Out:
             stoch_rounded_array:
                 The stochastically rounded version of the input array.
@@ -570,8 +580,9 @@ def stochastic_round(array):
     array_sign = np.sign(array)
     p_matrix = np.multiply(p_matrix, array_sign)
 
-    stoch_rounded_array = array + p_matrix
+    stoch_rounded_array = np.divide(array, threshold)+ p_matrix
     stoch_rounded_array = np.trunc(stoch_rounded_array)
+    stoch_rounded_array = np.multiply(stoch_rounded_array, threshold)
 
     return stoch_rounded_array
 
@@ -757,7 +768,8 @@ def average_betaloops(df):
     groupdf = df.groupby('Beta')
     count = groupdf.count()
     mean = groupdf.mean()
-    se = groupdf.std()/np.sqrt(count-1)
+    #se = groupdf.std()/np.sqrt(count-1)
+    se = groupdf.sem()
 
     cov = groupdf.cov()['Tr(Hp)'].loc[:,'Tr(p)']
     #cov = groupdf.cov()
