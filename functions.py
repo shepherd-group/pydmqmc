@@ -750,7 +750,7 @@ def store_data(data, df, betaloop, beta_loops, csv, path=''):
     return data
 
 
-def average_betaloops(df):
+def average_betaloops(df, extra_keys=None):
 
     '''
     Average the data in a Pandas DataFrame object.
@@ -758,6 +758,8 @@ def average_betaloops(df):
         In:
             df:
                 A data frame of beta loops concat'd together
+            extra_keys (optional, default=None):
+                An array of additional keys to generate errors for
         Out:
             mean:
                 means of all the data from the Data Frame, and also
@@ -785,6 +787,9 @@ def average_betaloops(df):
     mean['N_rows SE'] = se['N_rows']
     mean['Tr(Hp)/Tr(p)_error'] = coverr
     mean['Tr(Hp)/Tr(p)'] = mean_energy
+    if not(extra_keys == None):
+        for key in extra_keys:
+            mean[key+'_error'] = se[key]
 
     return mean
 
