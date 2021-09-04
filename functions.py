@@ -770,13 +770,9 @@ def average_betaloops(df, extra_keys=None):
     groupdf = df.groupby('Beta')
     count = groupdf.count()
     mean = groupdf.mean()
-    #se = groupdf.std()/np.sqrt(count-1)
     se = groupdf.sem()
 
     cov = groupdf.cov()['Tr(Hp)'].loc[:,'Tr(p)']
-    #cov = groupdf.cov()
-    #cov = cov['Tr(p)'].iloc[cov.index.get_level_values(1) == 'Tr(Hp)']
-    #cov = cov.reset_index().set_index('Beta')['Tr(p)']
     mean_energy = mean['Tr(Hp)']/mean['Tr(p)']
     coverr  = (se['Tr(p)']/mean['Tr(p)'])**2 + (se['Tr(Hp)']/mean['Tr(Hp)'])**2
     coverr -= 2*cov/(count['Tr(Hp)']*mean['Tr(Hp)']*mean['Tr(p)'])
