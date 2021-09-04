@@ -782,9 +782,11 @@ def average_betaloops(df, extra_keys=None):
     coverr -= 2*cov/(count['Tr(Hp)']*mean['Tr(Hp)']*mean['Tr(p)'])
     coverr  = abs(mean_energy*np.sqrt(coverr))
 
-    mean['Nw SE'] = se['Nw']
-    mean['<E> SE'] = se['<E>']
-    mean['N_rows SE'] = se['N_rows']
+    mean['Nw_error'] = se['Nw']
+    mean['<E>_error'] = se['<E>']
+    mean['N_rows_error'] = se['N_rows']
+    mean['Tr(p)_error'] = se['Tr(p)']
+    mean['Shift_error'] = se['Shift']
     mean['Tr(Hp)/Tr(p)_error'] = coverr
     mean['Tr(Hp)/Tr(p)'] = mean_energy
     if not(extra_keys == None):
