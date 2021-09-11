@@ -617,7 +617,7 @@ def average_betaloops(df):
     mean['Tr(Hp)/Tr(p)'] = mean_energy
 
     for key in list(se.columns):
-        if not(key+'_error' in list(mean.columns):
+        if not(key+'_error' in list(mean.columns)):
             mean[key+'_error'] = se[key]
 
     return mean
