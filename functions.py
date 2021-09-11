@@ -5,82 +5,131 @@ import pandas as pd
 from numpy import linalg as LA
 
 
-def FCI(hamil):
+def symmetric_bloch(A,B,dt):
+    r'''
+    Calculates the symmetric bloch equation given matrix A and B
+    which can be defined as:
 
-    '''
-    Do FCI on a Hamiltonian.
+        \frac{\delta B}{\delta t} = -\frac{1}{2}(A @ B + B @ A)
+
+    Where "@" is a matrix multiplication operator, and A is related to B by:
+
+        B = e^{-t A}
 
         In:
-            hamil:
-                The Hamiltonian we want to diagonalize.
+            A: The matrix in the exponentiation, of dimension N x N
+            B: The matrix being differentiated, of dimension N x N
+            dt: The derivative of the constant in exponentiation
+        Out:
+            dA: The finite difference of matrix A given some time step "dt"
+    '''
+    return -(dt/2.0)*(A @ B + B @ A)
+
+
+def bloch(A,B,dt,rows=True):
+    r'''
+    Calculate the bloch equation given by matrix A and B, where A and B are
+    related by:
+
+        B = e^{-t A}
+
+    Then the bloch equation is given as:
+
+        \frac{\delta B}{\delta t} = -(B @ A) = -(A @ B)
+
+    See "symmetric_bloch" for more information.
+
+        In:
+            A: The matrix in the exponentiation, of dimension N x N
+            B: The matrix being differentiated, of dimension N x N
+            dt: The derivative of the constant in exponentiation
+            rows (default = True): If we are propagating along rows,
+                then we calculate (B @ A), otherwise columns is (A @ B).
+        Out:
+            dA: The finite difference of matrix A given some time step "dt"
+    '''
+    if rows:
+        return -dt*(B @ A)
+    else:
+        return -dt*(A @ B)
+
+
+def ip_bloch(A,B,A0,dt):
+    r'''
+    Calculate the bloch equation within the interaction picture framework.
+    See bloch for more details on the bloch equation.
+
+        \frac{\delta B}{\delta t} = (A0 @ B - B @ A)
+
+        In:
+            A: The matrix in the exponentiation, of dimension N x N
+            B: The matrix being differentiated, of dimension N x N
+            dt: The derivative of the constant in exponentiation
+        Out:
+            dA: The finite difference of matrix A given some time step "dt"
+    '''
+    return dt*(A0 @ B - B @ A)
+
+
+def FCI(hamil):
+    r'''
+    Do FCI (full configuration interaction) for a given Hamiltonian
+    by performing exact diagonalization.
+
+        In:
+            hamil: The Hamiltonian we want to diagonalize.
                 Assumed to be hermetian.
         Out:
-            eigs:
-                The eigenspectrum from diagonalization.
-            vec:
-                The corresponding eigenvectors.
+            eigs: The eigenspectrum from diagonalization.
+            vec: The corresponding eigenvectors.
     '''
-
     eigs, vec = LA.eigh(hamil)
-
     return eigs, vec
 
 
 def sum_of_states(eigenspectrum, beta):
-
-    '''
+    r'''
     Calculate the energy at a beta using the sum of states method
+
     E = \sum(\epsilon_i*e^{-\epsilon_i * beta}) / \sum(e^{-\epsilon_i * beta})
+
     Use numpy longdouble other wise large beta returns infinite because
     of an floating point overflow.
 
         In:
-            eigenspectrum:
-                fci eigenvalues for a system
-            beta:
-                The inverse temperature where we calculate the energy.
-                If beta is a list, then we return as list of energies
-                at all the beta's.
+            eigenspectrum: fci eigenvalues for a system
+            beta: The inverse temperature(s) where we calculate the energy.
         Out:
-            energy:
-                The energy at beta for the system's eigenspectrum we used
+            energy: The energy at beta for the system's eigenspectrum we used
     '''
+    single_point = False
+    if isinstance(beta, (float,int)):
+        beta = np.array([beta])
+        single_point = True
 
-    if isinstance(beta, (list,np.ndarray)):
-        energy = []
-        for b in beta:
-            numerator   = np.exp(-b * eigenspectrum)
-            denominator = np.sum(np.copy(numerator))
-            numerator   *= eigenspectrum
-            numerator   = np.sum(numerator)
-            energy.append(np.divide(numerator, denominator))
-        return energy
-    else:
-        numerator   = np.exp(-beta * eigenspectrum)
+    energy = []
+    for b in beta:
+        numerator   = np.exp(-b * eigenspectrum)
         denominator = np.sum(np.copy(numerator))
         numerator   *= eigenspectrum
         numerator   = np.sum(numerator)
-        energy      = np.divide(numerator, denominator)
-        return energy
+        energy.append(np.divide(numerator, denominator))
+
+    if single_point: energy = energy[0]
+    return energy
 
 
 def build_hamiltonian(hamilf):
-
-    '''
+    r'''
         In:
-            hamilf:
-                The file containing what is assumed to be a triangle of
-                our Hamiltonian we are interested in.
+            hamilf: The file containing what is assumed to be a triangle 
+                (upper or lower) of the Hamiltonian we are interested in.
         Out:
-            hamiltonian:
-                A 2D NumPy array representation of our matrix
-            hilbert_space:
-                The length of our determinant space
-            HF:
-                The reference energy state, this is assumed to be the zeroth
+            hamiltonian: A 2D NumPy array representation of our matrix
+            hilbert_space: The length of our determinant space
+            HF: The reference energy state, this is assumed to be the zeroth
                 element of our matrix.
     '''
-
     H_data = []
 
     with open(hamilf, 'r') as f:
@@ -99,184 +148,115 @@ def build_hamiltonian(hamilf):
     return hamiltonian, hilbert_space, hamiltonian[0,0]
 
 
-def tmatrix(hamiltonian, shift=0):
-
-    '''
-        In:
-            hamiltonian:
-                The system we are interested in.
-            shift (default = 0):
-                A shift to apply to the diagonal of the hamiltonian
-        Out:
-            Tpos:
-                The positive elements of the T matrix.
-            Tneg:
-                The negative elements of the T matrix.
-                note that the returned matrix is positive.
-
-        T = -(H - S)
-
-        The shift often includes the HF and an additional componant we
-        want to add in.
-    '''
-
-    hartree_fock = hamiltonian[0,0]
-    hilbert_space = len(hamiltonian)
-    eyemat = np.eye(hilbert_space)
-
-    T = -(hamiltonian - (hartree_fock*eyemat) - (shift*eyemat))
-
-    Tdiag = np.diag(np.diag(T))
-    V = T - Tdiag
-    Tpos = V.clip(min=0)
-    Tneg = abs(V.clip(max=0))
-
-    return Tpos, Tneg
-
-
 def unphysical_hamiltonian(hamiltonian):
-
-    '''
+    r'''
     Generates an unphysical Hamiltonian from the physical version.
+    Note that unphysical is another way of saying "stoquastic".
 
         In:
-            hamiltonian:
-                The system Hamiltonian we are interested in investigating.
+            hamiltonian: The system Hamiltonian we are interested
+                in investigating.
         Out:
-            Htilde:
-                The unphysical version of that hamiltonian which should
+            V: The unphysical version of that hamiltonian which should
                 not have a sign problem.
     '''
-
-    Htilde = hamiltonian
-    Htilde_diags = np.diag(np.diag(Htilde))
-    Htilde = Htilde - Htilde_diags
-    Htilde_pos = -Htilde.clip(min=0)
-    Htilde_neg = Htilde.clip(max=0)
-    Htilde = Htilde_pos + Htilde_neg + Htilde_diags
-    
-    return Htilde
+    V = np.copy(hamiltonian)
+    V_diags = np.diag(np.diag(V))
+    V -= V_diags
+    V_pos = -V.clip(min=0)
+    V_neg = V.clip(max=0)
+    V = V_pos + V_neg + V_diags
+    return V
 
 
 def seperate_signs(array, diagonals=False):
-
-    '''
+    r'''
     Takes a NumPy array and seperates it into two matrix's one for each sign
 
         In:
-            array:
-                The array we would like to decompose into two signed arrays.
-            diagonals (optional, defaul=False):
-                If True, generate three matrix's, two for each sign and the
-                last is the diagonals with their original signs
+            array: The array we would like to decompose into two signed arrays.
+            diagonals (optional, defaul=False): If True, generate three
+                seperate matrix(s), two for each sign on the off-diagonal and
+                a third which is the diagonals with their original signs
         Out:
-            array_pos:
-                The positive elements of the original array
-            array_neg:
-                The negative elements of the original array, returned
+            array_pos: The positive elements of the original array
+            array_neg: The negative elements of the original array, returned
                 with a positive sign. (Be warned!!!)
-            array_diags:
-                The diagonal elements of the original array as a matrix.
-                These are returned with their original sign.
+            array_diags: The diagonal elements of the original array as
+                a matrix. These are returned with their original sign.
     '''
-
-    if diagonals == True:
+    if diagonals:
         array_diags = np.diag(np.diag(array))
         array = array - array_diags
 
-        array_pos = array.clip(min=0)
-        array_neg = abs(array.clip(max=0))
-
+    array_pos = array.clip(min=0)
+    array_neg = abs(array.clip(max=0))
+    if diagonals:
         return array_pos, array_neg, array_diags
-
-    else: 
-        array_pos = array.clip(min=0)
-        array_neg = abs(array.clip(max=0))
-
+    else:
         return array_pos, array_neg
 
 
 def proj_energy(hamil, rho_matrix, row):
-
-    '''
+    r'''
         In:
-            hamil:
-                THe Hamiltonian to use for the estimation
-            rho_matrix:
-                The rho matrix to use for energy estimate.
-            row:
-                The row we are interested in.
+            hamil: THe Hamiltonian to use for the estimation
+            rho_matrix: The rho matrix to use for energy estimate.
+            row: The row we are interested in.
         Out:
             Energy: The energy given as
           sum_i { hamil[i,row] rho_matrix[row,i] } / rho_matrix[row,row]
     '''
-
     energy = (hamil[:,row] @ rho_matrix[row,:]).sum()/rho_matrix[row,row]
-
     return energy
 
 
 def expectation(hamil, dm, observable):
-
-    '''
+    r'''
         In:
-            hamil
-                THe Hamiltonian to use for the estimation
-            dm:
-                The rho matrix to use for energy estimate.
-            observable:
-                An observables to calculate and return
+            hamil: THe Hamiltonian to use for the estimation
+            dm: The rho matrix to use for energy estimate.
+            observable: An observables to calculate and return
         Out:
             expectation: The expectation for an operator "O":
                 <O> = Tr(O dm) / Tr(dm)
-            expectation_num:
-                The numerator of the estimator.
-            expectation_den:
-                The trace on the density matrix.
+            expectation_num: The numerator of the estimator.
+            expectation_den: The trace on the density matrix.
     '''
-
-    if 'Energy' == observable:
+    expectation_den = dm.trace()
+    if observable == 'Energy':
         expectation_num = (hamil @ dm).trace()
-        expectation_den = dm.trace()
-        if expectation_den == 0.0:
-            expectation = np.nan
-        else:
-            expectation = np.divide(expectation_num, expectation_den)
-        return expectation, expectation_num, expectation_den
-
+    elif observable == 'von Neumann':
+        expectation_num = -(dm @ np.log(dm)).trace()
     else:
         print('Unexpected observable:', observable)
         print('Please implement or check spelling!')
         print('Exiting...')
         return exit()
 
+    expectation = np.divide(expectation_num, expectation_den)
+    return expectation, expectation_num, expectation_den
+
 
 def sort_index_by_diagonal(hamil, hilbert):
-
-    '''
+    r'''
         In:
-            hamil:
-                The hamiltonian we want to sort based on the
+            hamil: The hamiltonian we want to sort based on the
                 ascending order of the diagonal elements.
-            hilbert:
-                The hilbert space of the wavefunction, makes
+            hilbert: The hilbert space of the wavefunction, makes
                 forming arrays nice and quick.
         Out:
-            sorted_hamil:
-                The hamiltonian now rearanged to be ascending on the
+            sorted_hamil: The hamiltonian now rearanged to be ascending on the
                 diagonal elements.
-            sorted_diags:
-                A list of the sorted diagonal elements.
-            index_map:
-                The index map to sort matrix's if we want to later.
+            sorted_diags: A list of the sorted diagonal elements.
+            index_map: The index map to sort matrix's if we want to later.
     '''
-
     diags = np.diag(hamil)
     sorted_index = np.argsort(diags)
     sorted_diags = diags[sorted_index]
     index_map = {ii:i for i,ii in enumerate(sorted_index)}
-
     sorted_hamil = np.zeros((hilbert,hilbert))
+
     for i in range(hilbert):
         for j in range(hilbert):
             ii = index_map[i]
@@ -287,76 +267,51 @@ def sort_index_by_diagonal(hamil, hilbert):
 
 
 def system_initialize(hamilf, shift=0, return_raw=False, ip=False):
-
-    '''
+    r'''
     Set up a system and return relevent matrix's for running analytical
     QMC.
 
         In:
-            hamilf:
-                The system Hamiltonian we are interested in.
-            shift (default=0):
-                A shift to apply to the diagonal elements of the Hamiltonian
-            return_raw (optional, default=False):
-                Return the raw Hamiltonian and the index map for the sorted?
-            ip (optional, defaul=False):
-                A boolean for running Interaction Picture, if this is true
-                we return the non-interacting Hamiltonian. This does not
-                work with the "return_raw" option.
+            hamilf: The system Hamiltonian we are interested in.
+            shift (default=0): A shift to apply to the diagonal elements of
+                the Hamiltonian
+            return_raw (optional, default=False): Return the raw Hamiltonian
+                and the index map for the sorted?
+            ip (optional, defaul=False): A boolean for running the 
+                Interaction Picture, if this is true we return the
+                non-interacting Hamiltonian.
         Out:
-            H:
-                The Hamiltonian shifted by the Hartree-Fock and the
+            H: The Hamiltonian shifted by the Hartree-Fock and the
                 provided shift.
-            Heval:
-                The system Hamiltonian without any shifting so we can
+            Heval: The system Hamiltonian without any shifting so we can
                 calculate expectation values.
-            HS:
-                The Hilbert space for the system. Very useful for generating
+            HS: The Hilbert space for the system. Very useful for generating
                 matrix's and other arrays on the fly that we need for
                 many calculations.
-            Hraw (optional):
-                Returns the unsorted array if that is needed.
-            sorted_hash (optional):
-                Returns the hash map used to sort the Hamiltonian, useful
-                for mapping determinants to HANDE.
-            H0 (optional):
-                The non-interacting Hamiltonian.
+            Hraw (optional): Returns the unsorted array if that is needed.
+            sorted_hash (optional): Returns the hash map used to sort the
+                Hamiltonian, useful for mapping determinants to HANDE.
+            H0 (optional): The non-interacting Hamiltonian.
     '''
-
     Hraw, HS, HF = build_hamiltonian(hamilf)
     H, sorted_diags, sorted_hash = sort_index_by_diagonal(Hraw, HS)
     Heval = np.copy(H)
     H = H - (np.eye(HS)*HF) - (np.eye(HS)*shift)
 
     if return_raw:
-        return H, Heval, HS, Hraw, sorted_hash
+        if ip:
+            return H, Heval, HS, np.diag(np.diag(H))
+        else:
+            return H, Heval, HS, Hraw, sorted_hash
     elif ip:
         return H, Heval, HS, np.diag(np.diag(H))
-
-    return H, Heval, HS
-
-
-def non_interacting(hamiltonian):
-
-    '''
-    Generate a non-interacting Hamiltonian from an interacting one.
-    This just converts the off-diagonal elements to zero.
-
-        In:
-            hamiltonian:
-                The Hamiltonian we want to generate a non-interacting
-                version of.
-        Out:
-            mean_field_h:
-                The non-interacting hamiltonian.
-    '''
-    return np.diag(np.diag(hamiltonian))
+    else:
+        return H, Heval, HS
 
 
 def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
                   thermal_weights=None):
-
-    '''
+    r'''
     Initalizes the starting trial density matrix. There are many ways
     to do this so we have a str check to decide.
 
@@ -404,290 +359,185 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
                         Takes the optional parameter rowlist and occupies
                         those specific rows with a weight of 1.
 
-            Nattempt:
-                The number of attempts we want to try initalization.
+            Nattempt: The number of attempts we want to try initalization.
                 This is the random selections for stochastic initalizations
                 and the number of rows in deterministic initalization.
-            Heval:
-                The Hamiltonian we are simulating
-            HS:
-                The hilbert space so we can return the correct density matrix
+            Heval: The Hamiltonian we are simulating
+            HS: The hilbert space so we can return the correct density matrix
                 dimensionality
-            rowlist:
-                A list of row index's (Python) that should be occupied.
+            rowlist: A list of row index's (Python) that should be occupied.
                 Currently unused!
-            thermal_weights:
-                Accepts thermal weights to use instead of the auto-generated
-                weights, this way the FCI weights can be passed instead.
+            thermal_weights: Accepts thermal weights to use instead of the
+                auto-generated weights, this way the FCI weights can be
+                passed instead.
         Out:
-            f:
-                The trial density matrix.
-            occrows:
-                The unique random rows selected by the initalization
-            df:
-                A dictionary for storing accumulated statistics during the
+            f: The trial density matrix.
+            occrows: The unique random rows selected by the initalization
+            df: A dictionary for storing accumulated statistics during the
                 simulations.
     '''
-
     df = { 'Beta':[], 'Shift':[], 'Tr(Hp)':[], 'Tr(p)':[],
            'Nw':[], '<E>':[], 'N_rows':[]}
+    f = np.zeros((hilbert_space, hilbert_space))
 
-    f = empty_array(HS)
-    if 'thermal' in init and not(isinstance(thermal_weights, np.ndarray)):
+    if 'thermal' in init and not(thermal_weights == None):
         thermal_weights = np.exp(-target*np.diag(Heval))
         thermal_weights /= thermal_weights.sum()
 
     if init == 'deterministic-thermal':
         f = np.diag(thermal_weights)
-        occrows = np.count_nonzero(f)
-        return f, occrows, df
     elif init == 'deterministic-uniform':
         f = np.eye(HS)
-        occrows = np.count_nonzero(f)
-        return f, occrows, df
     elif init == 'uniform-thermal':
         randomrows = np.random.choice(HS, size=Nattempts)
         randomrows = np.bincount(randomrows, minlength=HS)
-        occrows = np.count_nonzero(randomrows)
         for ii, nw in enumerate(randomrows):
             f[ii,ii] += thermal_weights[ii]*nw
-        return f, occrows, df
     elif init == 'uniform-uniform':
         randomrows = np.random.choice(HS, size=Nattempts)
         randomrows = np.bincount(randomrows, minlength=HS)
-        occrows = np.count_nonzero(randomrows)
         for ii, nw in enumerate(randomrows):
             f[ii,ii] += nw
-        return f, occrows, df
     elif init == 'thermal-thermal':
         randomrows = np.random.choice(HS, size=Nattempts, p=thermal_weights)
         randomrows = np.bincount(randomrows, minlength=HS)
-        occrows = np.count_nonzero(randomrows)
         for ii, nw in enumerate(randomrows):
             f[ii,ii] += thermal_weights[ii]*nw
-        return f, occrows, df
     elif init == 'thermal-uniform':
         randomrows = np.random.choice(HS, size=Nattempts, p=thermal_weights)
         randomrows = np.bincount(randomrows, minlength=HS)
-        occrows = np.count_nonzero(randomrows)
         for ii, nw in enumerate(randomrows):
             f[ii,ii] += nw
-        return f, occrows, df
     elif init == 'specific-uniform':
         for ii in rowlist:
             f[ii,ii] += 1
-        occrows = np.count_nonzero(f)
-        return f, occrows, df
     else:
         print(' Unknown initalization method:', init)
         print(' Exiting...')
         return exit()
 
-
-def empty_array(hilbert_space):
-
-    '''
-        In:
-            hilbert_space:
-                The hilbert space of the system.
-        Out:
-            zeros:
-                A 2D NumPy array with zeros.
-    '''
-
-    return np.zeros((hilbert_space, hilbert_space))
+    occrows = np.count_nonzero(f)
+    return f, occrows, df
 
 
 def update_shift(shift, nw, nw_old, zeta, tau, cycles, hamil, fci_dets):
-
-    '''
+    r'''
     Update the shift in the classical way.
 
         In:
-            shift:
-                The current shift of the simulation.
-            nw:
-                The current particle population.
-            nw_old:
-                The previous particle population.
-            zeta:
-                The damping parameter for the shift algorithm
-            tau:
-                The time step of the simualtion we are performing.
-            cycles:
-                How often we are updating the shift.
-            hamil:
-                The current system Hamiltonian used for propagation.
-            fci_dets:
-                The Hilbert Space of the Hamiltonian we are propagating
+            shift: The current shift of the simulation.
+            nw: The current particle population.
+            nw_old: The previous particle population.
+            zeta: The damping parameter for the shift algorithm
+            tau: The time step of the simualtion we are performing.
+            cycles: How often we are updating the shift.
+            hamil: The current system Hamiltonian used for propagation.
+            fci_dets: The Hilbert Space of the Hamiltonian we are propagating
         Out:
-            hamil:
-                Our Hamiltonian with a new diagonal shift
-            new_shift:
-                The new shift estimate
+            hamil: Our Hamiltonian with a new diagonal shift
+            new_shift: The new shift estimate
 
         S(t) = S(t - A*tau) - zeta/(A*tau)*ln(Nw/Nw_old)
     '''
-
     dshift  = -zeta/(cycles*tau)
     dshift *= np.log(nw/nw_old)
-
     hamil = hamil - np.eye(fci_dets)*dshift
     new_shift = shift + dshift
-
     return hamil, new_shift
 
 
 def stochastic_round_f(f):
-
-    '''
+    r'''
     Stochastically rounds a single float.
 
         In:
-            f:
-                A float we want to stochastically round.
+            f: A float we want to stochastically round.
         Out:
-            i:
-                An integer that results from the stochastic rounding.
+            i: An integer that results from the stochastic rounding.
                 The type is still a float though for compatability.
     '''
-
     i = f + np.sign(f)*np.random.random()
     return np.trunc(f)
 
 
 def stochastic_round(array, threshold=1.0):
-
-    '''
+    r'''
     This function performs a stochastic rounding on a NumPy array.
 
         In:
-            array:
-                An array that we want the values to be stochastically rounded
-                in.
-            threshold (default=1.0):
-                The decimal place we would like to perform stochastic rounding 
-                too. If threshold is less than 1, then we scale and round to
-                that decimal location and rescale back after rounding.
+            array: An array that we want the values to be stochastically
+                rounded in.
+            threshold (default=1.0): The decimal place we would like to
+                perform stochastic rounding too. If threshold is less than 1,
+                then we scale and round to that decimal location and rescale
+                back after rounding.
         Out:
-            stoch_rounded_array:
-                The stochastically rounded version of the input array.
+            stoch_rounded_array: The stochastically rounded version of
+                the input array.
     '''
-
     shape = array.shape
     p_matrix = np.random.random(shape)
-
     array_sign = np.sign(array)
     p_matrix = np.multiply(p_matrix, array_sign)
-
     stoch_rounded_array = np.divide(array, threshold)+ p_matrix
     stoch_rounded_array = np.trunc(stoch_rounded_array)
     stoch_rounded_array = np.multiply(stoch_rounded_array, threshold)
-
     return stoch_rounded_array
 
 
-def deterministic_round(array, round_method, decimals=0):
-
-    '''
-    This function performs a deterministic rounding on a NumPy array.
-    This is in no way complete and is for preliminary testing of deterministic
-    plateaus.
-
-        In:
-            array:
-                An array that we want the values to be stochastically rounded
-                in.
-            round_method:
-                How do we want to deterministically round the array?
-            decimals (optional, default=0):
-                round to a specifica decimal place.
-        Out:
-            rounded_array:
-                The stochastically rounded version of the input array.
-    '''
-
-    if round_method == 'decimal':
-        rounded_array = np.around(array, decimals=decimals)
-
-    if round_method == 'trunc':
-        rounded_array = np.trunc(array)
-
-    if round_method == 'rint':
-        rounded_array = np.rint(array)
-
-    else:
-        print(' Unknown or Unsupplied Rounding Method', round_method)
-        print(' Exiting...')
-        return exit()
-
-    return rounded_array
-
-
 def write_header():
-
-    '''
+    r'''
     Writes a header so we know what we are looking at from write report.
+
         In:
             N/A
         Out:
             N/A
     '''
-
     head = ' {:>8}    {:<18}    {:<18}    {:<18}    {:<18}'
     head = head.format('Beta','Shift','Tr(pH)', 'Tr(p)','Nw')
-    print(head)
-    return
+    return print(head)
 
 
 def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
                  ind_row_evals=False):
-
-    '''
+    r'''
         In:
-            iteration:
-                The current iteration for the data.
-            tau:
-                The time step of the simulation
-            shift:
-                The current shift for the data simulation.
-            dm:
-                The current density matrix estimate.
-            hamil:
-                The systems Hamiltonian we are simulating.
-            df (optional):
-                A dictionary where we intend to store information.
-            stdout (optional):
-                A boolean to print out the data from the iteration.
-            ind_row_evals (optional):
-                A boolean which flags individual row energy estimates.
-                If this is true a loop is performed over the entire list
-                of rows on the density matrix, if they are non-zero an energy
-                estimate is performed and stored in df.
+            iteration: The current iteration for the data.
+            tau: The time step of the simulation
+            shift: The current shift for the data simulation.
+            dm: The current density matrix estimate.
+            hamil: The systems Hamiltonian we are simulating.
+            df (optional): A dictionary where we intend to store information.
+            stdout (optional): A boolean to print out the data from the
+                iteration.
+            ind_row_evals (optional): A boolean which flags individual row
+                energy estimates. If this is true a loop is performed over
+                the entire list of rows on the density matrix, if they are
+                non-zero an energy estimate is performed and stored in df.
         Out:
-            stdout (optional):
-                Prints the beta, shift, energy_numerator, trace
+            stdout (optional): Prints the beta, shift, energy_numerator, trace
                 and "walkers" for the current density matrix.
-            df (optional):
-                A dictionary of data that has been updated with the current
-                data 
+            df (optional): A dictionary of data that has been updated with
+                the current data.
     '''
-
     if iteration == 0 and stdout:
         write_header()
 
     energy, energy_numerator, trace = expectation(hamil, dm, 'Energy')
     psips = abs(dm).sum()
-    curbeta = round(iteration*tau, abs(int(np.log10(tau))))
+    #repbeta = round(iteration*tau, int(np.ceil(abs(np.log10(tau)))))
+    repbeta = round(iteration*tau, 6)
+    curbeta = iteration*tau
 
     if stdout:
         data  = ' {:> 8}   {:< 1.12E}   {:< 2.12E}   {:< 3.12E}   {:< 4.12E}'
-        data = data.format(curbeta,shift,energy_numerator,trace,psips)
+        #data = data.format(curbeta,shift,energy_numerator,trace,psips)
+        data = data.format(repbeta,shift,energy_numerator,trace,psips)
         print(data)
 
     if df != None:
         occ_rows = np.unique(np.nonzero(dm)[0])
-
         df['Beta'].append(curbeta)
         df['Shift'].append(shift)
         df['Tr(Hp)'].append(energy_numerator)
@@ -711,62 +561,47 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
 
 
 def store_data(data, df, betaloop, beta_loops, csv, path=''):
-
-    '''
+    r'''
     Store data in an array. When the calculation is complete concat it
     and save it as a csv to the specified path. This really should be a
     class object but thats another days problem.
 
         In:
-            df:
-                A Pandas DataFrame to store our data from different
+            df: A Pandas DataFrame to store our data from different
                 trajectories.
-            betaloop:
-                The current beta loop we are at.
-            beta_loops:
-                The number of beta loops we will store.
-            csv:
-                The name of the csv we want to store.
+            betaloop: The current beta loop we are at.
+            beta_loops: The number of beta loops we will store.
+            csv: The name of the csv we want to store.
             path (defaul = current working directory):
                 The path where we want to store the data.
         Out:
-            Data:
-                An array of all the data we have accumulated from beta loops.
+            Data: An array of all the data we have accumulated from beta loops.
                 Or if the beta loop cycle is compelte it returns an empty
                 array after saving the data to a specified location so we
                 can do another cycle with a different set of parameters.
-            csv (Saved as a file):
-                An array to save as a file.
+            csv (Saved as a file): An array to save as a file.
     '''
-
     data.append(pd.DataFrame(df))
 
     if betaloop == beta_loops:
         data = pd.concat(data, ignore_index=True)
         data.to_csv(path + csv + '.csv', index=False)
         data = []
-        return data
 
     return data
 
 
-def average_betaloops(df, extra_keys=None):
-
-    '''
+def average_betaloops(df):
+    r'''
     Average the data in a Pandas DataFrame object.
 
         In:
-            df:
-                A data frame of beta loops concat'd together
-            extra_keys (optional, default=None):
-                An array of additional keys to generate errors for
+            df: A data frame of beta loops concat'd together
         Out:
-            mean:
-                means of all the data from the Data Frame, and also
+            mean: means of all the data from the Data Frame, and also
                 the average energy from the <Tr(Hp)> / <Tr(p)> estimate
                 with the appropriate errors.
     '''
-
     groupdf = df.groupby('Beta')
     count = groupdf.count()
     mean = groupdf.mean()
@@ -778,15 +613,11 @@ def average_betaloops(df, extra_keys=None):
     coverr -= 2*cov/(count['Tr(Hp)']*mean['Tr(Hp)']*mean['Tr(p)'])
     coverr  = abs(mean_energy*np.sqrt(coverr))
 
-    mean['Nw_error'] = se['Nw']
-    mean['<E>_error'] = se['<E>']
-    mean['N_rows_error'] = se['N_rows']
-    mean['Tr(p)_error'] = se['Tr(p)']
-    mean['Shift_error'] = se['Shift']
     mean['Tr(Hp)/Tr(p)_error'] = coverr
     mean['Tr(Hp)/Tr(p)'] = mean_energy
-    if not(extra_keys == None):
-        for key in extra_keys:
+
+    for key in list(se.columns):
+        if not(key+'_error' in list(mean.columns):
             mean[key+'_error'] = se[key]
 
     return mean
@@ -794,12 +625,10 @@ def average_betaloops(df, extra_keys=None):
 
 def complex_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
                    ind_row_evals=False):
-
-    '''
+    r'''
     See write_report for more information. This is a version of write_report
     which treats complex density matrix's.
     '''
-
     if iteration == 0 and stdout:
         head  = ' {:>6}    {:<18}    {:<18}    {:<18}    {:<18}    '
         head += '{:<18}    {:<18}    {:<18}'
@@ -828,7 +657,6 @@ def complex_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
 
     if df != None:
         occ_rows = np.unique(np.nonzero(dm)[0])
-
         df['Beta'].append(curbeta)
         df['Shift'].append(shift)
         df['Re{Tr(Hp)}'].append(re_energy_num)
@@ -840,30 +668,8 @@ def complex_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
         df['Re{<E>}'].append(re_energy)
         df['Im{<E>}'].append(im_energy)
         df['N_rows'].append(len(occ_rows))
-
         return df
 
     return
 
 
-def get_occupied_rows(dm):
-
-    '''
-    Returns the occupied rows from a density matrix.
-
-        In:
-            dm:
-                The density matrix we are interested in.
-        Out:
-            occ_rows:
-                A dictionary of the occupied row vectores.
-            occ_rows_index:
-                A list of the unique row index's that are non-zero.
-    '''
-
-    occ_rows_index = np.unique(np.nonzero(dm)[0])
-
-    occ_rows = {}
-    for i in occ_rows_index:
-        occ_rows[i] = dm[i]
-    return occ_rows, occ_rows_index
