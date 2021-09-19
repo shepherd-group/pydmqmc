@@ -21,7 +21,7 @@ def symmetric_bloch(A,B,dt):
             B: The matrix being differentiated, of dimension N x N
             dt: The derivative of the constant in exponentiation
         Out:
-            dA: The finite difference of matrix A given some time step "dt"
+            dB: The finite difference of matrix A given some time step "dt"
     '''
     return -(dt/2.0)*(A @ B + B @ A)
 
@@ -46,7 +46,7 @@ def bloch(A,B,dt,rows=True):
             rows (default = True): If we are propagating along rows,
                 then we calculate (B @ A), otherwise columns is (A @ B).
         Out:
-            dA: The finite difference of matrix A given some time step "dt"
+            dB: The finite difference of matrix A given some time step "dt"
     '''
     if rows:
         return -dt*(B @ A)
@@ -63,12 +63,46 @@ def ip_bloch(A,B,A0,dt):
 
         In:
             A: The matrix in the exponentiation, of dimension N x N
+            A0: The diagonal terms only of the matrix A, in the matrix
+                exponentiation defined in bloch, of dimension N x N
             B: The matrix being differentiated, of dimension N x N
             dt: The derivative of the constant in exponentiation
         Out:
-            dA: The finite difference of matrix A given some time step "dt"
+            dB: The finite difference of matrix A given some time step "dt"
     '''
     return dt*(A0 @ B - B @ A)
+
+
+def piecewise_ip_bloch(A,B,A0,dt,current_t,piecewise_t,symmetric=False):
+    '''
+    A simple wrapper for piecewise interaction picture DMQMC
+    This version of the algorithm runs the interaction picture bloch
+    equation until a specific target beta as normal. Then continues
+    propagation in temperature with either the symmetric or the asymmetric
+    bloch equation.
+
+        In:
+            A: The matrix in the exponentiation, of dimension N x N
+            A0: The diagonal terms only of the matrix A, in the matrix
+                exponentiation defined in bloch, of dimension N x N
+            B: The matrix being differentiated, of dimension N x N
+            dt: The derivative of the constant in exponentiation
+            current_t: The current input value "t"
+            piecewise_t: The location in "t" where we switch to a different
+                form of the bloch equations
+            symmetric (default=True): A boolean for the symmetric of the bloch
+                equation once the piecewise_t is reached
+        Out:
+            dB: The finite difference of matrix A given some time step "dt"
+    '''
+    if current_t < piecewise_t:
+        delta_B = ip_bloch(A,B,A0,dt)
+    else:
+        if symmetric:
+            delta_B = symmetric_bloch(A,B,dt)
+        else:
+            delta_B = bloch(A,B,dt)
+    return delta_B
 
 
 def FCI(hamil):
@@ -116,7 +150,7 @@ def sum_of_states(eigenspectrum, beta):
         energy.append(np.divide(numerator, denominator))
 
     if single_point: energy = energy[0]
-    return energy
+    return np.array(energy)
 
 
 def build_hamiltonian(hamilf):
@@ -310,7 +344,7 @@ def system_initialize(hamilf, shift=0, return_raw=False, ip=False):
 
 
 def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
-                  thermal_weights=None):
+                  defined_thermal_weights=None):
     r'''
     Initalizes the starting trial density matrix. There are many ways
     to do this so we have a str check to decide.
@@ -367,9 +401,9 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
                 dimensionality
             rowlist: A list of row index's (Python) that should be occupied.
                 Currently unused!
-            thermal_weights: Accepts thermal weights to use instead of the
-                auto-generated weights, this way the FCI weights can be
-                passed instead.
+            defined_thermal_weights: Accepts thermal weights to use instead of
+                the auto-generated weights, this way the FCI weights can be
+                passed instead (for example).
         Out:
             f: The trial density matrix.
             occrows: The unique random rows selected by the initalization
@@ -378,9 +412,11 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
     '''
     df = { 'Beta':[], 'Shift':[], 'Tr(Hp)':[], 'Tr(p)':[],
            'Nw':[], '<E>':[], 'N_rows':[]}
-    f = np.zeros((hilbert_space, hilbert_space))
+    f = np.zeros((HS, HS))
 
-    if 'thermal' in init and not(thermal_weights == None):
+    if defined_thermal_weights is not None:
+        thermal_weights = defined_thermal_weights
+    elif 'thermal' in init:
         thermal_weights = np.exp(-target*np.diag(Heval))
         thermal_weights /= thermal_weights.sum()
 
@@ -391,23 +427,19 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
     elif init == 'uniform-thermal':
         randomrows = np.random.choice(HS, size=Nattempts)
         randomrows = np.bincount(randomrows, minlength=HS)
-        for ii, nw in enumerate(randomrows):
-            f[ii,ii] += thermal_weights[ii]*nw
+        f = np.diag(randomrows*thermal_weights)
     elif init == 'uniform-uniform':
         randomrows = np.random.choice(HS, size=Nattempts)
         randomrows = np.bincount(randomrows, minlength=HS)
-        for ii, nw in enumerate(randomrows):
-            f[ii,ii] += nw
+        f = np.diag(randomrows)
     elif init == 'thermal-thermal':
         randomrows = np.random.choice(HS, size=Nattempts, p=thermal_weights)
         randomrows = np.bincount(randomrows, minlength=HS)
-        for ii, nw in enumerate(randomrows):
-            f[ii,ii] += thermal_weights[ii]*nw
+        f = np.diag(randomrows*thermal_weights)
     elif init == 'thermal-uniform':
         randomrows = np.random.choice(HS, size=Nattempts, p=thermal_weights)
         randomrows = np.bincount(randomrows, minlength=HS)
-        for ii, nw in enumerate(randomrows):
-            f[ii,ii] += nw
+        f = np.diag(randomrows)
     elif init == 'specific-uniform':
         for ii in rowlist:
             f[ii,ii] += 1
@@ -416,6 +448,7 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
         print(' Exiting...')
         return exit()
 
+    f = f.astype(np.float64)
     occrows = np.count_nonzero(f)
     return f, occrows, df
 
