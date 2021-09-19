@@ -74,7 +74,7 @@ def ip_bloch(A,B,A0,dt):
 
 
 def piecewise_ip_bloch(A,B,A0,dt,current_t,piecewise_t,symmetric=False):
-    '''
+    r'''
     A simple wrapper for piecewise interaction picture DMQMC
     This version of the algorithm runs the interaction picture bloch
     equation until a specific target beta as normal. Then continues
