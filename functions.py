@@ -136,11 +136,7 @@ def sum_of_states(eigenspectrum, beta):
         Out:
             energy: The energy at beta for the system's eigenspectrum we used
     '''
-    single_point = False
-    if isinstance(beta, (float,int)):
-        beta = np.array([beta])
-        single_point = True
-
+    beta = np.array([beta])
     energy = []
     for b in beta:
         numerator   = np.exp(-b * eigenspectrum)
@@ -148,8 +144,6 @@ def sum_of_states(eigenspectrum, beta):
         numerator   *= eigenspectrum
         numerator   = np.sum(numerator)
         energy.append(np.divide(numerator, denominator))
-
-    if single_point: energy = energy[0]
     return np.array(energy)
 
 
@@ -412,7 +406,6 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
     '''
     df = { 'Beta':[], 'Shift':[], 'Tr(Hp)':[], 'Tr(p)':[],
            'Nw':[], '<E>':[], 'N_rows':[]}
-    f = np.zeros((HS, HS))
 
     if defined_thermal_weights is not None:
         thermal_weights = defined_thermal_weights
@@ -421,26 +414,25 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
         thermal_weights /= thermal_weights.sum()
 
     if init == 'deterministic-thermal':
-        f = np.diag(thermal_weights)
+        f = np.copy(thermal_weights)
     elif init == 'deterministic-uniform':
-        f = np.eye(HS)
+        f = np.ones(HS)
     elif init == 'uniform-thermal':
         randomrows = np.random.choice(HS, size=Nattempts)
-        randomrows = np.bincount(randomrows, minlength=HS)
-        f = np.diag(randomrows*thermal_weights)
+        randomrows = np.bincount(randomrows, minlength=HS).astype(np.float64)
+        randomrows *= thermal_weights
     elif init == 'uniform-uniform':
         randomrows = np.random.choice(HS, size=Nattempts)
-        randomrows = np.bincount(randomrows, minlength=HS)
-        f = np.diag(randomrows)
+        randomrows = np.bincount(randomrows, minlength=HS).astype(np.float64)
     elif init == 'thermal-thermal':
         randomrows = np.random.choice(HS, size=Nattempts, p=thermal_weights)
-        randomrows = np.bincount(randomrows, minlength=HS)
-        f = np.diag(randomrows*thermal_weights)
+        randomrows = np.bincount(randomrows, minlength=HS).astype(np.float64)
+        randomrows *= thermal_weights
     elif init == 'thermal-uniform':
         randomrows = np.random.choice(HS, size=Nattempts, p=thermal_weights)
-        randomrows = np.bincount(randomrows, minlength=HS)
-        f = np.diag(randomrows)
+        randomrows = np.bincount(randomrows, minlength=HS).astype(np.float64)
     elif init == 'specific-uniform':
+        f = np.zeros(HS)
         for ii in rowlist:
             f[ii,ii] += 1
     else:
@@ -448,7 +440,7 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
         print(' Exiting...')
         return exit()
 
-    f = f.astype(np.float64)
+    f = np.diag(randomrows)
     occrows = np.count_nonzero(f)
     return f, occrows, df
 
