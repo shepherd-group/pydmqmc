@@ -510,22 +510,7 @@ def stochastic_round(array, threshold=1.0):
     return stoch_rounded_array
 
 
-def write_header():
-    r'''
-    Writes a header so we know what we are looking at from write report.
-
-        In:
-            N/A
-        Out:
-            N/A
-    '''
-    head = ' {:>8}    {:<18}    {:<18}    {:<18}    {:<18}'
-    head = head.format('Beta','Shift','Tr(pH)', 'Tr(p)','Nw')
-    return print(head)
-
-
-def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
-                 ind_row_evals=False):
+def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False)
     r'''
         In:
             iteration: The current iteration for the data.
@@ -536,10 +521,6 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
             df (optional): A dictionary where we intend to store information.
             stdout (optional): A boolean to print out the data from the
                 iteration.
-            ind_row_evals (optional): A boolean which flags individual row
-                energy estimates. If this is true a loop is performed over
-                the entire list of rows on the density matrix, if they are
-                non-zero an energy estimate is performed and stored in df.
         Out:
             stdout (optional): Prints the beta, shift, energy_numerator, trace
                 and "walkers" for the current density matrix.
@@ -547,17 +528,17 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
                 the current data.
     '''
     if iteration == 0 and stdout:
-        write_header()
+        head = ' {:>8}    {:<18}    {:<18}    {:<18}    {:<18}'
+        head = head.format('Beta','Shift','Tr(pH)', 'Tr(p)','Nw')
+        print(head)
 
     energy, energy_numerator, trace = expectation(hamil, dm, 'Energy')
     psips = abs(dm).sum()
-    #repbeta = round(iteration*tau, int(np.ceil(abs(np.log10(tau)))))
-    repbeta = round(iteration*tau, 6)
+    repbeta = round(iteration*tau, 12)
     curbeta = iteration*tau
 
     if stdout:
         data  = ' {:> 8}   {:< 1.12E}   {:< 2.12E}   {:< 3.12E}   {:< 4.12E}'
-        #data = data.format(curbeta,shift,energy_numerator,trace,psips)
         data = data.format(repbeta,shift,energy_numerator,trace,psips)
         print(data)
 
@@ -570,19 +551,7 @@ def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
         df['Nw'].append(psips)
         df['<E>'].append(energy)
         df['N_rows'].append(len(occ_rows))
-
-        if ind_row_evals:
-            for row in occ_rows:
-                lab = 'E(p['+str(row+1)+',*])'
-                if iteration == 0:
-                    df[lab] = []
-
-                row_ene = proj_energy(hamil, dm, row)
-                df[lab].append(row_ene)
-
         return df
-
-    return
 
 
 def store_data(data, df, betaloop, beta_loops, csv, path=''):
@@ -670,7 +639,7 @@ def complex_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
     im_energy, im_energy_num, im_trace = expectation(hamil, im_dm, 'Energy')
     im_psips = abs(im_dm).sum()
 
-    curbeta = round(iteration*tau, abs(int(np.log10(tau))))
+    curbeta = round(iteration*tau, 12)
 
     if stdout:
         data  = ' {:> 5}   {:< 1.12E}   {:< 1.12E}   {:< 1.12E}   {:< 1.12E}'
@@ -694,7 +663,4 @@ def complex_report(iteration, tau, shift, dm, hamil, df=None, stdout=False,
         df['Im{<E>}'].append(im_energy)
         df['N_rows'].append(len(occ_rows))
         return df
-
-    return
-
 
