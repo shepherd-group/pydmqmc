@@ -510,7 +510,7 @@ def stochastic_round(array, threshold=1.0):
     return stoch_rounded_array
 
 
-def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False)
+def write_report(iteration, tau, shift, dm, hamil, df=None, stdout=False):
     r'''
         In:
             iteration: The current iteration for the data.
