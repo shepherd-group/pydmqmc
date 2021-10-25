@@ -136,7 +136,7 @@ def sum_of_states(eigenspectrum, beta):
         Out:
             energy: The energy at beta for the system's eigenspectrum we used
     '''
-    beta = np.array([beta])
+    #beta = np.array([beta])
     energy = []
     for b in beta:
         numerator   = np.exp(-b * eigenspectrum)
@@ -414,9 +414,9 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
         thermal_weights /= thermal_weights.sum()
 
     if init == 'deterministic-thermal':
-        f = np.copy(thermal_weights)
+        randomrows = np.copy(thermal_weights)
     elif init == 'deterministic-uniform':
-        f = np.ones(HS)
+        randomrows = np.ones(HS)
     elif init == 'uniform-thermal':
         randomrows = np.random.choice(HS, size=Nattempts)
         randomrows = np.bincount(randomrows, minlength=HS).astype(np.float64)
