@@ -482,7 +482,7 @@ def stochastic_round_f(f):
                 The type is still a float though for compatability.
     '''
     i = f + np.sign(f)*np.random.random()
-    return np.trunc(f)
+    return np.trunc(i)
 
 
 def stochastic_round(array, threshold=1.0):
