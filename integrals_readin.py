@@ -1,0 +1,358 @@
+#!/usr/bin/env python
+
+import json
+import numpy as np
+import utilities as util
+
+def ijab_32fold(i,j,a,b):
+    r'''
+    Generates and returns an array of the 32-fold symmetries for integrals
+    indexed by the orbitals. Where we have 8-fold spatial symmetry and
+    4-fold spin symmetry, hence 8x4 = 32-fold.
+    We assume physicist notation.
+
+    In:
+        i,j,a,b: The orbital indexes
+    Out:
+        perms: The permutation of all indexes based on the 32-fold symmetry.
+    '''
+    i,j,a,b = 2*i, 2*j, 2*a, 2*b
+    perms = [
+        [   i,     j,      a,      b    ],
+        [   i+1,   j+1,    a+1,    b+1  ],
+        [   i,     j+1,    a,      b+1  ],
+        [   i+1,   j,      a+1,    b    ],
+        [   j,     i,      b,      a    ],
+        [   j+1,   i+1,    b+1,    a+1  ],
+        [   j,     i+1,    b,      a+1  ],
+        [   j+1,   i,      b+1,    a    ],
+        [   a,     b,      i,      j    ],
+        [   a+1,   b+1,    i+1,    j+1  ],
+        [   a,     b+1,    i,      j+1  ],
+        [   a+1,   b,      i+1,    j    ],
+        [   b,     a,      j,      i    ],
+        [   b+1,   a+1,    j+1,    i+1  ],
+        [   b,     a+1,    j,      i+1  ],
+        [   b+1,   a,      j+1,    i    ],
+        [   a,     j,      i,      b    ],
+        [   a+1,   j+1,    i+1,    b+1  ],
+        [   a,     j+1,    i,      b+1  ],
+        [   a+1,   j,      i+1,    b    ],
+        [   b,     i,      j,      a    ],
+        [   b+1,   i+1,    j+1,    a+1  ],
+        [   b,     i+1,    j,      a+1  ],
+        [   b+1,   i,      j+1,    a    ],
+        [   i,     b,      a,      j    ],
+        [   i+1,   b+1,    a+1,    j+1  ],
+        [   i,     b+1,    a,      j+1  ],
+        [   i+1,   b,      a+1,    j    ],
+        [   j,     a,      b,      i    ],
+        [   j+1,   a+1,    b+1,    i+1  ],
+        [   j,     a+1,    b,      i+1  ],
+        [   j+1,   a,      b+1,    i    ],
+    ]
+    return perms
+
+def ijab_16fold(i,j,a,b):
+    r'''
+    Generates and returns an array of the 16-fold symmetries for integrals
+    indexed by complex orbitals. Where we have 4-fold spatial symmetry and
+    4-fold spin symmetry, hence 4x4 = 16-fold.
+    We assume physicist notation.
+
+    In:
+        i,j,a,b: The orbital indexes
+    Out:
+        perms: The permutation of all indexes based on the 32-fold symmetry.
+    '''
+    i,j,a,b = 2*i, 2*j, 2*a, 2*b
+    perms = [
+        [   i,      j,      a,      b   ],
+        [   i+1,    j+1,    a+1,    b+1 ],
+        [   i,      j+1,    a,      b+1 ],
+        [   i+1,    j,      a+1,    b   ],
+        [   a,      b,      i,      j   ],
+        [   a+1,    b+1,    i+1,    j+1 ],
+        [   a,      b+1,    i,      j+1 ],
+        [   a+1,    b,      i+1,    j   ],
+        [   j,      i,      b,      a   ],
+        [   j+1,    i+1,    b+1,    a+1 ],
+        [   j,      i+1,    b,      a+1 ],
+        [   j+1,    i,      b+1,    a   ],
+        [   b,      a,      j,      i   ],
+        [   b+1,    a+1,    j+1,    i+1 ],
+        [   b,      a+1,    j,      i+1 ],
+        [   b+1,    a,      j+1,    i   ],
+    ]
+    return perms
+
+def alloc_integral_arrays(norb):
+    r'''
+    Generates the h2e, h1e and h0e integral arrays given the
+    total number of spin orbitals "norb".
+
+    In:
+        norb: The total number of spin orbitals
+    Out:
+        h2e: The two-particle integrals array
+        h1e: The one-particle integrals array
+        eig: The single particle eigenvalues array
+    '''
+    h2e = np.zeros((norb,norb,norb,norb))
+    h1e = np.zeros((norb,norb))
+    eig = np.zeros(norb)
+    return h2e, h1e, eig
+
+class integral_system:
+
+    info = \
+    r'''
+    Read in an integral dump file and return the assorted information
+    associated with it as a class object.
+
+    In:
+        integral_file: The name of the integral file being read in
+        comp (defaul=False): A boolean flag which controls the integral
+            index symmetry.
+        verbose (default=False): Print out the system information when 
+            we are done reading it in.
+        reference (default=None): Specifies the occupied spin orbitals for
+            the systems reference determinant. The default "None" assumes the
+            lowest energy orbitals are occupied. If we don't have orbital
+            energies we take a guess based on the one-particle integrals.
+        eigenvalues (default=False): Calculate the orbital eigenvalues
+            for the reference state.
+        symmetry (default=self.isym): The point-group symmetry of the
+            system integrals we are reading in.
+        determinants (default=False): A boolean to control whether we 
+            generate all those determinants spanned by the system
+            within the point-group symmetry
+        hamiltonian (default=False): A boolean to control whether we generate
+            the Hamiltonian for the system
+    Contains:
+        self.info: The string of this information
+        self.int_file: The file were the integrals are read from
+        self.complex_int: A boolean which controls if we have complex orbtials
+        self.uhf: A boolean which controls if the system is unrestricted
+        self.h2e: The two-particle integrals
+        self.h1e: The one-particle integrals
+        self.h0e: The core Hamiltonian
+        self.eig: The systems single particle eigenvalues
+        self.norb: The number of spin orbitals
+        self.nel: The total number of electrons
+        self.na: The number of alpha electrons
+        self.nb: The number of beta electrons
+        self.orbsym: The orbital point-group (pg) symmetries
+        self.ms2: The spin polarization of the system
+        self.isym: The ground state point-group of the system
+        self.symmetry: The point-group symmetry of the system
+        self.maxsym: The maximum point-group symmetry contained by the system
+        self.pg_mask: The point-group mask of the system used for pg operations
+        self.bitarrays: An array of the bitarray's in the hilbert space
+        self.ndets: The total number of determinants in the hilbert space
+        self.hii: The diagonal elements of the system Hamiltonian
+        self.H: The system hamiltonian generated with the integrals
+    '''
+
+    def __init__(
+                self,
+                int_file = None,
+                comp = False,
+                verbose = False,
+                reference = None,
+                eigenvalues = False,
+                symmetry = None,
+                determinants = False,
+                hamiltonian = False,
+            ):
+
+        try:
+            open_int_file = open(int_file, 'r')
+        except FileNotFoundError:
+            print(' Integral file: \n\n %s \n\n does not exists!' % int_file)
+            print(info)
+            exit(1)
+
+        self.int_file = int_file
+        self.complex_int = comp
+        self.uhf = False
+        self.isym = 0
+        self.h0e = 0.0
+
+        footer = False
+        for line in open_int_file:
+            line = line.replace('\n','')
+            if not footer:
+                if line[-1] != ',':
+                    line = line + ','
+                if 'UHF' in line and ('true' in line or 'TRUE' in line):
+                    self.uhf = True
+
+            if footer:
+                ls = line.split()
+                eri = float(ls[0])
+                i, a, j, b = [int(d)-1 for d in ls[1:]]
+                ijab = self.permute_ijab(i,j,a,b)
+                self.integral_case(i,j,a,b)
+                if self.case_h2e:
+                    for i, j, a, b in ijab:
+                        self.h2e[i,j,a,b] = eri
+                elif self.case_h1e:
+                    for i, j, a, b in ijab:
+                        self.h1e[i,a] = eri
+                elif self.case_eig:
+                    self.eig[2*i:2*i+2] = eri
+                elif self.case_h0e:
+                    self.h0e = eri
+            elif '/' in line or 'END' in line:
+                footer = True
+                self.nb = int((self.nel - self.ms2) / 2)
+                self.na = self.nel - self.nb
+                if not self.uhf: self.norb += self.norb
+                self.ms = np.array([(i+1)%2 - i%2 for i in range(self.norb)])
+                self.h2e, self.h1e, self.eig = alloc_integral_arrays(self.norb)
+            elif 'ORBSYM' in line:
+                self.orbsym = line.split('=')[-1].split(',')[:-1]
+                self.orbsym = np.array(self.orbsym).astype(int) - 1
+                self.orbsym = np.repeat(self.orbsym,2)
+            else:
+                ls = line.split(',')
+                for ld in ls:
+                    if 'NORB' in ld:
+                        self.norb = self.ld_strip(ld)
+                    if 'NELEC' in ld:
+                        self.nel = self.ld_strip(ld)
+                    if 'MS2' in ld:
+                        self.ms2 = self.ld_strip(ld)
+                    if 'ISYM' in ld:
+                        self.isym = self.ld_strip(ld) - 1
+
+        open_int_file.close()
+
+        if reference is not None:
+            self.reference = np.array(reference)
+        elif np.sum(self.eig) != 0.0:
+            self.reference = np.argsort(self.eig)[:self.nel]
+        elif np.sum(self.h1e) != 0.0:
+            self.reference = np.argsort(self.h1e)[:self.nel]
+
+        if eigenvalues:
+            self.generate_orbital_eigenvalues()
+
+        self.Href  = 0.5*(np.diag(self.h1e)[self.reference]).sum()
+        self.Href += 0.5*self.eig[self.reference].sum() + self.h0e
+
+        self.maxsym = int(2**np.ceil(np.log(np.max(self.orbsym)+1)/np.log(2)))
+        self.pg_mask = self.maxsym - 1
+        if symmetry is not None:
+            self.symmetry = symmetry
+            if self.symmetry not in self.orbsym:
+                raise ValueError(' The provided symmetry is not within \n'+\
+                                 ' symmetry = %s' % self.symmetry +'\n'+\
+                                 ' symmetries spanned by the system!')
+        else:
+            self.symmetry = self.isym
+
+        if determinants or hamiltonian:
+            self.generate_determinants()
+
+        if hamiltonian:
+            self.generate_hamiltonian()
+
+        if verbose:
+            self.report()
+
+    def report(self):
+        print(' ---- System information ----')
+        print(
+            json.dumps(
+                {
+                    'int_file'  : self.int_file,
+                    'Norb'      : self.norb,
+                    'Nel'       : self.nel,
+                    'Na'        : self.na,
+                    'Nb'        : self.nb,
+                    'MS2'       : self.ms2,
+                    'ISYM'      : self.isym,
+                    'maxsym'    : self.maxsym,
+                    'symmetry'  : self.symmetry,
+                    'pg_mask'   : self.pg_mask,
+                    'Href'      : self.Href,
+                    'UHF'       : self.uhf,
+                },
+            indent=4)
+        )
+        print()
+        print('  '+'\/'*6+' Basis set table start. '+'\/'*6)
+        print(' '+'-'*50)
+        print(' {:>8} {:>10} {:>6} {:>22}'\
+                .format('index','Symmetry','ms','<i|f|i>'))
+        print(' '+'-'*50)
+        outstr = ' {:>8} {:>10} {:>6} {:> 22.12E}'
+        for i in range(self.norb):
+            print(outstr.format(i,self.orbsym[i],self.ms[i],self.eig[i]))
+        print(' '+'-'*50)
+        print('  '+'/\\'*6+'  Basis set table end.  '+'/\\'*6)
+
+    def permute_ijab(self,i,j,a,b):
+        if self.complex_int:
+            return ijab_16fold(i,j,a,b)
+        else:
+            return ijab_32fold(i,j,a,b)
+
+    def integral_case(self,i,j,a,b):
+        self.case_h2e = False
+        self.case_h1e = False
+        self.case_eig = False
+        self.case_h0e = False
+        if all(d > -1 for d in (i,j,a,b)):
+            self.case_h2e = True
+        elif all((i > -1, a > -1)) and all((j == -1, b == -1)):
+            self.case_h1e = True
+        elif i > -1 and all(d == -1 for d in (j,a,b)):
+            self.case_eig = True
+        elif all(d == -1 for d in (i,j,a,b)):
+            self.case_h0e = True
+
+    def ld_strip(self,line_data):
+        line_data = int(line_data.split('=')[-1])
+        return line_data
+
+    def generate_orbital_eigenvalues(self):
+        '''
+        Math from Szabo and Ostlund:
+        e_a = <a|h|a> + \sum_{b != a}^{N} <ab|ab> - <ab|ba>
+        Note that, b != a only applies when a is occupied
+        and b is always occupied
+        '''
+        for a in range(self.norb):
+            self.eig[a] = self.h1e[a,a]
+            for b in self.reference[self.reference != a]:
+                self.eig[a] += self.h2e[a,b,a,b]
+                self.eig[a] -= self.h2e[a,b,b,a]
+
+    def generate_determinants(self):
+        util.generate_bit_arrays(self)
+
+    def generate_hamiltonian(self):
+        self.hii = np.array([util.get_hij(b,b,self) for b in self.bitarrays])
+        esortind = np.argsort(self.hii)
+        self.hii = self.hii[esortind]
+        self.bitarrays = self.bitarrays[esortind]
+        self.H = np.diag(self.hii)
+        for i, b1 in enumerate(self.bitarrays):
+            for j, b2 in enumerate(self.bitarrays[i+1:]):
+                j += i + 1
+                hij = util.get_hij(b1,b2,self)
+                self.H[i,j] = hij
+                self.H[j,i] = hij
+
+if __name__ == '__main__':
+    test_file = 'STRICT-EIGENVALUES-STO3G-STR-H6.FCIDUMP'
+    integral_data = integral_system(
+                                int_file = test_file,
+                                verbose = True,
+                                hamiltonian = True,
+                            )
+    print(integral_data.info)
+
