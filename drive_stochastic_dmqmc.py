@@ -60,7 +60,7 @@ for ibeta in range(nbeta):
                     if int(w) != 0:
                         if r < abs(w-int(w)):
                             # Success!
-                            dnw = int(w) + s
+                            dnw = s*int(w) + s
                             rho.store_spawns(det.ba1,ba2,dnw,nex,hij)
                     elif r < abs(w):
                         dnw = s
@@ -74,7 +74,7 @@ for ibeta in range(nbeta):
                     if int(w) != 0:
                         if r < abs(w-int(w)):
                             # Success!
-                            dnw = int(w) + s
+                            dnw = s*int(w) + s
                             rho.store_spawns(det.ba2,ba1,dnw,nex,hij)
                     elif r < abs(w):
                             dnw = s
