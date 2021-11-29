@@ -2,7 +2,9 @@
 
 import json
 import numpy as np
-import utilities as util
+from utilities import generate_bit_arrays
+from utilities import get_hij
+from excitations import calculate_psingle_pdouble
 
 def ijab_32fold(i,j,a,b):
     r'''
@@ -86,7 +88,7 @@ def ijab_16fold(i,j,a,b):
     ]
     return perms
 
-def alloc_integral_arrays(norb):
+def alloc_arrays(norb):
     r'''
     Generates the h2e, h1e and h0e integral arrays given the
     total number of spin orbitals "norb".
@@ -107,11 +109,21 @@ class integral_system:
 
     info = \
     r'''
+    class `integral_system`
+
     Read in an integral dump file and return the assorted information
     associated with it as a class object.
 
+    -- Example --
+    test_file = 'systems/STRICT-EIGENVALUES-STO3G-STR-H6.FCIDUMP'
+    integral_data = integral_system(
+                                int_file = test_file,
+                                verbose = True,
+                                hamiltonian = True,
+                            )
+
     In:
-        integral_file: The name of the integral file being read in
+        integral_file (required): The name of the integral file being read in
         comp (defaul=False): A boolean flag which controls the integral
             index symmetry.
         verbose (default=False): Print out the system information when 
@@ -152,6 +164,11 @@ class integral_system:
         self.ndets: The total number of determinants in the hilbert space
         self.hii: The diagonal elements of the system Hamiltonian
         self.H: The system hamiltonian generated with the integrals
+        self.Href: The reference Fock state
+        self.reference_det: The reference bitarray for the reference occupation
+        self.psingle: The probability of generating a single excitation
+        self.pdouble: The probability of generating a double excitation
+        self.orbitals: An array of all orbital indexes
     '''
 
     def __init__(
@@ -167,10 +184,11 @@ class integral_system:
             ):
 
         try:
-            open_int_file = open(int_file, 'r')
-        except FileNotFoundError:
+            open(int_file, 'r').close()
+        except (FileNotFoundError, TypeError) as error:
             print(' Integral file: \n\n %s \n\n does not exists!' % int_file)
-            print(info)
+            print('\n Please review the information below:')
+            print(self.info)
             exit(1)
 
         self.int_file = int_file
@@ -179,66 +197,66 @@ class integral_system:
         self.isym = 0
         self.h0e = 0.0
 
-        footer = False
-        for line in open_int_file:
-            line = line.replace('\n','')
-            if not footer:
-                if line[-1] != ',':
-                    line = line + ','
-                if 'UHF' in line and ('true' in line or 'TRUE' in line):
-                    self.uhf = True
+        with open(int_file, 'r') as open_int_file:
+            footer = False
+            for line in open_int_file:
+                line = line.replace('\n','')
+                if not footer:
+                    if line[-1] != ',':
+                        line = line + ','
+                    if 'UHF' in line and ('true' in line or 'TRUE' in line):
+                        self.uhf = True
 
-            if footer:
-                ls = line.split()
-                eri = float(ls[0])
-                i, a, j, b = [int(d)-1 for d in ls[1:]]
-                ijab = self.permute_ijab(i,j,a,b)
-                self.integral_case(i,j,a,b)
-                if self.case_h2e:
-                    for i, j, a, b in ijab:
-                        self.h2e[i,j,a,b] = eri
-                elif self.case_h1e:
-                    for i, j, a, b in ijab:
-                        self.h1e[i,a] = eri
-                elif self.case_eig:
-                    self.eig[2*i:2*i+2] = eri
-                elif self.case_h0e:
-                    self.h0e = eri
-            elif '/' in line or 'END' in line:
-                footer = True
-                self.nb = int((self.nel - self.ms2) / 2)
-                self.na = self.nel - self.nb
-                if not self.uhf: self.norb += self.norb
-                self.ms = np.array([(i+1)%2 - i%2 for i in range(self.norb)])
-                self.h2e, self.h1e, self.eig = alloc_integral_arrays(self.norb)
-            elif 'ORBSYM' in line:
-                self.orbsym = line.split('=')[-1].split(',')[:-1]
-                self.orbsym = np.array(self.orbsym).astype(int) - 1
-                self.orbsym = np.repeat(self.orbsym,2)
-            else:
-                ls = line.split(',')
-                for ld in ls:
-                    if 'NORB' in ld:
-                        self.norb = self.ld_strip(ld)
-                    if 'NELEC' in ld:
-                        self.nel = self.ld_strip(ld)
-                    if 'MS2' in ld:
-                        self.ms2 = self.ld_strip(ld)
-                    if 'ISYM' in ld:
-                        self.isym = self.ld_strip(ld) - 1
-
-        open_int_file.close()
+                if footer:
+                    ls = line.split()
+                    eri = float(ls[0])
+                    i, a, j, b = [int(d)-1 for d in ls[1:]]
+                    ijab = self.permute_ijab(i,j,a,b)
+                    self.integral_case(i,j,a,b)
+                    if self.case_h2e:
+                        for i, j, a, b in ijab:
+                            self.h2e[i,j,a,b] = eri
+                    elif self.case_h1e:
+                        for i, j, a, b in ijab:
+                            self.h1e[i,a] = eri
+                    elif self.case_eig:
+                        self.eig[2*i:2*i+2] = eri
+                    elif self.case_h0e:
+                        self.h0e = eri
+                elif '/' in line or 'END' in line:
+                    footer = True
+                    self.nb = int((self.nel - self.ms2) / 2)
+                    self.na = self.nel - self.nb
+                    self.norb -= int(self.uhf  * (self.norb/2))
+                    self.ms = np.array([(i+1)%2-i%2 for i in range(self.norb)])
+                    self.h2e, self.h1e, self.eig = alloc_arrays(self.norb)
+                elif 'ORBSYM' in line:
+                    self.orbsym = line.split('=')[-1].split(',')[:-1]
+                    self.orbsym = np.array(self.orbsym).astype(int) - 1
+                    self.orbsym = np.repeat(self.orbsym,2)
+                else:
+                    ls = line.split(',')
+                    for ld in ls:
+                        if 'NORB' in ld:
+                            self.norb = int(2*self.ld_strip(ld))
+                        if 'NELEC' in ld:
+                            self.nel = self.ld_strip(ld)
+                        if 'MS2' in ld:
+                            self.ms2 = self.ld_strip(ld)
+                        if 'ISYM' in ld:
+                            self.isym = self.ld_strip(ld) - 1
 
         if reference is not None:
             self.reference = np.array(reference)
         elif np.sum(self.eig) != 0.0:
             self.reference = np.argsort(self.eig)[:self.nel]
-        elif np.sum(self.h1e) != 0.0:
-            self.reference = np.argsort(self.h1e)[:self.nel]
+        else:
+            self.reference = np.argsort(np.diag(self.h1e))[:self.nel]
 
         if eigenvalues:
             self.generate_orbital_eigenvalues()
 
+        self.orbs  = np.arange(self.norb)
         self.Href  = 0.5*(np.diag(self.h1e)[self.reference]).sum()
         self.Href += 0.5*self.eig[self.reference].sum() + self.h0e
 
@@ -247,11 +265,15 @@ class integral_system:
         if symmetry is not None:
             self.symmetry = symmetry
             if self.symmetry not in self.orbsym:
-                raise ValueError(' The provided symmetry is not within \n'+\
-                                 ' symmetry = %s' % self.symmetry +'\n'+\
-                                 ' symmetries spanned by the system!')
+                raise ValueError('\n The provided symmetry is not within \n'+\
+                                 ' symmetries spanned by the system!\n'+\
+                                 ' symmetry = %s' % self.symmetry)
         else:
             self.symmetry = self.isym
+
+        self.reference_det = np.zeros(self.norb, dtype=int)
+        self.reference_det[self.reference] = 1
+        calculate_psingle_pdouble(self,self.reference_det)
 
         if determinants or hamiltonian:
             self.generate_determinants()
@@ -268,6 +290,7 @@ class integral_system:
             json.dumps(
                 {
                     'int_file'  : self.int_file,
+                    'UHF'       : self.uhf,
                     'Norb'      : self.norb,
                     'Nel'       : self.nel,
                     'Na'        : self.na,
@@ -278,7 +301,10 @@ class integral_system:
                     'symmetry'  : self.symmetry,
                     'pg_mask'   : self.pg_mask,
                     'Href'      : self.Href,
-                    'UHF'       : self.uhf,
+                    'reference' : '%s' % self.reference,
+                    'ref_det'   : '%s' % self.reference_det,
+                    'p_single'  : self.psingle,
+                    'p_double'  : self.pdouble,
                 },
             indent=4)
         )
@@ -301,22 +327,13 @@ class integral_system:
             return ijab_32fold(i,j,a,b)
 
     def integral_case(self,i,j,a,b):
-        self.case_h2e = False
-        self.case_h1e = False
-        self.case_eig = False
-        self.case_h0e = False
-        if all(d > -1 for d in (i,j,a,b)):
-            self.case_h2e = True
-        elif all((i > -1, a > -1)) and all((j == -1, b == -1)):
-            self.case_h1e = True
-        elif i > -1 and all(d == -1 for d in (j,a,b)):
-            self.case_eig = True
-        elif all(d == -1 for d in (i,j,a,b)):
-            self.case_h0e = True
+        self.case_h2e = np.sign(b) != -1
+        self.case_h1e = np.sign(a) != -1 and not self.case_h2e
+        self.case_eig = np.sign(i) != -1 and not self.case_h1e
+        self.case_h0e = np.sign(i) == -1
 
     def ld_strip(self,line_data):
-        line_data = int(line_data.split('=')[-1])
-        return line_data
+        return int(line_data.split('=')[-1])
 
     def generate_orbital_eigenvalues(self):
         '''
@@ -332,10 +349,10 @@ class integral_system:
                 self.eig[a] -= self.h2e[a,b,b,a]
 
     def generate_determinants(self):
-        util.generate_bit_arrays(self)
+        generate_bit_arrays(self)
 
     def generate_hamiltonian(self):
-        self.hii = np.array([util.get_hij(b,b,self) for b in self.bitarrays])
+        self.hii = np.array([get_hij(b,b,self) for b in self.bitarrays])
         esortind = np.argsort(self.hii)
         self.hii = self.hii[esortind]
         self.bitarrays = self.bitarrays[esortind]
@@ -343,16 +360,14 @@ class integral_system:
         for i, b1 in enumerate(self.bitarrays):
             for j, b2 in enumerate(self.bitarrays[i+1:]):
                 j += i + 1
-                hij = util.get_hij(b1,b2,self)
-                self.H[i,j] = hij
-                self.H[j,i] = hij
+                hij = get_hij(b1,b2,self)
+                self.H[i,j], self.H[j,i] = hij, hij
 
 if __name__ == '__main__':
-    test_file = 'STRICT-EIGENVALUES-STO3G-STR-H6.FCIDUMP'
+    test_file = 'systems/STRICT-EIGENVALUES-STO3G-STR-H6.FCIDUMP'
     integral_data = integral_system(
                                 int_file = test_file,
                                 verbose = True,
                                 hamiltonian = True,
                             )
-    print(integral_data.info)
 

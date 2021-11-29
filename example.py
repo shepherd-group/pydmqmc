@@ -17,15 +17,13 @@ def test_fci():
             )
     fci1, vec1 = np.linalg.eigh(system.H)
 
-    H, Heval, HS = INIT('systems/STRETCHED-H6-STO3G.hamil', 0.0)
+    H, Heval, HS = INIT('systems/STRICT-STRETCHED-H6-STO3G.hamil', 0.0)
     fci2, vec2 = np.linalg.eigh(Heval)
 
     dfci = fci1 - fci2
     dfci = dfci[np.argsort(dfci)]
-    print(np.max(np.abs(dfci)))
-    # Max delta: 1.2495782186761062e-10
-    # This is appropriate considering the strict integrals
-    # are better converged than those used to make the .hamil file.
+    print(' dFCI:',np.max(np.abs(dfci)))
+    print(' dH00:',system.Href - Heval[0,0])
 
     system = readin(
                 int_file = 'systems/STRICT-EIGENVALUES-STO3G-EQM-H6.FCIDUMP',
@@ -34,15 +32,13 @@ def test_fci():
             )
     fci1, vec1 = np.linalg.eigh(system.H)
 
-    H, Heval, HS = INIT('systems/EQUILIBRIUM-H6-STO3G.hamil', 0.0)
+    H, Heval, HS = INIT('systems/STRICT-EQUILIBRIUM-H6-STO3G.hamil', 0.0)
     fci2, vec2 = np.linalg.eigh(Heval)
 
     dfci = fci1 - fci2
     dfci = dfci[np.argsort(dfci)]
-    print(np.max(np.abs(dfci)))
-    # 8.452842870099175e-10
-    # This is appropriate considering the strict integrals
-    # are better converged than those used to make the .hamil file.
+    print(' dFCI:',np.max(np.abs(dfci)))
+    print(' dH00:',system.Href - Heval[0,0])
 
 def test_dmqmc():
     r'''
@@ -57,7 +53,7 @@ def test_dmqmc():
     H1  = np.copy(system.H)
     H1 -= np.eye(system.ndets)*H1[0,0]
 
-    H, Heval, HS = INIT('systems/STRETCHED-H6-STO3G.hamil', 0.0)
+    H, Heval, HS = INIT('systems/STRICT-STRETCHED-H6-STO3G.hamil', 0.0)
 
     tau = 0.001
     cycles = 10
@@ -75,10 +71,8 @@ def test_dmqmc():
     en1 = (system.H @ rho1).trace() / rho1.trace()
     den = en - en1
     print(abs(den))
-    # Delta: 8.870815193517956e-11
-    # This seems appropriate 
 
 if __name__ == '__main__':
-    #test_fci()
-    #test_dmqmc()
+    test_fci()
+    test_dmqmc()
 
