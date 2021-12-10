@@ -2,8 +2,10 @@
 
 import json
 import numpy as np
-from utilities import generate_bit_arrays
 from utilities import get_hij
+from utilities import orb_sym as csym
+from utilities import generate_bit_arrays
+from utilities import cross_prod_pg_sym as xpsym
 from excitations import calculate_psingle_pdouble
 
 def ijab_32fold(i,j,a,b):
@@ -131,7 +133,7 @@ class integral_system:
         reference (default=None): Specifies the occupied spin orbitals for
             the systems reference determinant. The default "None" assumes the
             lowest energy orbitals are occupied. If we don't have orbital
-            energies we take a guess based on the one-particle integrals.
+            energies we assume the first nel orbitals are occupied.
         eigenvalues (default=False): Calculate the orbital eigenvalues
             for the reference state.
         symmetry (default=self.isym): The point-group symmetry of the
@@ -151,6 +153,7 @@ class integral_system:
         self.h0e: The core Hamiltonian
         self.eig: The systems single particle eigenvalues
         self.norb: The number of spin orbitals
+        self.nvirt: The number of virtual orbitals in the system
         self.nel: The total number of electrons
         self.na: The number of alpha electrons
         self.nb: The number of beta electrons
@@ -230,6 +233,7 @@ class integral_system:
                     self.norb -= int(self.uhf  * (self.norb/2))
                     self.ms = np.array([(i+1)%2-i%2 for i in range(self.norb)])
                     self.h2e, self.h1e, self.eig = alloc_arrays(self.norb)
+                    self.nvirt = self.norb - self.nel
                 elif 'ORBSYM' in line:
                     self.orbsym = line.split('=')[-1].split(',')[:-1]
                     self.orbsym = np.array(self.orbsym).astype(int) - 1
@@ -246,40 +250,59 @@ class integral_system:
                         if 'ISYM' in ld:
                             self.isym = self.ld_strip(ld) - 1
 
+        self.maxsym = int(2**np.ceil(np.log(np.max(self.orbsym)+1)/np.log(2)))
+        self.pg_mask = self.maxsym - 1
+
+        if symmetry is not None:
+            self.symmetry = symmetry
+            if self.symmetry not in self.orbsym:
+                error_msg  = ' The provided symmetry is not within \n'
+                error_msg += ' the symmetries spanned by the system! \n'
+                error_msg += ' provided symmetry: %s \n' % self.symmetry
+                error_msg += ' Symmetries spanned by system: %s' % self.orbsym
+                raise ValueError(error_msg)
+        else:
+            self.symmetry = self.isym
+
         if reference is not None:
             self.reference = np.array(reference)
         elif np.sum(self.eig) != 0.0:
             self.reference = np.argsort(self.eig)[:self.nel]
         else:
-            self.reference = np.argsort(np.diag(self.h1e))[:self.nel]
+            self.reference = np.arange(self.nel)
+
+        aba_chk = self.orbsym[self.reference[self.reference % 2 == 0]]
+        bba_chk = self.orbsym[self.reference[self.reference % 2 != 0]]
+        asym_chk = csym(aba_chk, self.pg_mask)
+        bsym_chk = csym(bba_chk, self.pg_mask)
+        sym_chk = xpsym(bsym_chk, asym_chk, self.pg_mask)
+        if sym_chk != self.symmetry:
+            error_msg  = ' Reference determinant is not within the \n'
+            error_msg += ' the symmetry of the system!'
+            raise ValueError(error_msg)
 
         if eigenvalues:
             self.generate_orbital_eigenvalues()
 
-        self.orbs  = np.arange(self.norb)
+        self.orbs = np.arange(self.norb)
+        self.reference_det = np.zeros(self.norb, dtype=int)
+        self.reference_det[self.reference] = 1
+        self.psingle, self.pdouble = calculate_psingle_pdouble(self.orbs,
+                                        self.ms,self.orbsym,self.maxsym,
+                                        self.pg_mask,self.reference_det)
+
         self.Href  = 0.5*(np.diag(self.h1e)[self.reference]).sum()
         self.Href += 0.5*self.eig[self.reference].sum() + self.h0e
 
-        self.maxsym = int(2**np.ceil(np.log(np.max(self.orbsym)+1)/np.log(2)))
-        self.pg_mask = self.maxsym - 1
-        if symmetry is not None:
-            self.symmetry = symmetry
-            if self.symmetry not in self.orbsym:
-                raise ValueError('\n The provided symmetry is not within \n'+\
-                                 ' symmetries spanned by the system!\n'+\
-                                 ' symmetry = %s' % self.symmetry)
-        else:
-            self.symmetry = self.isym
-
-        self.reference_det = np.zeros(self.norb, dtype=int)
-        self.reference_det[self.reference] = 1
-        calculate_psingle_pdouble(self,self.reference_det)
-
         if determinants or hamiltonian:
             self.generate_determinants()
+        else:
+            self.ndets, self.bitarrays = None, None
 
         if hamiltonian:
             self.generate_hamiltonian()
+        else:
+            self.hii, self.H = None, None
 
         if verbose:
             self.report()
@@ -292,6 +315,7 @@ class integral_system:
                     'int_file'  : self.int_file,
                     'UHF'       : self.uhf,
                     'Norb'      : self.norb,
+                    'Nvirt'      : self.nvirt,
                     'Nel'       : self.nel,
                     'Na'        : self.na,
                     'Nb'        : self.nb,
@@ -306,7 +330,7 @@ class integral_system:
                     'p_single'  : self.psingle,
                     'p_double'  : self.pdouble,
                 },
-            indent=4)
+            indent=4, ensure_ascii=True)
         )
         print()
         print('  '+'\/'*6+' Basis set table start. '+'\/'*6)
@@ -349,7 +373,9 @@ class integral_system:
                 self.eig[a] -= self.h2e[a,b,b,a]
 
     def generate_determinants(self):
-        generate_bit_arrays(self)
+        self.ndets, self.bitarrays = generate_bit_arrays(self.norb, self.na,
+                                        self.nb, self.orbsym, self.pg_mask,
+                                        self.symmetry)
 
     def generate_hamiltonian(self):
         self.hii = np.array([get_hij(b,b,self) for b in self.bitarrays])
@@ -363,11 +389,21 @@ class integral_system:
                 hij = get_hij(b1,b2,self)
                 self.H[i,j], self.H[j,i] = hij, hij
 
+    def dumpeigs(self, float_fmt=' % 24.16E', int_fmt='%3i'):
+        fmt = float_fmt + f' {int_fmt} {int_fmt} {int_fmt} {int_fmt}'
+        inds = np.arange(0,self.norb,2)
+        for i in inds:
+            iout = int(i/2)+1
+            out_tuple = (self.eig[i], iout, 0, 0, 0)
+            print(fmt % out_tuple)
+
 if __name__ == '__main__':
-    test_file = 'systems/STRICT-EIGENVALUES-STO3G-STR-H6.FCIDUMP'
-    integral_data = integral_system(
-                                int_file = test_file,
-                                verbose = True,
-                                hamiltonian = True,
-                            )
+    test_file = 'systems/STRICT-STO3G-STR-H4.FCIDUMP'
+    sys = integral_system(
+                        int_file = test_file,
+                        verbose = True,
+                        eigenvalues = True,
+                        reference = [0,1,4,5],
+                        hamiltonian = True,
+                    )
 

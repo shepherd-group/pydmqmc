@@ -85,7 +85,7 @@ def conj_sym(sym,sys):
     '''
     return np.bitwise_or(np.bitwise_and(sym, sys.pg_mask), 0)
 
-def get_nvirt_ms_sym(sys,occ):
+def get_nvirt_ms_sym(orbs,ms,orbsym,maxsym,occ):
     r'''
     Takes in the sys class object and an occupied orbital array
     and returns relevant information for the virtual orbitals.
@@ -102,15 +102,16 @@ def get_nvirt_ms_sym(sys,occ):
 
     (Be warned, there is a always an empty array corresponding to ms = 0)
     '''
-    unocc = sys.orbs[np.isin(sys.orbs, occ, invert=True)]
-    virt_ms = sys.ms[unocc]
-    virt_sym = sys.orbsym[unocc]
-    nvirt = np.zeros((3,sys.maxsym))
+    unocc = orbs[np.isin(orbs, occ, invert=True)]
+    virt_ms = ms[unocc]
+    virt_sym = orbsym[unocc]
+    nvirt = np.zeros((3,maxsym))
     for ms, sym in zip(virt_ms, virt_sym):
         nvirt[ms,sym] += 1
     return unocc, virt_ms, virt_sym, nvirt
 
-def generate_bit_arrays(sys, use_symmetry_block=True):
+def generate_bit_arrays(norb, na, nb, orbsym, pg_mask, symmetry, 
+                        use_symmetry_block=True):
     r'''
     Generate all the determinants for a system class object which contains
     the information from "integral_system" used to describe a quantum
@@ -148,12 +149,12 @@ def generate_bit_arrays(sys, use_symmetry_block=True):
             version as bitarrays henceforth.
     '''
 
-    aba = np.zeros(int(sys.norb/2),dtype=int)
-    aba[:sys.na] = 1
+    aba = np.zeros(int(norb/2),dtype=int)
+    aba[:na] = 1
     alpha_bas = list(gen_perm_set(aba))[::-1]
 
-    bba = np.zeros(int(sys.norb/2),dtype=int)
-    bba[:sys.nb] = 1
+    bba = np.zeros(int(norb/2),dtype=int)
+    bba[:nb] = 1
     beta_bas = list(gen_perm_set(bba))[::-1]
 
     HS_est = len(beta_bas)*len(alpha_bas)
@@ -161,28 +162,29 @@ def generate_bit_arrays(sys, use_symmetry_block=True):
     bas = []
     for bba in beta_bas:
         bind = 2*np.nonzero(bba)[0] + 1
-        boccsym = sys.orbsym[bind]
-        bsym = orb_sym(boccsym,sys.pg_mask)
+        boccsym = orbsym[bind]
+        bsym = orb_sym(boccsym,pg_mask)
 
         for aba in alpha_bas:
             aind = 2*np.nonzero(aba)[0]
-            aoccsym = sys.orbsym[aind]
-            asym = orb_sym(aoccsym,sys.pg_mask)
+            aoccsym = orbsym[aind]
+            asym = orb_sym(aoccsym,pg_mask)
 
-            sym = cross_prod_pg_sym(bsym,asym,sys.pg_mask)
-            ba = np.zeros(sys.norb,dtype=int)
-            ba[np.arange(0,sys.norb,2)] = aba
-            ba[np.arange(1,sys.norb,2)] = bba
+            sym = cross_prod_pg_sym(bsym,asym,pg_mask)
+            ba = np.zeros(norb,dtype=int)
+            ba[np.arange(0,norb,2)] = aba
+            ba[np.arange(1,norb,2)] = bba
 
-            if sym == sys.symmetry:
+            if sym == symmetry:
                 bas.append(ba)
             elif not use_symmetry_block:
                 bas.append(ba)
 
     HS_est = len(bas)
     print(' Actual size of the hilbert space: {:<22}\n'.format(HS_est))
-    sys.ndets = HS_est
-    sys.bitarrays = np.array(bas)
+    ndets = HS_est
+    bitarrays = np.array(bas)
+    return ndets, bitarrays
 
 def get_nex(b1,b2):
     return int(np.count_nonzero(b1!=b2)/2)

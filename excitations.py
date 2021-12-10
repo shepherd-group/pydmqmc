@@ -10,7 +10,7 @@ from utilities import sc2
 from utilities import get_single_perm
 from utilities import get_double_perm
 
-def random_bitarry_symspace(sys):
+def random_bitarry_symspace(norb,na,nb,pg_mask,symmetry,orbsym):
     r'''
     Generate a random determinant from the full space of all determinants.
 
@@ -21,20 +21,20 @@ def random_bitarry_symspace(sys):
     Out:
         ba: The bitarray of the determinant
     '''
-    occa = np.random.choice(int(sys.norb/2), sys.na, replace=False)
-    syma = csym(sys.orbsym[2*occa], sys.pg_mask)
-    occb = np.random.choice(int(sys.norb/2), sys.nb, replace=False)
-    symb = csym(sys.orbsym[2*occb+1], sys.pg_mask)
+    occa = np.random.choice(int(norb/2), na, replace=False)
+    syma = csym(orbsym[2*occa], pg_mask)
+    occb = np.random.choice(int(norb/2), nb, replace=False)
+    symb = csym(orbsym[2*occb+1], pg_mask)
 
-    if not (xpsym(symb, syma, sys.pg_mask) == sys.symmetry):
+    if not (xpsym(symb, syma, pg_mask) == symmetry):
         return random_bitarry_symspace(sys)
 
-    ba = np.zeros(sys.norb, dtype=int)
+    ba = np.zeros(norb, dtype=int)
     ba[2*occa] = 1
     ba[2*occb+1] = 1
     return ba
 
-def calculate_psingle_pdouble(sys,ba_ref):
+def calculate_psingle_pdouble(orbs,ms,orbsym,maxsym,pg_mask,ba_ref):
     r'''
     Calculate the single and double excitation probabilities.
     We assume that the reference state is a good candidate for the
@@ -50,19 +50,20 @@ def calculate_psingle_pdouble(sys,ba_ref):
         sys: A system object class, upon return it will contain the
             self.psingle and self.pdouble object
     '''
-    occ = sys.orbs[ba_ref == 1]
-    unocc, virt_ms, virt_sym, nvirt = get_nvirt_ms_sym(sys,occ)
+    occ = orbs[ba_ref == 1]
+    unocc, virt_ms, virt_sym, nvirt = get_nvirt_ms_sym(orbs,ms,
+                                                        orbsym,maxsym,occ)
 
-    occ_ms = sys.ms[occ]
-    occ_sym = sys.orbsym[occ]
+    occ_ms = ms[occ]
+    occ_sym = orbsym[occ]
     nsingle = np.sum(nvirt[(occ_ms,occ_sym)])
 
     ndouble = 0
     for i,(ims,isym) in enumerate(zip(occ_ms,occ_sym)):
         for jms,jsym in zip(occ_ms[i+1:],occ_sym[i+1:]):
-            for syma in np.arange(sys.maxsym):
-                symb = xpsym(isym, jsym, sys.pg_mask)
-                symb = xpsym(syma, symb, sys.pg_mask)
+            for syma in np.arange(maxsym):
+                symb = xpsym(isym, jsym, pg_mask)
+                symb = xpsym(syma, symb, pg_mask)
                 if syma == symb and ims == jms:
                     ndouble += nvirt[ims,syma]*(nvirt[jms,symb]-1)/2
                 elif syma == symb:
@@ -72,8 +73,9 @@ def calculate_psingle_pdouble(sys,ba_ref):
                     if ims != jms:
                         ndouble += nvirt[jms,syma]*nvirt[ims,symb]
 
-    sys.psingle = nsingle/(nsingle + ndouble)
-    sys.pdouble = ndouble/(nsingle + ndouble)
+    psingle = nsingle/(nsingle + ndouble)
+    pdouble = ndouble/(nsingle + ndouble)
+    return psingle, pdouble
 
 def generate_renorm_excitation(sys,ba):
     r'''
