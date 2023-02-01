@@ -2,93 +2,63 @@
 
 import json
 import numpy as np
-from utilities import get_hij
+
+from utilities import (get_nex, get_hij, generate_bit_arrays)
 from utilities import orb_sym as csym
-from utilities import generate_bit_arrays
 from utilities import cross_prod_pg_sym as xpsym
 from excitations import calculate_psingle_pdouble
+from njit_functions import bitarray_pg
 
-def ijab_32fold(i,j,a,b):
-    r'''
-    Generates and returns an array of the 32-fold symmetries for integrals
-    indexed by the orbitals. Where we have 8-fold spatial symmetry and
-    4-fold spin symmetry, hence 8x4 = 32-fold.
-    We assume physicist notation.
-
-    In:
-        i,j,a,b: The orbital indexes
-    Out:
-        perms: The permutation of all indexes based on the 32-fold symmetry.
-    '''
-    i,j,a,b = 2*i, 2*j, 2*a, 2*b
-    perms = [
-        [   i,     j,      a,      b    ],
-        [   i+1,   j+1,    a+1,    b+1  ],
-        [   i,     j+1,    a,      b+1  ],
-        [   i+1,   j,      a+1,    b    ],
-        [   j,     i,      b,      a    ],
-        [   j+1,   i+1,    b+1,    a+1  ],
-        [   j,     i+1,    b,      a+1  ],
-        [   j+1,   i,      b+1,    a    ],
-        [   a,     b,      i,      j    ],
-        [   a+1,   b+1,    i+1,    j+1  ],
-        [   a,     b+1,    i,      j+1  ],
-        [   a+1,   b,      i+1,    j    ],
-        [   b,     a,      j,      i    ],
-        [   b+1,   a+1,    j+1,    i+1  ],
-        [   b,     a+1,    j,      i+1  ],
-        [   b+1,   a,      j+1,    i    ],
-        [   a,     j,      i,      b    ],
-        [   a+1,   j+1,    i+1,    b+1  ],
-        [   a,     j+1,    i,      b+1  ],
-        [   a+1,   j,      i+1,    b    ],
-        [   b,     i,      j,      a    ],
-        [   b+1,   i+1,    j+1,    a+1  ],
-        [   b,     i+1,    j,      a+1  ],
-        [   b+1,   i,      j+1,    a    ],
-        [   i,     b,      a,      j    ],
-        [   i+1,   b+1,    a+1,    j+1  ],
-        [   i,     b+1,    a,      j+1  ],
-        [   i+1,   b,      a+1,    j    ],
-        [   j,     a,      b,      i    ],
-        [   j+1,   a+1,    b+1,    i+1  ],
-        [   j,     a+1,    b,      i+1  ],
-        [   j+1,   a,      b+1,    i    ],
-    ]
-    return perms
-
-def ijab_16fold(i,j,a,b):
-    r'''
-    Generates and returns an array of the 16-fold symmetries for integrals
-    indexed by complex orbitals. Where we have 4-fold spatial symmetry and
-    4-fold spin symmetry, hence 4x4 = 16-fold.
-    We assume physicist notation.
+def generate_ijab_symmetries_array(i, j, a, b, eight_fold=True, rhf=True):
+    """
+    Generate an array of the valid symmetry permutations 
+    of the orbital indicies. We assume physicist notation.
 
     In:
-        i,j,a,b: The orbital indexes
+        i, j, a, b: Orbital indexes
+        eight_fold: A boolean for if our system is 8-fold spatially symmetric
+        rhf: A boolean for restricted Hartree--Fock, indicates spin symmetry
     Out:
-        perms: The permutation of all indexes based on the 32-fold symmetry.
-    '''
-    i,j,a,b = 2*i, 2*j, 2*a, 2*b
-    perms = [
-        [   i,      j,      a,      b   ],
-        [   i+1,    j+1,    a+1,    b+1 ],
-        [   i,      j+1,    a,      b+1 ],
-        [   i+1,    j,      a+1,    b   ],
-        [   a,      b,      i,      j   ],
-        [   a+1,    b+1,    i+1,    j+1 ],
-        [   a,      b+1,    i,      j+1 ],
-        [   a+1,    b,      i+1,    j   ],
-        [   j,      i,      b,      a   ],
-        [   j+1,    i+1,    b+1,    a+1 ],
-        [   j,      i+1,    b,      a+1 ],
-        [   j+1,    i,      b+1,    a   ],
-        [   b,      a,      j,      i   ],
-        [   b+1,    a+1,    j+1,    i+1 ],
-        [   b,      a+1,    j,      i+1 ],
-        [   b+1,    a,      j+1,    i   ],
+        P: The array of all valid i, j, a, b permutations
+    """
+    if rhf: i, j, a, b = i+i, j+j, a+a, b+b
+    uhf = not rhf
+    nspat = int(4 - 3*uhf)
+    nspin = int(4 - 3*uhf + 4*eight_fold - 3*eight_fold*uhf)
+
+    SS = [
+        [0, 0, 0, 0],
+        [1, 1, 1, 1],
+        [0, 1, 0, 1],
+        [1, 0, 1, 0],
     ]
-    return perms
+
+    FF = [
+        [i, j, a, b],
+        [a, b, i, j],
+        [j, i, b, a],
+        [b, a, j, i],
+    ]
+
+    EF = [
+        [i, j, a, b],
+        [j, i, b, a],
+        [a, b, i, j],
+        [b, a, j, i],
+        [a, j, i, b],
+        [b, i, j, a],
+        [i, b, a, j],
+        [j, a, b, i],
+    ]
+
+    if eight_fold:
+        P = np.repeat(EF, nspat, axis=0)
+    else:
+        P = np.repeat(FF, nspat, axis=0)
+    if rhf:
+        P += np.tile(SS, (nspin, 1))
+
+    return P
 
 def alloc_arrays(norb):
     r'''
@@ -106,6 +76,76 @@ def alloc_arrays(norb):
     h1e = np.zeros((norb,norb))
     eig = np.zeros(norb)
     return h2e, h1e, eig
+
+def print_symmetry_table(maxsym, pg_mask, norb, orbsym):
+    r'''
+    A routine to write out the symmetry table for the system.
+    Write out the general pg symmetry table from all combinations
+    of point groups first. ( I am forgetful okay :P )
+    Then write out the resulting point group table from the cross
+    product of the orbital point groups.
+
+    In:
+        maxsym: The maximum point group symmetry of the system
+        pg_mask: The point group mask of the system
+        norb: The total number of orbitals in the system
+        orbsym: The orbital point groups index by orbital
+    '''
+    print('\n')
+    print( ' Symmetry cross product (xp) table using:')
+    print(f'    pg_mask: {pg_mask}')
+    print( '    row = pg symmetry 1')
+    print( '    col = pg symmetry 2')
+    print( '    xp[row,col]:')
+    print()
+
+    xp = np.zeros((maxsym, maxsym), dtype=np.int64)
+    for isym in range(0, maxsym):
+        for jsym in range(0, maxsym):
+            xp_pg = bitarray_pg(isym, jsym, pg_mask)
+            xp[isym,jsym] = xp_pg
+
+    header = ' sym |'
+    pg_rows = [f'  {isym:>2} |' for isym in range(0, maxsym)]
+    for isym in range(0, maxsym):
+        header += f' {isym:>2}'
+        for jsym in range(0, maxsym):
+            pg_rows[isym] += f' {xp[isym,jsym]:>2}'
+
+    print(header)
+    print(' ' + '-'*int(6 + 3 * (maxsym)))
+    for isym in range(0, maxsym):
+        print(pg_rows[isym])
+
+    print()
+    print( ' Symmetry cross product table from system orbitals:')
+    print(f'    pg_mask: {pg_mask}')
+    print( '    row = orbital 1')
+    print( '    col = orbital 2')
+    print( '    xp[row,col]:')
+    print()
+
+    xp = np.zeros((norb, norb), dtype=np.int64)
+    for iorb in range(0, norb):
+        isym = orbsym[iorb]
+        for jorb in range(0, norb):
+            jsym = orbsym[jorb]
+            xp_pg = bitarray_pg(isym, jsym, pg_mask)
+            xp[iorb,jorb] = xp_pg
+
+    header = ' orb |'
+    pg_rows = [f'  {iorb:>2} |' for iorb in range(0, norb)]
+    for iorb in range(0, norb):
+        header += f' {iorb:>2}'
+        for jorb in range(0, norb):
+            pg_rows[iorb] += f' {xp[iorb,jorb]:>2}'
+
+    print(header)
+    print(' ' + '-'*int(6 + 3 * (norb)))
+    for irow in range(0, norb):
+        print(pg_rows[irow])
+
+
 
 class integral_system:
 
@@ -136,13 +176,23 @@ class integral_system:
             energies we assume the first nel orbitals are occupied.
         eigenvalues (default=False): Calculate the orbital eigenvalues
             for the reference state.
-        symmetry (default=self.isym): The point-group symmetry of the
+        symmetry (default=None -> self.isym): The point-group symmetry of the
             system integrals we are reading in.
         determinants (default=False): A boolean to control whether we 
             generate all those determinants spanned by the system
             within the point-group symmetry
         hamiltonian (default=False): A boolean to control whether we generate
             the Hamiltonian for the system
+        parallel_hamiltonian (default=False): Use parallel njit functions
+            to construct the Hamiltonian. Results in 100X speed up for
+            large systems such as H8 and H10. Otherwise is slower than
+            the native Hamiltonian construction.
+        excitation_matrix (default=False): A boolean to control whether we
+            generate the matrix of excitations between i and j indexing the
+            matrix. Where i and j represent the bitarrays at i and j.
+        bitarray_integers (default=False): A boolean to control whether the
+            integer representation of the bitarrays are generated.
+
     Contains:
         self.info: The string of this information
         self.int_file: The file were the integrals are read from
@@ -163,6 +213,7 @@ class integral_system:
         self.symmetry: The point-group symmetry of the system
         self.maxsym: The maximum point-group symmetry contained by the system
         self.pg_mask: The point-group mask of the system used for pg operations
+        self.gamma_sym: A null symmetry set to zero (i.e. assuming a molecule)
         self.bitarrays: An array of the bitarray's in the hilbert space
         self.ndets: The total number of determinants in the hilbert space
         self.hii: The diagonal elements of the system Hamiltonian
@@ -172,6 +223,8 @@ class integral_system:
         self.psingle: The probability of generating a single excitation
         self.pdouble: The probability of generating a double excitation
         self.orbitals: An array of all orbital indexes
+        self.nex_mat: An ndets X ndets matrix of excitations between i and j
+        self.bitints: Integer representations of the bitarrays.
     '''
 
     def __init__(
@@ -184,6 +237,9 @@ class integral_system:
                 symmetry = None,
                 determinants = False,
                 hamiltonian = False,
+                parallel_hamiltonian = False,
+                excitation_matrix = False,
+                bitarray_integers = False,
             ):
 
         try:
@@ -205,22 +261,22 @@ class integral_system:
             for line in open_int_file:
                 line = line.replace('\n','')
                 if not footer:
+                    line = line.upper()
                     if line[-1] != ',':
                         line = line + ','
-                    if 'UHF' in line and ('true' in line or 'TRUE' in line):
+                    if 'UHF' in line and 'TRUE' in line:
                         self.uhf = True
 
                 if footer:
                     ls = line.split()
                     eri = float(ls[0])
                     i, a, j, b = [int(d)-1 for d in ls[1:]]
-                    ijab = self.permute_ijab(i,j,a,b)
                     self.integral_case(i,j,a,b)
                     if self.case_h2e:
-                        for i, j, a, b in ijab:
+                        for i, j, a, b in self.permute_ijab(i,j,a,b):
                             self.h2e[i,j,a,b] = eri
                     elif self.case_h1e:
-                        for i, j, a, b in ijab:
+                        for i, j, a, b in self.permute_ijab(i,j,a,b):
                             self.h1e[i,a] = eri
                     elif self.case_eig:
                         self.eig[2*i:2*i+2] = eri
@@ -237,7 +293,7 @@ class integral_system:
                 elif 'ORBSYM' in line:
                     self.orbsym = line.split('=')[-1].split(',')[:-1]
                     self.orbsym = np.array(self.orbsym).astype(int) - 1
-                    self.orbsym = np.repeat(self.orbsym,2)
+                    self.orbsym = np.repeat(self.orbsym, 2 - self.uhf)
                 else:
                     ls = line.split(',')
                     for ld in ls:
@@ -252,6 +308,7 @@ class integral_system:
 
         self.maxsym = int(2**np.ceil(np.log(np.max(self.orbsym)+1)/np.log(2)))
         self.pg_mask = self.maxsym - 1
+        self.gamma_sym = 0
 
         if symmetry is not None:
             self.symmetry = symmetry
@@ -294,7 +351,18 @@ class integral_system:
         self.Href  = 0.5*(np.diag(self.h1e)[self.reference]).sum()
         self.Href += 0.5*self.eig[self.reference].sum() + self.h0e
 
-        if determinants or hamiltonian:
+        if parallel_hamiltonian:
+            determinants = False
+            hamiltonian = False
+            self.bitarrays, self.hii, self.H, self.ndets = \
+                                                gen_full_hamil_parallel(
+                                                    self.norb, self.na,
+                                                    self.nb, self.orbsym,
+                                                    self.pg_mask, self.h0e,
+                                                    self.h1e, self.h2e, 
+                                                    symmetry = self.symmetry)
+
+        if determinants or hamiltonian or excitation_matrix or bitarray_integers:
             self.generate_determinants()
         else:
             self.ndets, self.bitarrays = None, None
@@ -303,6 +371,14 @@ class integral_system:
             self.generate_hamiltonian()
         else:
             self.hii, self.H = None, None
+
+        if excitation_matrix:
+            self.generate_excitation_matrix()
+        else:
+            self.nex_mat = None
+
+        if bitarray_integers:
+            self.generate_bitarray_integers()
 
         if verbose:
             self.report()
@@ -315,7 +391,7 @@ class integral_system:
                     'int_file'  : self.int_file,
                     'UHF'       : self.uhf,
                     'Norb'      : self.norb,
-                    'Nvirt'      : self.nvirt,
+                    'Nvirt'     : self.nvirt,
                     'Nel'       : self.nel,
                     'Na'        : self.na,
                     'Nb'        : self.nb,
@@ -343,12 +419,12 @@ class integral_system:
             print(outstr.format(i,self.orbsym[i],self.ms[i],self.eig[i]))
         print(' '+'-'*50)
         print('  '+'/\\'*6+'  Basis set table end.  '+'/\\'*6)
+        print_symmetry_table(self.maxsym, self.pg_mask, self.norb, self.orbsym)
 
     def permute_ijab(self,i,j,a,b):
-        if self.complex_int:
-            return ijab_16fold(i,j,a,b)
-        else:
-            return ijab_32fold(i,j,a,b)
+        return generate_ijab_symmetries_array(i, j, a, b,
+                                              eight_fold = not self.complex_int,
+                                              rhf = not self.uhf)
 
     def integral_case(self,i,j,a,b):
         self.case_h2e = np.sign(b) != -1
@@ -389,21 +465,141 @@ class integral_system:
                 hij = get_hij(b1,b2,self)
                 self.H[i,j], self.H[j,i] = hij, hij
 
+    def generate_excitation_matrix(self):
+        self.nex_mat = np.zeros((self.ndets, self.ndets), dtype=np.int64)
+        for i, b1 in enumerate(self.bitarrays):
+            for j, b2 in enumerate(self.bitarrays[i+1:]):
+                j += i + 1
+                nex = get_nex(b1,b2)
+                self.nex_mat[i,j] = nex
+                self.nex_mat[j,i] = nex
+
+    def generate_bitarray_integers(self):
+        bitints = [np.exp2(self.orbs[ba==1]).sum() for ba in self.bitarrays]
+        self.bitints = np.array(bitints).astype(np.int64)
+
     def dumpeigs(self, float_fmt=' % 24.16E', int_fmt='%3i'):
         fmt = float_fmt + f' {int_fmt} {int_fmt} {int_fmt} {int_fmt}'
-        inds = np.arange(0,self.norb,2)
+        inds = np.arange(0, self.norb, 2 - self.uhf)
         for i in inds:
-            iout = int(i/2)+1
+            iout = int(i/(2 - self.uhf)) + 1
             out_tuple = (self.eig[i], iout, 0, 0, 0)
             print(fmt % out_tuple)
 
 if __name__ == '__main__':
     test_file = 'systems/STRICT-STO3G-STR-H4.FCIDUMP'
+    #test_file = 'systems/STRICT-EIGENVALUES-STO3G-STR-H6.FCIDUMP'
+    #test_file = 'systems/H2-STO-3G-0.74Ang.fcidump'
     sys = integral_system(
                         int_file = test_file,
                         verbose = True,
-                        eigenvalues = True,
-                        reference = [0,1,4,5],
+                        #determinants = True,
+                        #eigenvalues = True,
+                        #reference = [0,1],
                         hamiltonian = True,
+                        #excitation_matrix = True,
                     )
+
+    BTHF = not True
+    BNEW = True
+
+    if BTHF:
+        fci = np.einsum('ii->i', sys.H)
+        eigv = np.eye(sys.ndets, dtype=float)
+    else:
+        fci, eigv = np.linalg.eigh(sys.H)
+
+    if BNEW:
+        Hfci = np.diag(fci)
+        fci_test, eigv_test = np.linalg.eigh(Hfci)
+        for a in range(sys.ndets):
+            for b in range(sys.ndets):
+                print(
+                        f'{a:>4} {b:>4} '
+                        f'{eigv_test[a,b]:> 16.12f} '
+                    )
+        exit()
+    
+
+    rho1 = np.zeros((sys.ndets, sys.ndets), dtype=float)
+    rho2 = np.zeros((sys.ndets, sys.ndets), dtype=float)
+
+    beta = 3
+
+    z = np.exp(-beta * fci)
+    norm = z.sum()
+    z /= norm
+    for i in range(sys.ndets):
+        rho1 += z[i] * np.outer(eigv[:,i], eigv[:,i].T)
+
+    for a in range(sys.ndets):
+        for b in range(sys.ndets):
+            if BTHF:
+                for i in range(sys.ndets):
+                    rho2[a,b] += np.exp(-beta*sys.H[a,b])*eigv[a,i]*(eigv[:,i].T[b])
+                rho2[a,b] /= norm
+            else:
+                for i in range(sys.ndets):
+                    rho2[a,b] += z[i]*eigv[a,i]*(eigv[:,i].T[b])
+
+    for a in range(sys.ndets):
+        for b in range(sys.ndets):
+            print(
+                    f'{a:>4} {b:>4} '
+                    f'{rho1[a,b]:> 16.12f} '
+                    f'{rho2[a,b]:> 16.12f} '
+                    f'{rho1[a,b]-rho2[a,b]:> 16.12f}'
+                )
+
+    exit()
+
+    Z = np.exp(-2*np.diag(sys.H))
+    Z /= Z.sum()
+
+    np.random.seed(7)
+    f = ((Z * 1000.0) + np.random.random(size=Z.shape[0])).astype(int)
+
+    procs = [[], [], [], []]
+    cproc = 0
+
+    print(f.sum())
+
+    while len(f) > 0:
+        k = np.random.randint(low=0, high=len(f))
+        procs[cproc].append(f[k])
+        f = f[np.arange(len(f)) != k]
+        if cproc == 3:
+            cproc = 0
+        else:
+            cproc += 1
+
+    for iproc, nws in enumerate(procs):
+        print(iproc, sorted(nws))#, sum(nws))
+
+    exit()
+
+    for i, e in enumerate(sys.eig):
+        if i%2 == 1:
+            print(f' {e:> .16E} {i:>3} {0:>3} {0:>3} {0:>3}')
+
+    exit()
+
+    fci, eigv = np.linalg.eigh(sys.H)
+
+    print(fci[0] - sys.H[0,0])
+    print(sys.H.shape)
+    exit()
+    psi0 = eigv[:,0]
+    for i in range(-1, fci.shape[0]):
+        if i == -1:
+            psi = np.zeros(20)
+            psi[0] = 1.0
+        else:
+            psi = eigv[:,i]
+
+        num = np.dot(np.dot(psi0, sys.H), np.transpose(psi))
+        den = np.dot(psi0, np.transpose(psi))
+        E = num/den
+
+        print(f'{i:>4} {E - fci[0]:>18.12f}')
 
