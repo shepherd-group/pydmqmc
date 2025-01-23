@@ -7,7 +7,7 @@ from utilities import (get_nex, get_hij, generate_bit_arrays)
 from utilities import orb_sym as csym
 from utilities import cross_prod_pg_sym as xpsym
 from excitations import calculate_psingle_pdouble
-from njit_functions import bitarray_pg
+from development.njit_functions import bitarray_pg
 
 def generate_ijab_symmetries_array(i, j, a, b, eight_fold=True, rhf=True):
     """
@@ -487,119 +487,15 @@ class integral_system:
             print(fmt % out_tuple)
 
 if __name__ == '__main__':
-    test_file = 'systems/STRICT-STO3G-STR-H4.FCIDUMP'
-    #test_file = 'systems/STRICT-EIGENVALUES-STO3G-STR-H6.FCIDUMP'
-    #test_file = 'systems/H2-STO-3G-0.74Ang.fcidump'
     sys = integral_system(
-                        int_file = test_file,
-                        verbose = True,
-                        #determinants = True,
-                        #eigenvalues = True,
-                        #reference = [0,1],
-                        hamiltonian = True,
-                        #excitation_matrix = True,
-                    )
+        int_file='systems/STRICT-STO3G-STR-H4.FCIDUMP',
+        verbose=True,
+        hamiltonian=True,
+    )
 
-    BTHF = not True
-    BNEW = True
+    Ei, Psii = np.linalg.eigh(sys.H)
 
-    if BTHF:
-        fci = np.einsum('ii->i', sys.H)
-        eigv = np.eye(sys.ndets, dtype=float)
-    else:
-        fci, eigv = np.linalg.eigh(sys.H)
+    ndets = Ei.shape[0]
 
-    if BNEW:
-        Hfci = np.diag(fci)
-        fci_test, eigv_test = np.linalg.eigh(Hfci)
-        for a in range(sys.ndets):
-            for b in range(sys.ndets):
-                print(
-                        f'{a:>4} {b:>4} '
-                        f'{eigv_test[a,b]:> 16.12f} '
-                    )
-        exit()
-    
-
-    rho1 = np.zeros((sys.ndets, sys.ndets), dtype=float)
-    rho2 = np.zeros((sys.ndets, sys.ndets), dtype=float)
-
-    beta = 3
-
-    z = np.exp(-beta * fci)
-    norm = z.sum()
-    z /= norm
-    for i in range(sys.ndets):
-        rho1 += z[i] * np.outer(eigv[:,i], eigv[:,i].T)
-
-    for a in range(sys.ndets):
-        for b in range(sys.ndets):
-            if BTHF:
-                for i in range(sys.ndets):
-                    rho2[a,b] += np.exp(-beta*sys.H[a,b])*eigv[a,i]*(eigv[:,i].T[b])
-                rho2[a,b] /= norm
-            else:
-                for i in range(sys.ndets):
-                    rho2[a,b] += z[i]*eigv[a,i]*(eigv[:,i].T[b])
-
-    for a in range(sys.ndets):
-        for b in range(sys.ndets):
-            print(
-                    f'{a:>4} {b:>4} '
-                    f'{rho1[a,b]:> 16.12f} '
-                    f'{rho2[a,b]:> 16.12f} '
-                    f'{rho1[a,b]-rho2[a,b]:> 16.12f}'
-                )
-
-    exit()
-
-    Z = np.exp(-2*np.diag(sys.H))
-    Z /= Z.sum()
-
-    np.random.seed(7)
-    f = ((Z * 1000.0) + np.random.random(size=Z.shape[0])).astype(int)
-
-    procs = [[], [], [], []]
-    cproc = 0
-
-    print(f.sum())
-
-    while len(f) > 0:
-        k = np.random.randint(low=0, high=len(f))
-        procs[cproc].append(f[k])
-        f = f[np.arange(len(f)) != k]
-        if cproc == 3:
-            cproc = 0
-        else:
-            cproc += 1
-
-    for iproc, nws in enumerate(procs):
-        print(iproc, sorted(nws))#, sum(nws))
-
-    exit()
-
-    for i, e in enumerate(sys.eig):
-        if i%2 == 1:
-            print(f' {e:> .16E} {i:>3} {0:>3} {0:>3} {0:>3}')
-
-    exit()
-
-    fci, eigv = np.linalg.eigh(sys.H)
-
-    print(fci[0] - sys.H[0,0])
-    print(sys.H.shape)
-    exit()
-    psi0 = eigv[:,0]
-    for i in range(-1, fci.shape[0]):
-        if i == -1:
-            psi = np.zeros(20)
-            psi[0] = 1.0
-        else:
-            psi = eigv[:,i]
-
-        num = np.dot(np.dot(psi0, sys.H), np.transpose(psi))
-        den = np.dot(psi0, np.transpose(psi))
-        E = num/den
-
-        print(f'{i:>4} {E - fci[0]:>18.12f}')
-
+    for i, e in enumerate(Ei):
+        print(f'{i+1:>12d} {e:> 22.12f}')
