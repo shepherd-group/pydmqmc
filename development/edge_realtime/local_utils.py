@@ -59,7 +59,14 @@ def get_coupled_hamiltonian(
 
     E2 = Ei[state2]
 
+    # TODO: The M22 term actually needs to run over all
+    # of the Hamiltonian irrespective of the reference.
+    # E.g. note that H = \sum_i E_i | \Psi_i > < \Psi_i |
+    # is exactly the Hamiltonian, which M22 should contain but
+    # for the shifted term. Which should translate to only
+    # H but shifted by E_0.
     M22 = outer[state2, state2]
+
     M12 = outer[state1, state2]
     M21 = outer[state2, state1]
 
