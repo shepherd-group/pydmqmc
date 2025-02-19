@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
+from .report import Report
+
 from numpy.typing import NDArray as Array
 
 
-class Eigenvalues:
+class Eigenvalues(Report):
     r''' TODO: Write class docstring here.
     '''
     def __init__(
@@ -12,6 +14,7 @@ class Eigenvalues:
         ) -> None:
         r''' TODO: Write __init__ docstring here.
         '''
+        Report.__init__(self, **kwargs)
         return
 
     def finish(self) -> None:

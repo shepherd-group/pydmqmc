@@ -5,7 +5,10 @@ import pydmqmc as dm
 
 def main() -> None:
 
-    calc = dm.Calculation(
+    calc = dm.setup(
+        method=dm.FullConfigurationInteraction,
+        system=dm.MatrixHamiltonian,
+        report=dm.Eigenvalues,
         matrix_file='../systems/EQUILIBRIUM-H4-STO3G.hamil',
         iscomplex=False,
     )

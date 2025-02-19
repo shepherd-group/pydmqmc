@@ -1,11 +1,7 @@
 #!/usr/bin/env python
 
-from .ci import FullConfigurationInteraction
 
-
-class Method(
-        FullConfigurationInteraction,
-    ):
+class Method:
     r''' TODO: Write class docstring here.
     '''
     def __init__(
@@ -14,17 +10,24 @@ class Method(
         ) -> None:
         r''' TODO: Write __init__ docstring here.
         '''
-        # TODO: Make this inheritence general.
-        FullConfigurationInteraction.__init__(self, **kwargs)
+        return
+
+    def start(self) -> None:
+        r''' TODO: Write start docstring here.
+        '''
+        raise NotImplementedError(
+            'The start function is not currently implemented '
+            'please check your method or send patches!'
+        )
 
         return
 
-    #def start(self) -> None:
-    #    r''' TODO: Write start docstring here.
-    #    '''
-    #    raise NotImplementedError(
-    #        'The start function is not currently implemented '
-    #        'please check your method_class or send patches!'
-    #    )
+    def iterate(self) -> None:
+        r''' TODO: Write iterate docstring here.
+        '''
+        raise NotImplementedError(
+            'The iterate function is not currently implemented '
+            'please check your method_class or send patches!'
+        )
 
-    #    return
+        return

@@ -1,47 +1,48 @@
 #!/usr/bin/env python
 
-from .method import Method
-from .system import System
-from .report import Report
+
+class Calculation:
+    ...
 
 
-class Calculation(
-        Method,
-        System,
-        Report,
-    ):
-    r''' TODO: Write class docstring here.
+def setup(
+        method: object = ...,
+        system: object = ...,
+        report: object = ...,
+        **kwargs,
+    ) -> Calculation:
+    r''' TODO: Write setup docstring here.
     '''
-    def __init__(
-            self,
-            **kwargs,
-        ) -> None:
-        r''' TODO: Write __init__ docstring here.
+
+    class UserCalculation(
+            method,
+            system,
+            report,
+        ):
+        r''' TODO: Write class docstring here.
         '''
-        Method.__init__(self, **kwargs)
-        System.__init__(self, **kwargs)
-        Report.__init__(self, **kwargs)
+        def __init__(
+                self,
+                **kwargs,
+            ) -> None:
+            r''' TODO: Write __init__ docstring here.
+            '''
+            method.__init__(self, **kwargs)
+            system.__init__(self, **kwargs)
+            report.__init__(self, **kwargs)
 
-        return
+            return
 
-    def run(self) -> None:
-        r''' TODO: Write run docstring here.
-        '''
-        self.start()
+        def run(self) -> None:
+            r''' TODO: Write run docstring here.
+            '''
+            self.start()
 
-        while self.iterating:
-            self.iterate()
+            while self.iterating:
+                self.iterate()
 
-        self.finish()
+            self.finish()
 
-        return
+            return
 
-    def iterate(self) -> None:
-        r''' TODO: Write iterate docstring here.
-        '''
-        raise NotImplementedError(
-            'The iterate function is not currently implemented '
-            'please check your method_class or send patches!'
-        )
-
-        return
+    return UserCalculation(**kwargs)

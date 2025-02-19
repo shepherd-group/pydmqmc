@@ -1,11 +1,7 @@
 #!/usr/bin/env python
 
-from .eigenvalues import Eigenvalues
 
-
-class Report(
-        Eigenvalues,
-    ):
+class Report:
     r''' TODO: Write class docstring here.
     '''
     def __init__(
@@ -14,7 +10,14 @@ class Report(
         ) -> None:
         r''' TODO: Write __init__ docstring here.
         '''
-        # TODO: Make this inheritence general.
-        Eigenvalues.__init__(self, **kwargs)
+        return
+
+    def finish(self) -> None:
+        r''' TODO: Write start docstring here.
+        '''
+        raise NotImplementedError(
+            'The finish function is not currently implemented '
+            'please check your method or send patches!'
+        )
 
         return

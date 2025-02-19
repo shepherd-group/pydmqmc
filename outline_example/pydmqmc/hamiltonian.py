@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
+from .system import System
+
 from numpy import zeros
 from numpy.typing import NDArray as Array
 
 
-class MatrixHamiltonian:
+class MatrixHamiltonian(System):
     r''' TODO: Write class docstring here.
     '''
     def __init__(
@@ -15,6 +17,8 @@ class MatrixHamiltonian:
         ) -> None:
         r''' TODO: Write __init__ docstring here.
         '''
+        System.__init__(self, **kwargs)
+
         self.matrix_file = matrix_file
         self.iscomplex = iscomplex
 
