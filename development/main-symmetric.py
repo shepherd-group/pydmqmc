@@ -128,7 +128,7 @@ def main(clargs):
     df = {'beta': [], 'shift': [], 'trace': [], 'pH': [], 'nw': []}
 
     sys = readin(
-            int_file = 'STRICT-EIGENVALUES-STO3G-STR-H6.FCIDUMP',
+            int_file = '../sample-systems/fcidump/STRICT-EIGENVALUES-STO3G-STR-H6.FCIDUMP',
             hamiltonian = True,
         )
 

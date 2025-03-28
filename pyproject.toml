@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pydmqmc"
+version = "0.0.1"
+authors = [
+    { name="William Van Benschoten", email="vanwill2@msu.edu" },
+    { name="Claire Kopenhafer", email="kopenhaf@msu.edu"}
+]
+description = "Python library for density matrix quantum Monte Carlo"
+# classifiers
+# requires-python
+dependencies = [
+    "flake8",
+    "flake8-docstrings",
+    "numpy",
+    "numba",
+    "pandas",
+    "pytest",
+    "sympy"
+]
+
+[tool.setuptools]
+packages = ["pydmqmc"]

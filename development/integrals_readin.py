@@ -7,7 +7,7 @@ from utilities import (get_nex, get_hij, generate_bit_arrays)
 from utilities import orb_sym as csym
 from utilities import cross_prod_pg_sym as xpsym
 from excitations import calculate_psingle_pdouble
-from development.njit_functions import bitarray_pg
+from njit_functions import bitarray_pg
 
 def generate_ijab_symmetries_array(i, j, a, b, eight_fold=True, rhf=True):
     """
