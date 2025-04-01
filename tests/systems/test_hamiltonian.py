@@ -27,5 +27,10 @@ def test_read_matrix(request, known_diag):
     sys = MatrixHamiltonian(file)
     ham = sys.hamiltonian
 
-    assert ham.size == 400
+    # Check Hamiltonian
+    assert ham.shape == (20,20)
     assert np.allclose(np.diag(ham), known_diag)
+
+    # Check derived quantities
+    assert sys.ndeterminants == 20
+    assert sys.ref_energy == known_diag[0]

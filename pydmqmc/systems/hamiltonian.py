@@ -9,13 +9,14 @@ from numpy.typing import NDArray as Array
 class MatrixHamiltonian(System):
     """System for a HANDE-created Hamiltonian matrix.
 
-    Use this class for systems defined by a Hamiltonian matrix
-    output by HANDE.
+    Use this class for systems defined by a triangular Hamiltonian matrix
+    output by HANDE. The Hamiltonian will be stored as a 2D NumPy array.
+    The reference energy is assumed to be element `[0,0]` of the matrix.
 
     Parameters
     ----------
     matrix_file
-        Filename for the HANDE Hamiltonian.
+        Filename for the Hamiltonian.
     iscomplex
         Whether or not the Hamiltonian is complex(?).
 
@@ -38,11 +39,23 @@ class MatrixHamiltonian(System):
         self.iscomplex = iscomplex
 
         self._hamiltonian = self._read_matrix()
+        self._ndet = self._hamiltonian.shape[0]
+        self._engref = self._hamiltonian[0, 0]
 
     @property
     def hamiltonian(self):
-        """Loaded Hamiltonian matrix."""
+        """Loaded 2D Hamiltonian matrix."""
         return self._hamiltonian
+
+    @property
+    def ndeterminants(self):
+        """Size of the determinant space."""
+        return self._ndet
+
+    @property
+    def ref_energy(self):
+        """Reference energy state."""
+        return self._engref
 
     def _read_matrix(self) -> Array:
         """Load matrix from a HANDE file into a NumPy array."""

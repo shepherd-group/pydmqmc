@@ -147,33 +147,33 @@ def sum_of_states(eigenspectrum, beta):
     return np.array(energy)
 
 
-def build_hamiltonian(hamilf):
-    r'''
-        In:
-            hamilf: The file containing what is assumed to be a triangle 
-                (upper or lower) of the Hamiltonian we are interested in.
-        Out:
-            hamiltonian: A 2D NumPy array representation of our matrix
-            hilbert_space: The length of our determinant space
-            HF: The reference energy state, this is assumed to be the zeroth
-                element of our matrix.
-    '''
-    H_data = []
+# def build_hamiltonian(hamilf):
+#     r'''
+#         In:
+#             hamilf: The file containing what is assumed to be a triangle 
+#                 (upper or lower) of the Hamiltonian we are interested in.
+#         Out:
+#             hamiltonian: A 2D NumPy array representation of our matrix
+#             hilbert_space: The length of our determinant space
+#             HF: The reference energy state, this is assumed to be the zeroth
+#                 element of our matrix.
+#     '''
+#     H_data = []
 
-    with open(hamilf, 'r') as f:
-        for line in f:
-            i, j, hij = line.split()
-            i, j, hij = int(i), int(j), float(hij)
-            H_data.append((i,j,hij))
+#     with open(hamilf, 'r') as f:
+#         for line in f:
+#             i, j, hij = line.split()
+#             i, j, hij = int(i), int(j), float(hij)
+#             H_data.append((i,j,hij))
     
-    hilbert_space = i
-    hamiltonian = np.zeros((hilbert_space,hilbert_space))
+#     hilbert_space = i
+#     hamiltonian = np.zeros((hilbert_space,hilbert_space))
 
-    for (i,j,hij) in H_data:
-        hamiltonian[i-1,j-1] = hij
-        hamiltonian[j-1,i-1] = hij
+#     for (i,j,hij) in H_data:
+#         hamiltonian[i-1,j-1] = hij
+#         hamiltonian[j-1,i-1] = hij
         
-    return hamiltonian, hilbert_space, hamiltonian[0,0]
+#     return hamiltonian, hilbert_space, hamiltonian[0,0]
 
 
 def unphysical_hamiltonian(hamiltonian):
