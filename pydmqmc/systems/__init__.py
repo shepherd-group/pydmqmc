@@ -1,1 +1,1 @@
-from hamiltonian import MatrixHamiltonian
+from .hamiltonian import MatrixHamiltonian

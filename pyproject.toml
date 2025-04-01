@@ -15,6 +15,7 @@ description = "Python library for density matrix quantum Monte Carlo"
 dependencies = [
     "flake8",
     "flake8-docstrings",
+    "flake8-pyproject",
     "numpy",
     "numba",
     "pandas",
@@ -24,3 +25,15 @@ dependencies = [
 
 [tool.setuptools]
 packages = ["pydmqmc"]
+
+[tool.flake8]
+docstring-convention = "numpy"
+exclude = [
+    "tests",
+    "development",
+    "outline_example",
+]
+per-file-ignores = [
+    # imported but unused
+    "__init__.py: F401",
+]

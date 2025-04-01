@@ -7,40 +7,46 @@ from numpy.typing import NDArray as Array
 
 
 class MatrixHamiltonian(System):
-    r''' TODO: Write class docstring here.
-    '''
+    """System for a HANDE-created Hamiltonian matrix.
+
+    Use this class for systems defined by a Hamiltonian matrix
+    output by HANDE.
+
+    Parameters
+    ----------
+    matrix_file
+        Filename for the HANDE Hamiltonian.
+    iscomplex
+        Whether or not the Hamiltonian is complex(?).
+
+    Warnings
+    --------
+    Support for complex Hamiltonians is not yet implemented.
+    Setting `iscomplex = True` will raise `NotImplementedError`.
+    """
+
     def __init__(
             self,
             matrix_file: str,
             iscomplex: bool = False,
             **kwargs,
-        ) -> None:
-        r''' TODO: Write __init__ docstring here.
-        '''
+            ) -> None:
+
         System.__init__(self, **kwargs)
 
         self.matrix_file = matrix_file
         self.iscomplex = iscomplex
 
-        self.read_matrix()
+        self._hamiltonian = self._read_matrix()
 
-        return
+    @property
+    def hamiltonian(self):
+        """Loaded Hamiltonian matrix."""
+        return self._hamiltonian
 
-    def read_matrix(self) -> None:
-        r''' TODO: Write read_matrix docstring here.
-        '''
-        self.hamiltonian = self.read_hande_hamil(
-            self.matrix_file,
-            self.iscomplex,
-        )
-
-        return
-
-    @staticmethod
-    def read_hande_hamil(matrix_file: str, iscomplex: bool = False) -> Array:
-        r''' TODO: Write read_hande_hamilt docstring here.
-        '''
-        if iscomplex:
+    def _read_matrix(self) -> Array:
+        """Load matrix from a HANDE file into a NumPy array."""
+        if self.iscomplex:
             raise NotImplementedError(
                 'Reading complete HANDE Hamiltonians is not currently '
                 'implemented please send patches!'
@@ -49,7 +55,7 @@ class MatrixHamiltonian(System):
         ndets = 0
         elements = {}
 
-        with open(matrix_file, 'rt') as stream:
+        with open(self.matrix_file, 'rt') as stream:
             for line in stream:
                 i, j, hij = line.split()
 

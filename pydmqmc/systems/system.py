@@ -1,13 +1,9 @@
-#!/usr/bin/env python
-
 
 class System:
-    r''' TODO: Write class docstring here.
-    '''
+    """Base class for defining quantum systems."""
+
     def __init__(
             self,
             **kwargs,
-        ) -> None:
-        r''' TODO: Write __init__ docstring here.
-        '''
+            ) -> None:
         return
