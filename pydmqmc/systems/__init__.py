@@ -1,1 +1,1 @@
-from .hamiltonian import MatrixHamiltonian
+from .hamiltonian import read_matrix, MatrixHamiltonian
