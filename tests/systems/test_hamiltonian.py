@@ -1,20 +1,20 @@
-import pytest
 import numpy as np
+from pytest import fixture
 from os.path import dirname, join
 
 from pydmqmc.systems import read_matrix, MatrixHamiltonian
 
-@pytest.fixture
+@fixture
 def file_equil_h4_sto3g(request):
     file = join(dirname(request.path),
                 "..", "inputs", "hamiltonian", "EQUILIBRIUM-H4-STO3G.hamil")
     return file
 
-@pytest.fixture
+@fixture
 def system_MatrixHamiltonian(file_equil_h4_sto3g):
     return MatrixHamiltonian(file_equil_h4_sto3g)
 
-@pytest.fixture
+@fixture
 def known_diag():
     values = [
        -2.11534977839243    , -1.13379264192082    ,
@@ -30,7 +30,7 @@ def known_diag():
 
     return np.array(values)
 
-@pytest.fixture
+@fixture
 def sorted_diag(known_diag):
     return np.sort(known_diag)
 
