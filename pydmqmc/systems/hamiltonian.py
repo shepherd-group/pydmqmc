@@ -1,3 +1,4 @@
+"""Functions & System class for reading & using HANDE-created Hamiltonians."""
 from .system import System
 
 import numpy as np
@@ -51,7 +52,7 @@ class MatrixHamiltonian(System):
     matrix_file
         Filename for the Hamiltonian.
     iscomplex
-        Whether or not the Hamiltonian is complex.
+        Whether or not the Hamiltonian is complex.(???)
     shift
         A shift to apply to the diagonal elements of the Hamiltonian.
     use_ip

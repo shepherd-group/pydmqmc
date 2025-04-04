@@ -9,11 +9,11 @@ import numpy as np
 from numpy.typing import NDArray as Array
 
 def sc0(ba: Array, sys) -> float:
-    """Slater-Condon rule for ground state electrons.
+    r"""Slater-Condon rule for ground state electrons(???).
 
     Math from Szabo and Ostlund:
-    <\\Psi_{0}|H|\\Psi_{0}> = \\sum_{a} <a|h|a> 
-                            + 1/2 \\sum_{a,b} <ab|ab> - <ab|ba>
+    <\Psi_{0}|H|\Psi_{0}> = \sum_{a} <a|h|a> 
+                            + 1/2 \sum_{a,b} <ab|ab> - <ab|ba>
 
     Parameters
     ----------
@@ -27,10 +27,10 @@ def sc0(ba: Array, sys) -> float:
     return E
 
 def sc1(ba, a, r, perms, sys):
-    """Slater-Condon rule for singly excited states.
+    r"""Slater-Condon rule for singly excited states(???).
 
     Math from Szabo and Ostlund:
-    <\\Psi_{0}|H|\\Psi_{a}^{r}> = <a|h|r> + \\sum_{b} <ab|rb> - <ab|br>
+    <\Psi_{0}|H|\Psi_{a}^{r}> = <a|h|r> + \sum_{b} <ab|rb> - <ab|br>
     """
     ba1 = np.copy(ba)
     ba1[[a,r]] = 0
@@ -41,10 +41,10 @@ def sc1(ba, a, r, perms, sys):
     return E
 
 def sc2(a, b, r, s, perms, sys):
-    """Slater-Condon rule for doubly excited states.
+    r"""Slater-Condon rule for doubly excited states(???).
 
     Math from Szabo and Ostlund:
-    <\\Psi_{0}|H|\\Psi_{ab}^{rs}> = <ab|rs> - <ab|sr>
+    <\Psi_{0}|H|\Psi_{ab}^{rs}> = <ab|rs> - <ab|sr>
     """
     E  = sys.h2e[a,b,r,s]
     E -= sys.h2e[a,b,s,r]
