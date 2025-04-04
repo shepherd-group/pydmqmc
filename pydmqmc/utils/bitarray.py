@@ -1,3 +1,14 @@
+"""Functions for manipulating bitarrays.
+
+Notes
+-----
+A `bitarray` is shorthand for an array of 1's and 0's.
+More traditionally referred to as "bitstrings,"
+these are used to represent Slater determinants.
+We work with memory-hungry numpy arrays as it makes
+down-stream work easier.
+"""
+
 import numpy as np
 
 from numpy.typing import NDArray as Array
