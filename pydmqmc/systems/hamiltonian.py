@@ -39,7 +39,8 @@ def read_matrix(matrix_filename: str, is_complex: bool = False) -> Array:
 
 
 class MatrixHamiltonian(System):
-    """System for a HANDE-created Hamiltonian matrix.
+    """
+    System defined by a HANDE-created Hamiltonian matrix.
 
     Use this class for systems defined by a triangular Hamiltonian matrix
     output by HANDE. The Hamiltonian will be stored as a 2D NumPy array.
@@ -50,7 +51,13 @@ class MatrixHamiltonian(System):
     matrix_file
         Filename for the Hamiltonian.
     iscomplex
-        Whether or not the Hamiltonian is complex(?).
+        Whether or not the Hamiltonian is complex.
+    shift
+        A shift to apply to the diagonal elements of the Hamiltonian.
+    use_ip
+        Whether or not to use the interaction picture. If specified,
+        the non-interacting Hamiltonian will be available through the
+        `noninteracting_hamiltonian` attribute.
 
     Attributes
     ----------
@@ -75,28 +82,6 @@ class MatrixHamiltonian(System):
     unless `use_ip` is specified when calling `initialize()`.
     """
 
-    def __init__(
-            self,
-            matrix_file: str,
-            iscomplex: bool = False,
-            **kwargs,
-            ) -> None:
-
-        System.__init__(self, **kwargs)
-
-        self._matrix_file = matrix_file
-        self._iscomplex = iscomplex
-
-        self._raw_hamil = read_matrix(self._matrix_file, self._iscomplex)
-        self._ndet = self._raw_hamil.shape[0]
-        self._ref_eng = self._raw_hamil[0, 0]
-
-        # Some properties are only set after calling initialize()
-        self._sorted_hamil = None
-        self._sort_map = None
-        self._shifted_hamil = None
-        self._non_interacting = None
-
     @property
     def matrix_filename(self) -> str:
         """Filename for loaded Hamiltonian."""
@@ -108,17 +93,17 @@ class MatrixHamiltonian(System):
         return self._iscomplex
 
     @property
-    def hamiltonian(self) -> Array:
+    def hamiltonian(self) -> Array | None:
         """Hamiltonian shifted by Hartree-Fock energy & any provided shift."""
         return self._shifted_hamil
 
     @property
-    def noninteracting_hamiltonian(self) -> Array:
+    def noninteracting_hamiltonian(self) -> Array | None:
         """Non-interacting Hamiltonian."""
         return self._non_interacting
 
     @property
-    def unshifted_hamiltonian(self) -> Array:
+    def unshifted_hamiltonian(self) -> Array | None:
         """Sorted, unshifted Hamiltonian matrix."""
         return self._sorted_hamil
 
@@ -138,12 +123,39 @@ class MatrixHamiltonian(System):
         return float(self._ref_eng)  # convert from np.float64
 
     @property
-    def sort_map(self) -> Dict[int, int]:
+    def sort_map(self) -> Dict[int, int] | None:
         """Maps original index of raw diagonals & their sorted position."""
         return self._sort_map
 
+    def __init__(
+            self,
+            matrix_file: str,
+            iscomplex: bool = False,
+            shift: int = 0,
+            use_ip: bool = False,
+            **kwargs,
+            ) -> None:
+
+        System.__init__(self, **kwargs)
+
+        self._matrix_file = matrix_file
+        self._iscomplex = iscomplex
+
+        self._raw_hamil = read_matrix(self._matrix_file, self._iscomplex)
+        self._ndet = self._raw_hamil.shape[0]
+        self._ref_eng = self._raw_hamil[0, 0]
+
+        # The following are set by self._shift()
+        # though self._non_interacting will remain None if use_ip is False.
+        self._sorted_hamil = None
+        self._sort_map = None
+        self._shifted_hamil = None
+        self._non_interacting = None
+        self._shift(shift, use_ip)
+
     def _sort_on_diagonals(self) -> None:
-        """Sort Hamiltonian based on ascending order of diagonal elements.
+        """
+        Sort Hamiltonian based on ascending order of diagonal elements.
 
         Rearrange the Hamiltonian to be ascending on its diagonal elements.
         Store the sorted Hamiltonian array, array of sorted diagonals,
@@ -165,11 +177,12 @@ class MatrixHamiltonian(System):
         self._sorted_hamil = sorted_hamil
         self._sort_map = index_map
 
-    def initialize(self,
-                   shift: int = 0,
-                   use_ip: bool = False
-                   ) -> None:
-        """Initialize & store relevant matrices for analytical QMC.
+    def _shift(self,
+               shift: int,
+               use_ip: bool
+               ) -> None:
+        """
+        Initialize & store relevant matrices for analytical QMC.
 
         Parameters
         ----------
@@ -180,9 +193,6 @@ class MatrixHamiltonian(System):
             the non-interacting Hamiltonian will be available through the
             `noninteracting_hamiltonian` attribute.
         """
-        if self._shifted_hamil is not None:
-            raise RuntimeError("System has already been initialized!")
-
         self._sort_on_diagonals()  # sets self._sorted_hamil
 
         II = np.eye(self.ndeterminants)

@@ -11,10 +11,6 @@ def file_equil_h4_sto3g(request):
     return file
 
 @fixture
-def system_MatrixHamiltonian(file_equil_h4_sto3g):
-    return MatrixHamiltonian(file_equil_h4_sto3g)
-
-@fixture
 def known_diag():
     values = [
        -2.11534977839243    , -1.13379264192082    ,
@@ -42,38 +38,39 @@ def test_read_matrix(file_equil_h4_sto3g, known_diag):
     assert ham.shape == (20,20)
     assert np.allclose(np.diag(ham), known_diag)
 
-def test_MatrixHamiltonian_init(system_MatrixHamiltonian, known_diag):
+def test_MatrixHamiltonian_init(file_equil_h4_sto3g, known_diag):
 
-    ham = system_MatrixHamiltonian.raw_hamiltonian
+    sys = MatrixHamiltonian(file_equil_h4_sto3g)
+    ham = sys.raw_hamiltonian
 
     # Check the Hamiltonian.
     assert ham.shape == (20,20)
     assert np.allclose(np.diag(ham), known_diag)
 
     # Check derived quantities about the Hamiltonian.
-    assert system_MatrixHamiltonian.ndeterminants == 20
-    assert system_MatrixHamiltonian.ref_energy == known_diag[0]
+    assert sys.ndeterminants == 20
+    assert sys.ref_energy == known_diag[0]
 
-def test_MatrixHamiltonian_initialize(system_MatrixHamiltonian, sorted_diag):
+def test_MatrixHamiltonian_initialize(file_equil_h4_sto3g, sorted_diag):
 
     shift = 2
-    system_MatrixHamiltonian.initialize(shift=shift, use_ip=True)
+    sys = MatrixHamiltonian(file_equil_h4_sto3g, shift=shift, use_ip=True)
 
     # Test that Hamiltonian has been sorted correctly.
     # A successful sort implicitly verifies that the sort_map
     # attribute is accurate.
-    diag = np.diag(system_MatrixHamiltonian.unshifted_hamiltonian)
+    diag = np.diag(sys.unshifted_hamiltonian)
     assert np.allclose(diag, sorted_diag)
 
     # Test that Hamiltonian has been shifted correctly 
     # by undoing the calculation.
-    H = system_MatrixHamiltonian.hamiltonian
-    II = np.eye(system_MatrixHamiltonian.ndeterminants)
-    target = H + system_MatrixHamiltonian.ref_energy*II + shift*II
-    assert np.allclose(target, system_MatrixHamiltonian.unshifted_hamiltonian)
+    H = sys.hamiltonian
+    II = np.eye(sys.ndeterminants)
+    target = H + sys.ref_energy*II + shift*II
+    assert np.allclose(target, sys.unshifted_hamiltonian)
 
     # Test that the non-interacting Hamiltonian was constructed correctly
-    nH = system_MatrixHamiltonian.noninteracting_hamiltonian
+    nH = sys.noninteracting_hamiltonian
     assert nH.shape == H.shape
     assert np.allclose(np.diag(nH), np.diag(H))
     # To check the off diagonal values are zero, mask out nonzero values
