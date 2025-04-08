@@ -8,3 +8,5 @@ from .bitarray import bitarray_to_integer, \
 from .symmetry import cross_prod_pg_sym, \
     orb_sym, \
     conj_sym
+
+from .orbital import get_nvirt_ms_sym

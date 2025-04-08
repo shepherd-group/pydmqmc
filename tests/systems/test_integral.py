@@ -177,8 +177,9 @@ def test_Integral_read_basic_load(input_file):
     assert np.allclose(sys.eigenvalues, eig)
     assert np.allclose(sys.orbitals, np.arange(4))
     assert np.allclose(sys.ref_determinant, [1, 1, 0, 0])
+    assert np.allclose(sys.ms, [1, -1, 1, -1])
 
     assert np.isclose(sys.h0e, 0.7151043390810812)
     assert np.isclose(sys.ref_energy, -1.1167593074156128)
-
-    # need to do _psingle, _pdouble
+    assert np.isclose(sys.prob_single, 0.0)
+    assert np.isclose(sys.prob_double, 1.0)

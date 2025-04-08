@@ -23,7 +23,7 @@ class System:
 
     @property
     def ref_energy(self) -> float:
-        """Reference energy state."""
+        """Reference Hartree-Fock energy."""
         return self._ref_eng
 
     @property

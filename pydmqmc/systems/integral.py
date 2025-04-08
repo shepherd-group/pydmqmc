@@ -8,7 +8,7 @@ for ease of development. All Numba-related functions should not
 be forgotton.
 """
 
-import pydmqmc.utils as utils
+from .. import utils
 from .system import System
 
 import numpy as np
@@ -48,7 +48,7 @@ def generate_ijab_symmetries_array(i: int, j: int,
         raise ValueError(f"Index a {a} cannot excede i {i}.")
     if b > j:
         raise ValueError(f"Index b {b} cannot excede j {j}.")
-    
+
     if rhf:
         i, j, a, b = i+i, j+j, a+a, b+b
     uhf = not rhf
@@ -148,15 +148,14 @@ class Integral(System):
     symmetry
     ref_determinant
     orbitals
+    prob_single
+    prob_double
 
     Contains:
         self.bitarrays: An array of the bitarray's in the hilbert space
         self.ndets: The total number of determinants in the hilbert space
         self.hii: The diagonal elements of the system Hamiltonian
         self.H: The system hamiltonian generated with the integrals
-        self.Href: Reference Hartree-Fock state.
-        self.psingle: Probability of generating a single excitation.
-        self.pdouble: Probability of generating a double excitation.
         self.nex_mat: An ndets X ndets matrix of excitations between i and j
         self.bitints: Integer representations of the bitarrays.
     """
@@ -212,6 +211,11 @@ class Integral(System):
         return self._nb
 
     @property
+    def ms(self) -> Array:
+        """TODO what is this?"""
+        return self._ms
+
+    @property
     def spin_polarization(self) -> int:
         """Spin polarization of the system."""
         return self._ms2
@@ -251,6 +255,16 @@ class Integral(System):
         """All orbital indexes."""
         return self._orbs
 
+    @property
+    def prob_single(self) -> float:
+        """Probability of generating a single excitation."""
+        return self._psingle
+
+    @property
+    def prob_double(self) -> float:
+        """Probability of generating a double excitation."""
+        return self._pdouble
+
     def __init__(self,
                  integral_file: str = None,
                  is_complex: bool = False,
@@ -264,9 +278,9 @@ class Integral(System):
                  **kwargs
                  ) -> None:
 
-        super().__init__(input_file = integral_file,
-                        is_complex = is_complex,
-                        **kwargs)
+        super().__init__(input_file=integral_file,
+                         is_complex=is_complex,
+                         **kwargs)
 
         self._uhf = False
         self._case_h0e = None
@@ -300,13 +314,7 @@ class Integral(System):
         self._orbs = np.arange(self._norb)
         self._ref_det = np.zeros(self._norb, dtype=int)
         self._ref_det[self._ref] = 1
-        # self._psingle, self._pdouble = calculate_psingle_pdouble(
-        #                                     self._orbs,
-        #                                     self._ms,
-        #                                     self._orbsym,
-        #                                     self._maxsym,
-        #                                     self._pg_mask,
-        #                                     self._ref_det)
+        self._calculate_psingle_pdouble()
         self._ref_eng = 0.5*(np.diag(self._h1e)[self._ref]).sum()
         self._ref_eng += 0.5*self._eig[self._ref].sum() + self._h0e
 
@@ -474,6 +482,45 @@ class Integral(System):
             for b in self._ref[self._ref != a]:
                 self._eig[a] += self._h2e[a, b, a, b]
                 self._eig[a] -= self._h2e[a, b, b, a]
+
+    def _calculate_psingle_pdouble(self) -> None:
+        """
+        Calculate the single and double excitation probabilities.
+
+        TODO clean this up.
+        We assume that the reference state is a good candidate for the
+        number of single and double excitations possible for a given system.
+
+        All we are doing here is counting the number of excitations
+        which are allowed by symmetry and spin conservation for each electron.
+
+        We do not do anything like consider the value of Hamiltonian element
+        between those excitations ect.
+        """
+        occ = self._orbs[self._ref_det == 1]
+        unocc, virt_ms, virt_sym, nvirt = utils.get_nvirt_ms_sym(self, occ)
+
+        occ_ms = self._ms[occ]
+        occ_sym = self._orbsym[occ]
+        nsingle = np.sum(nvirt[(occ_ms, occ_sym)])
+
+        ndouble = 0
+        for i, (ims, isym) in enumerate(zip(occ_ms, occ_sym)):
+            for jms, jsym in zip(occ_ms[i+1:], occ_sym[i+1:]):
+                for syma in np.arange(self._maxsym):
+                    symb = utils.cross_prod_pg_sym(isym, jsym, self._pg_mask)
+                    symb = utils.cross_prod_pg_sym(syma, symb, self._pg_mask)
+                    if syma == symb and ims == jms:
+                        ndouble += nvirt[ims, syma]*(nvirt[jms, symb]-1)/2
+                    elif syma == symb:
+                        ndouble += nvirt[ims, syma]*nvirt[jms, symb]
+                    elif syma < symb:
+                        ndouble += nvirt[ims, syma]*nvirt[jms, symb]
+                        if ims != jms:
+                            ndouble += nvirt[jms, syma]*nvirt[ims, symb]
+
+        self._psingle = nsingle/(nsingle + ndouble)
+        self._pdouble = ndouble/(nsingle + ndouble)
 
     # def generate_determinants(self):
     #     if self._ndets is not None:

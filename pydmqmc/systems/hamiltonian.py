@@ -122,8 +122,8 @@ class MatrixHamiltonian(System):
             **kwargs,
             ) -> None:
 
-        super().__init__(input_file = matrix_file,
-                         is_complex = is_complex,
+        super().__init__(input_file=matrix_file,
+                         is_complex=is_complex,
                          **kwargs)
 
         self._raw_hamil = read_matrix(self._input_file, self._is_complex)
