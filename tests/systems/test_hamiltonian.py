@@ -1,13 +1,13 @@
 import numpy as np
-from pytest import fixture
+from pytest import fixture, raises
 from os.path import dirname, join
 
 from pydmqmc.systems import read_matrix, MatrixHamiltonian
 
 @fixture
-def file_equil_h4_sto3g(request):
+def input_file(request):
     file = join(dirname(request.path),
-                "..", "inputs", "hamiltonian", "EQUILIBRIUM-H4-STO3G.hamil")
+                "..", "inputs", "hamiltonians", "EQUILIBRIUM-H4-STO3G.hamil")
     return file
 
 @fixture
@@ -26,41 +26,50 @@ def known_diag():
 
     return np.array(values)
 
-@fixture
-def sorted_diag(known_diag):
-    return np.sort(known_diag)
+def test_read_matrix(input_file, known_diag):
 
-def test_read_matrix(file_equil_h4_sto3g, known_diag):
-
-    ham = read_matrix(file_equil_h4_sto3g, is_complex=False)
+    ham = read_matrix(input_file, is_complex=False)
 
     # Check the Hamiltonian.
     assert ham.shape == (20,20)
     assert np.allclose(np.diag(ham), known_diag)
 
-def test_MatrixHamiltonian_init(file_equil_h4_sto3g, known_diag):
+def test_read_matrix_complex(input_file):
 
-    sys = MatrixHamiltonian(file_equil_h4_sto3g)
-    ham = sys.raw_hamiltonian
+    with raises(NotImplementedError):
+        read_matrix(input_file, is_complex=True)
+
+def test_MatrixHamiltonian_load(input_file, known_diag):
+    """Tests __init__() before the call to _shift()."""
+
+    sys = MatrixHamiltonian(input_file)
+    raw = sys.raw_hamiltonian
 
     # Check the Hamiltonian.
-    assert ham.shape == (20,20)
-    assert np.allclose(np.diag(ham), known_diag)
+    assert raw.shape == (20,20)
+    assert np.allclose(np.diag(raw), known_diag)
 
     # Check derived quantities about the Hamiltonian.
     assert sys.ndeterminants == 20
     assert sys.ref_energy == known_diag[0]
 
-def test_MatrixHamiltonian_initialize(file_equil_h4_sto3g, sorted_diag):
+def test_MatrixHamiltonian_sort_on_diagonals(input_file, known_diag):
+    """Tests _shift()."""
+    sorted_diag = np.sort(known_diag)
 
-    shift = 2
-    sys = MatrixHamiltonian(file_equil_h4_sto3g, shift=shift, use_ip=True)
+    sys = MatrixHamiltonian(input_file)
 
     # Test that Hamiltonian has been sorted correctly.
     # A successful sort implicitly verifies that the sort_map
     # attribute is accurate.
     diag = np.diag(sys.unshifted_hamiltonian)
     assert np.allclose(diag, sorted_diag)
+
+def test_MatrixHamiltonian_shift_shift(input_file):
+    """Tests _shift()."""
+
+    shift = 2
+    sys = MatrixHamiltonian(input_file, shift=shift)
 
     # Test that Hamiltonian has been shifted correctly 
     # by undoing the calculation.
@@ -69,7 +78,13 @@ def test_MatrixHamiltonian_initialize(file_equil_h4_sto3g, sorted_diag):
     target = H + sys.ref_energy*II + shift*II
     assert np.allclose(target, sys.unshifted_hamiltonian)
 
+def test_MatrixHamiltonian_shift_use_ip(input_file):
+    """Tests _shift()."""
+
+    sys = MatrixHamiltonian(input_file, use_ip=True)
+
     # Test that the non-interacting Hamiltonian was constructed correctly
+    H = sys.hamiltonian
     nH = sys.noninteracting_hamiltonian
     assert nH.shape == H.shape
     assert np.allclose(np.diag(nH), np.diag(H))
@@ -79,4 +94,4 @@ def test_MatrixHamiltonian_initialize(file_equil_h4_sto3g, sorted_diag):
     # index [0, 0] will be zero. Manually mask that value for easier checking.
     diag_mask = np.ma.masked_array(nH, mask = nH!=0)
     diag_mask.mask[0, 0] = True
-    assert np.allclose(diag_mask.mask, II)
+    assert np.allclose(diag_mask.mask, np.eye(sys.ndeterminants))

@@ -51,7 +51,7 @@ class MatrixHamiltonian(System):
     ----------
     matrix_file
         Filename for the Hamiltonian.
-    iscomplex
+    is_complex
         Whether or not the Hamiltonian is complex.(???)
     shift
         A shift to apply to the diagonal elements of the Hamiltonian.
@@ -62,36 +62,26 @@ class MatrixHamiltonian(System):
 
     Attributes
     ----------
-    matrix_filename
+    input_file
+    reference_energy
     is_complex
     hamiltonian
     noninteracting_hamiltonian
     unshifted_hamiltonian
     raw_hamiltonian
     ndeterminants
-    ref_energy
     sort_map
 
     Warnings
     --------
     Support for complex Hamiltonians is not yet implemented.
-    Setting `iscomplex = True` will raise `NotImplementedError`.
+    Setting `is_complex = True` will raise `NotImplementedError`.
 
     Notes
     -----
     The `noninteracting_hamiltonian` will be `None`
     unless `use_ip` is specified when calling `initialize()`.
     """
-
-    @property
-    def matrix_filename(self) -> str:
-        """Filename for loaded Hamiltonian."""
-        return self._matrix_file
-
-    @property
-    def is_complex(self) -> bool:
-        """Whether or not the Hamiltonain is complex."""
-        return self._iscomplex
 
     @property
     def hamiltonian(self) -> Array | None:
@@ -119,11 +109,6 @@ class MatrixHamiltonian(System):
         return self._ndet
 
     @property
-    def ref_energy(self) -> float:
-        """Reference energy state."""
-        return float(self._ref_eng)  # convert from np.float64
-
-    @property
     def sort_map(self) -> Dict[int, int] | None:
         """Maps original index of raw diagonals & their sorted position."""
         return self._sort_map
@@ -131,18 +116,17 @@ class MatrixHamiltonian(System):
     def __init__(
             self,
             matrix_file: str,
-            iscomplex: bool = False,
+            is_complex: bool = False,
             shift: int = 0,
             use_ip: bool = False,
             **kwargs,
             ) -> None:
 
-        System.__init__(self, **kwargs)
+        super().__init__(input_file = matrix_file,
+                         is_complex = is_complex,
+                         **kwargs)
 
-        self._matrix_file = matrix_file
-        self._iscomplex = iscomplex
-
-        self._raw_hamil = read_matrix(self._matrix_file, self._iscomplex)
+        self._raw_hamil = read_matrix(self._input_file, self._is_complex)
         self._ndet = self._raw_hamil.shape[0]
         self._ref_eng = self._raw_hamil[0, 0]
 

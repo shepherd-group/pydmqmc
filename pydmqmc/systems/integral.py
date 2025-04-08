@@ -40,6 +40,15 @@ def generate_ijab_symmetries_array(i: int, j: int,
     array
         All valid i, j, a, b permutations
     """
+    # (???) are these error checks accurate?
+    # Some error checking should be in place if this will be public.
+    # It makes sense to have this function available outside of a system
+    # though it may make more sense in the utils submodule.
+    if a > i:
+        raise ValueError(f"Index a {a} cannot excede i {i}.")
+    if b > j:
+        raise ValueError(f"Index b {b} cannot excede j {j}.")
+    
     if rhf:
         i, j, a, b = i+i, j+j, a+a, b+b
     uhf = not rhf
@@ -90,7 +99,7 @@ class Integral(System):
     ----------
     integral_file
         Name of the integral file that defines the system.
-    iscomplex
+    is_complex
         Whether or not the integral is complex;
         controls the integral index symmetry.
     reference
@@ -119,7 +128,7 @@ class Integral(System):
 
     Attributes
     ----------
-    integral_file
+    input_file
     is_complex
     unrestriced_HF
     h0e
@@ -134,9 +143,11 @@ class Integral(System):
     spin_polarization
     orbital_pg_symmetry
     ground_state_pg
-    symmetry
     max_symmetry
     pg_mask
+    symmetry
+    ref_determinant
+    orbitals
 
     Contains:
         self.bitarrays: An array of the bitarray's in the hilbert space
@@ -144,23 +155,11 @@ class Integral(System):
         self.hii: The diagonal elements of the system Hamiltonian
         self.H: The system hamiltonian generated with the integrals
         self.Href: Reference Hartree-Fock state.
-        self.reference_det: Bitarray for the reference occupation.
         self.psingle: Probability of generating a single excitation.
         self.pdouble: Probability of generating a double excitation.
-        self.orbitals: All orbital indexes.
         self.nex_mat: An ndets X ndets matrix of excitations between i and j
         self.bitints: Integer representations of the bitarrays.
     """
-
-    @property
-    def integral_file(self) -> str:
-        """Filename for loaded integrals."""
-        return self._integral_file
-
-    @property
-    def is_complex(self) -> bool:
-        """Are the oribtals complex."""
-        return self._iscomplex
 
     @property
     def unrestrictd_HF(self) -> bool:
@@ -228,11 +227,6 @@ class Integral(System):
         return self._isym
 
     @property
-    def symmetry(self) -> int:
-        """Point-group symmetry of the system."""
-        return self._sym
-
-    @property
     def max_symmetry(self) -> int:
         """Maximum point-group symmetry contained by the system."""
         return self._maxsym
@@ -242,9 +236,24 @@ class Integral(System):
         """Mask used for point-group operations."""
         return self._pg_mask
 
+    @property
+    def symmetry(self) -> int:
+        """Point-group symmetry of the system."""
+        return self._sym
+
+    @property
+    def ref_determinant(self) -> Array:
+        """Bitarray for the reference occupation."""
+        return self._ref_det
+
+    @property
+    def orbitals(self) -> Array:
+        """All orbital indexes."""
+        return self._orbs
+
     def __init__(self,
                  integral_file: str = None,
-                 iscomplex: bool = False,
+                 is_complex: bool = False,
                  reference: Array | None = None,
                  symmetry: int | None = None,
                  orbital_eigenvalues: bool = False,
@@ -255,10 +264,10 @@ class Integral(System):
                  **kwargs
                  ) -> None:
 
-        System.__init__(self, **kwargs)
+        super().__init__(input_file = integral_file,
+                        is_complex = is_complex,
+                        **kwargs)
 
-        self._integral_file = integral_file
-        self._iscomplex = iscomplex
         self._uhf = False
         self._case_h0e = None
         self._case_h1e = None
@@ -291,19 +300,18 @@ class Integral(System):
         self._orbs = np.arange(self._norb)
         self._ref_det = np.zeros(self._norb, dtype=int)
         self._ref_det[self._ref] = 1
-        self._psingle, self._pdouble = calculate_psingle_pdouble(
-                                            self._orbs,
-                                            self._ms,
-                                            self._orbsym,
-                                            self._maxsym,
-                                            self._pg_mask,
-                                            self._ref_det)
+        # self._psingle, self._pdouble = calculate_psingle_pdouble(
+        #                                     self._orbs,
+        #                                     self._ms,
+        #                                     self._orbsym,
+        #                                     self._maxsym,
+        #                                     self._pg_mask,
+        #                                     self._ref_det)
+        self._ref_eng = 0.5*(np.diag(self._h1e)[self._ref]).sum()
+        self._ref_eng += 0.5*self._eig[self._ref].sum() + self._h0e
 
         if orbital_eigenvalues:  # can only be run once
             self._generate_orbital_eigenvalues()
-
-        self.Href = 0.5*(np.diag(self._h1e)[self._ref]).sum()
-        self.Href += 0.5*self._eig[self._ref].sum() + self._h0e
 
         self._ndets = None
         self._bitarrays = None
@@ -325,7 +333,7 @@ class Integral(System):
 
     def _read_integral_file(self) -> None:
         """Read in an FCIDUMP file."""
-        with open(self.integral_file, 'r') as open_int_file:
+        with open(self.input_file, 'r') as open_int_file:
             footer = False
             for line in open_int_file:
                 line = line.replace('\n', '')
@@ -404,7 +412,7 @@ class Integral(System):
                       ) -> Array:
         return generate_ijab_symmetries_array(
                 i, j, a, b,
-                eight_fold=(not self._iscomplex),
+                eight_fold=(not self._is_complex),
                 rhf=(not self._uhf))
 
     def _alloc_arrays(self) -> None:
@@ -467,38 +475,38 @@ class Integral(System):
                 self._eig[a] += self._h2e[a, b, a, b]
                 self._eig[a] -= self._h2e[a, b, b, a]
 
-    def generate_determinants(self):
-        if self._ndets is not None:
-            raise RuntimeError("Determinants have already been generated!")
+    # def generate_determinants(self):
+    #     if self._ndets is not None:
+    #         raise RuntimeError("Determinants have already been generated!")
 
-        self._ndets, self._bitarrays = generate_bit_arrays(
-                                        self._norb,
-                                        self._na,
-                                        self._nb,
-                                        self._orbsym,
-                                        self._pg_mask,
-                                        self._sym)
+    #     self._ndets, self._bitarrays = generate_bit_arrays(
+    #                                     self._norb,
+    #                                     self._na,
+    #                                     self._nb,
+    #                                     self._orbsym,
+    #                                     self._pg_mask,
+    #                                     self._sym)
 
-    def generate_hamiltonian(self):
-        self._hii = np.array([get_hij(b,b,self) for b in self._bitarrays])
-        esortind = np.argsort(self._hii)
-        self._hii = self._hii[esortind]
-        self._bitarrays = self._bitarrays[esortind]
-        self._H = np.diag(self._hii)
-        for i, b1 in enumerate(self._bitarrays):
-            for j, b2 in enumerate(self._bitarrays[i+1:]):
-                j += i + 1
-                hij = get_hij(b1,b2,self)
-                self._H[i,j], self._H[j,i] = hij, hij
+    # def generate_hamiltonian(self):
+    #     self._hii = np.array([get_hij(b,b,self) for b in self._bitarrays])
+    #     esortind = np.argsort(self._hii)
+    #     self._hii = self._hii[esortind]
+    #     self._bitarrays = self._bitarrays[esortind]
+    #     self._H = np.diag(self._hii)
+    #     for i, b1 in enumerate(self._bitarrays):
+    #         for j, b2 in enumerate(self._bitarrays[i+1:]):
+    #             j += i + 1
+    #             hij = get_hij(b1,b2,self)
+    #             self._H[i,j], self._H[j,i] = hij, hij
 
-    def generate_excitation_matrix(self):
-        self._nex_mat = np.zeros((self._ndets, self._ndets), dtype=np.int64)
-        for i, b1 in enumerate(self._bitarrays):
-            for j, b2 in enumerate(self._bitarrays[i+1:]):
-                j += i + 1
-                nex = get_nex(b1,b2)
-                self._nex_mat[i,j] = nex
-                self._nex_mat[j,i] = nex
+    # def generate_excitation_matrix(self):
+    #     self._nex_mat = np.zeros((self._ndets, self._ndets), dtype=np.int64)
+    #     for i, b1 in enumerate(self._bitarrays):
+    #         for j, b2 in enumerate(self._bitarrays[i+1:]):
+    #             j += i + 1
+    #             nex = get_nex(b1,b2)
+    #             self._nex_mat[i,j] = nex
+    #             self._nex_mat[j,i] = nex
 
     def generate_bitarray_integers(self):
         bitints = [np.exp2(self._orbs[ba==1]).sum() for ba in self._bitarrays]
@@ -512,104 +520,104 @@ class Integral(System):
             out_tuple = (self._eig[i], iout, 0, 0, 0)
             print(fmt % out_tuple)
 
-    def report(self) -> None:
-        """Print information about the system."""
-        print(' ---- System information ----')
-        print(
-            json.dumps(
-                {
-                    'int_file'  : self._integral_file,
-                    'UHF'       : self._uhf,
-                    'Norb'      : self._norb,
-                    'Nvirt'     : self._nvirt,
-                    'Nel'       : self._nel,
-                    'Na'        : self._na,
-                    'Nb'        : self._nb,
-                    'MS2'       : self._ms2,
-                    'ISYM'      : self._isym,
-                    'maxsym'    : self._maxsym,
-                    'symmetry'  : self._sym,
-                    'pg_mask'   : self._pg_mask,
-                    'Href'      : self.Href,
-                    'reference' : '%s' % self._ref,
-                    'ref_det'   : '%s' % self._ref_det,
-                    'p_single'  : self.psingle,
-                    'p_double'  : self.pdouble,
-                },
-            indent=4, ensure_ascii=True)
-        )
-        print()
-        print('  '+'#'*6+' Basis set table start. '+'#'*6)
-        print(' '+'-'*50)
-        print(' {:>8} {:>10} {:>6} {:>22}'\
-                .format('index','Symmetry','ms','<i|f|i>'))
-        print(' '+'-'*50)
-        outstr = ' {:>8} {:>10} {:>6} {:> 22.12E}'
-        for i in range(self._norb):
-            print(outstr.format(i,self._orbsym[i],self._ms[i],self._eig[i]))
-        print(' '+'-'*50)
-        print('  '+'#'*6+'  Basis set table end.  '+'#'*6)
-        self.print_symmetry_table()
+    # def report(self) -> None:
+    #     """Print information about the system."""
+    #     print(' ---- System information ----')
+    #     print(
+    #         json.dumps(
+    #             {
+    #                 'int_file'  : self._input_file,
+    #                 'UHF'       : self._uhf,
+    #                 'Norb'      : self._norb,
+    #                 'Nvirt'     : self._nvirt,
+    #                 'Nel'       : self._nel,
+    #                 'Na'        : self._na,
+    #                 'Nb'        : self._nb,
+    #                 'MS2'       : self._ms2,
+    #                 'ISYM'      : self._isym,
+    #                 'maxsym'    : self._maxsym,
+    #                 'symmetry'  : self._sym,
+    #                 'pg_mask'   : self._pg_mask,
+    #                 'Href'      : self.Href,
+    #                 'reference' : '%s' % self._ref,
+    #                 'ref_det'   : '%s' % self._ref_det,
+    #                 'p_single'  : self.psingle,
+    #                 'p_double'  : self.pdouble,
+    #             },
+    #         indent=4, ensure_ascii=True)
+    #     )
+    #     print()
+    #     print('  '+'#'*6+' Basis set table start. '+'#'*6)
+    #     print(' '+'-'*50)
+    #     print(' {:>8} {:>10} {:>6} {:>22}'\
+    #             .format('index','Symmetry','ms','<i|f|i>'))
+    #     print(' '+'-'*50)
+    #     outstr = ' {:>8} {:>10} {:>6} {:> 22.12E}'
+    #     for i in range(self._norb):
+    #         print(outstr.format(i,self._orbsym[i],self._ms[i],self._eig[i]))
+    #     print(' '+'-'*50)
+    #     print('  '+'#'*6+'  Basis set table end.  '+'#'*6)
+    #     self.print_symmetry_table()
 
-    def print_symmetry_table(self) -> None:
-        """
-        Write out the symmetry table for the system.
+    # def print_symmetry_table(self) -> None:
+    #     """
+    #     Write out the symmetry table for the system.
         
-        Write out the general pg symmetry table from all combinations
-        of point groups first. ( I am forgetful okay :P )
-        Then write out the resulting point group table from the cross
-        product of the orbital point groups.
-        """
-        print('\n')
-        print( ' Symmetry cross product (xp) table using:')
-        print(f'    pg_mask: {self._pg_mask}')
-        print( '    row = pg symmetry 1')
-        print( '    col = pg symmetry 2')
-        print( '    xp[row,col]:')
-        print()
+    #     Write out the general pg symmetry table from all combinations
+    #     of point groups first. ( I am forgetful okay :P )
+    #     Then write out the resulting point group table from the cross
+    #     product of the orbital point groups.
+    #     """
+    #     print('\n')
+    #     print( ' Symmetry cross product (xp) table using:')
+    #     print(f'    pg_mask: {self._pg_mask}')
+    #     print( '    row = pg symmetry 1')
+    #     print( '    col = pg symmetry 2')
+    #     print( '    xp[row,col]:')
+    #     print()
 
-        xp = np.zeros((self._maxsym, self._maxsym), dtype=np.int64)
-        for isym in range(0, self._maxsym):
-            for jsym in range(0, self._maxsym):
-                xp_pg = bitarray_pg(isym, jsym, self._pg_mask)
-                xp[isym,jsym] = xp_pg
+    #     xp = np.zeros((self._maxsym, self._maxsym), dtype=np.int64)
+    #     for isym in range(0, self._maxsym):
+    #         for jsym in range(0, self._maxsym):
+    #             xp_pg = bitarray_pg(isym, jsym, self._pg_mask)
+    #             xp[isym,jsym] = xp_pg
 
-        header = ' sym |'
-        pg_rows = [f'  {isym:>2} |' for isym in range(0, self._maxsym)]
-        for isym in range(0, self._maxsym):
-            header += f' {isym:>2}'
-            for jsym in range(0, self._maxsym):
-                pg_rows[isym] += f' {xp[isym,jsym]:>2}'
+    #     header = ' sym |'
+    #     pg_rows = [f'  {isym:>2} |' for isym in range(0, self._maxsym)]
+    #     for isym in range(0, self._maxsym):
+    #         header += f' {isym:>2}'
+    #         for jsym in range(0, self._maxsym):
+    #             pg_rows[isym] += f' {xp[isym,jsym]:>2}'
 
-        print(header)
-        print(' ' + '-'*int(6 + 3 * (self._maxsym)))
-        for isym in range(0, self._maxsym):
-            print(pg_rows[isym])
+    #     print(header)
+    #     print(' ' + '-'*int(6 + 3 * (self._maxsym)))
+    #     for isym in range(0, self._maxsym):
+    #         print(pg_rows[isym])
 
-        print()
-        print( ' Symmetry cross product table from system orbitals:')
-        print(f'    pg_mask: {self._pg_mask}')
-        print( '    row = orbital 1')
-        print( '    col = orbital 2')
-        print( '    xp[row,col]:')
-        print()
+    #     print()
+    #     print( ' Symmetry cross product table from system orbitals:')
+    #     print(f'    pg_mask: {self._pg_mask}')
+    #     print( '    row = orbital 1')
+    #     print( '    col = orbital 2')
+    #     print( '    xp[row,col]:')
+    #     print()
 
-        xp = np.zeros((self._norb, self._norb), dtype=np.int64)
-        for iorb in range(0, self._norb):
-            isym = self._orbsym[iorb]
-            for jorb in range(0, self._norb):
-                jsym = self._orbsym[jorb]
-                xp_pg = bitarray_pg(isym, jsym, self._pg_mask)
-                xp[iorb,jorb] = xp_pg
+    #     xp = np.zeros((self._norb, self._norb), dtype=np.int64)
+    #     for iorb in range(0, self._norb):
+    #         isym = self._orbsym[iorb]
+    #         for jorb in range(0, self._norb):
+    #             jsym = self._orbsym[jorb]
+    #             xp_pg = bitarray_pg(isym, jsym, self._pg_mask)
+    #             xp[iorb,jorb] = xp_pg
 
-        header = ' orb |'
-        pg_rows = [f'  {iorb:>2} |' for iorb in range(0, self._norb)]
-        for iorb in range(0, self._norb):
-            header += f' {iorb:>2}'
-            for jorb in range(0, self._norb):
-                pg_rows[iorb] += f' {xp[iorb,jorb]:>2}'
+    #     header = ' orb |'
+    #     pg_rows = [f'  {iorb:>2} |' for iorb in range(0, self._norb)]
+    #     for iorb in range(0, self._norb):
+    #         header += f' {iorb:>2}'
+    #         for jorb in range(0, self._norb):
+    #             pg_rows[iorb] += f' {xp[iorb,jorb]:>2}'
 
-        print(header)
-        print(' ' + '-'*int(6 + 3 * (self._norb)))
-        for irow in range(0, self._norb):
-            print(pg_rows[irow])
+    #     print(header)
+    #     print(' ' + '-'*int(6 + 3 * (self._norb)))
+    #     for irow in range(0, self._norb):
+    #         print(pg_rows[irow])
