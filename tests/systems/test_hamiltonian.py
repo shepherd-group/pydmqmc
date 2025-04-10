@@ -2,16 +2,18 @@ import numpy as np
 from pytest import fixture, raises
 from os.path import dirname, join
 
+from numpy.typing import NDArray as Array
+
 from pydmqmc.systems import read_matrix, MatrixHamiltonian
 
 @fixture
-def input_file(request):
+def input_file(request) -> str:
     file = join(dirname(request.path),
                 "..", "inputs", "hamiltonians", "EQUILIBRIUM-H4-STO3G.hamil")
     return file
 
 @fixture
-def known_diag():
+def known_diag() -> Array:
     values = [
        -2.11534977839243    , -1.13379264192082    ,
        -1.48665751992125    , -0.644571454998723   ,

@@ -3,58 +3,58 @@
 import numpy as np
 from sympy.utilities.iterables import multiset_permutations as gen_perm_set
 
-# def bitarry_to_integer(ba):
-#     r'''
-#     Generate the integer representation of a given bitarray.
+def bitarry_to_integer(ba):
+    r'''
+    Generate the integer representation of a given bitarray.
 
-#     In:
-#         ba: The bitarray we wish to convert to an integer
-#     Out:
-#         None: An integer generated from converting the binary array to
-#             its integer form
-#     '''
-#     return ba.dot(1 << np.arange(ba.size))
+    In:
+        ba: The bitarray we wish to convert to an integer
+    Out:
+        None: An integer generated from converting the binary array to
+            its integer form
+    '''
+    return ba.dot(1 << np.arange(ba.size))
 
-# def integer_to_bitarry(iba,norb):
-#     r'''
-#     Generate a bitarry given the integer representation of that bitarray.
+def integer_to_bitarry(iba,norb):
+    r'''
+    Generate a bitarry given the integer representation of that bitarray.
 
-#     In:
-#         iba: The integer representation of the bitarray
-#         norb: The total number of spin-orbitals for a system
-#     Out:
-#         None: The array of integer bits representing the determinant
-#     '''
-#     ba = np.binary_repr(iba,width=norb)
-#     return np.fromstring(ba, dtype='S1').astype(int)[::-1]
+    In:
+        iba: The integer representation of the bitarray
+        norb: The total number of spin-orbitals for a system
+    Out:
+        None: The array of integer bits representing the determinant
+    '''
+    ba = np.binary_repr(iba,width=norb)
+    return np.fromstring(ba, dtype='S1').astype(int)[::-1]
 
-# def concate_bitarrays_to_label(ba1,ba2):
-#     r'''
-#     Concatenate two bitarrays and then convert the concatenation to
-#     a single integer representation.
+def concate_bitarrays_to_label(ba1,ba2):
+    r'''
+    Concatenate two bitarrays and then convert the concatenation to
+    a single integer representation.
 
-#     In:
-#         ba1: The first bitarray of the state
-#         ba2: The second bitarray of the state
-#     Out:
-#         None: The integer representation of the concatenation of the unique
-#             bitarray labels for the state
-#     '''
-#     return bitarry_to_integer(np.concatenate((ba1,ba2),axis=None))
+    In:
+        ba1: The first bitarray of the state
+        ba2: The second bitarray of the state
+    Out:
+        None: The integer representation of the concatenation of the unique
+            bitarray labels for the state
+    '''
+    return bitarry_to_integer(np.concatenate((ba1,ba2),axis=None))
 
-# def extract_bitarrays_from_label(label,norb):
-#     r'''
-#     Extract the two bitarrays used to generate the given integer label of
-#     the state.
+def extract_bitarrays_from_label(label,norb):
+    r'''
+    Extract the two bitarrays used to generate the given integer label of
+    the state.
 
-#     In:
-#         label: The integer label of the state
-#         norb: The number of orbitals in the system
-#     Out:
-#         None: An array of the two bitarrays used to generate the integer
-#             representation of the given state
-#     '''
-#     return np.array_split(integer_to_bitarry(label,2*norb),2)
+    In:
+        label: The integer label of the state
+        norb: The number of orbitals in the system
+    Out:
+        None: An array of the two bitarrays used to generate the integer
+            representation of the given state
+    '''
+    return np.array_split(integer_to_bitarry(label,2*norb),2)
 
 def cross_prod_pg_sym(sym1,sym2,mask):
     r'''

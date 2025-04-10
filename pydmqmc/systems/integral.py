@@ -13,6 +13,7 @@ from .system import System
 
 import numpy as np
 import json
+from sympy.utilities.iterables import multiset_permutations as gen_perm_set
 
 from numpy.typing import NDArray as Array
 
@@ -102,6 +103,20 @@ class Integral(System):
     is_complex
         Whether or not the integral is complex;
         controls the integral index symmetry.
+    hamiltonian
+        Generate the Hamiltonian for the system.
+    excitation_matrix
+        Control whether we generate the matrix of excitations
+        between i and j indexing the matrix, where i and j represent the
+        bitarrays at i and j.
+
+    Other Parameters
+    ----------------
+    determinants
+        Control whether we generate all determinants spanned by the system
+        within the point-group symmetry. This parameter is automatically
+        set to `True` if any of `hamiltonian`, `excitation_matrix`,
+        or `bitarray_integers` are set to `True`.
     reference
         Specify the occupied spin orbitals for the system's reference
         determinant. If `None`, assume the lowest energy orbitals are
@@ -113,18 +128,8 @@ class Integral(System):
         from the `integral_file`.
     orbital_eigenvalues
         Calculate the orbital eigenvalues for the reference state.
-    determinants
-        Control whether we generate all determinants spanned by the system
-        within the point-group symmetry.
-    hamiltonian
-        Generate the Hamiltonian for the system.
-    excitation_matrix
-        Control whether we generate the matrix of excitations
-        between i and j indexing the matrix, where i and j represent the
-        bitarrays at i and j.
-    bitarray_integers
-        Control whether the integer representation of the bitarrays
-        are generated.
+        Useful if the `integral_file` does not have energies for
+        `N 0 0 0` states where `N` is a positive integer.
 
     Attributes
     ----------
@@ -150,14 +155,10 @@ class Integral(System):
     orbitals
     prob_single
     prob_double
-
-    Contains:
-        self.bitarrays: An array of the bitarray's in the hilbert space
-        self.ndets: The total number of determinants in the hilbert space
-        self.hii: The diagonal elements of the system Hamiltonian
-        self.H: The system hamiltonian generated with the integrals
-        self.nex_mat: An ndets X ndets matrix of excitations between i and j
-        self.bitints: Integer representations of the bitarrays.
+    n_determinants
+    bitarrays
+    hamiltonian
+    excitation_matrix
     """
 
     @property
@@ -211,11 +212,6 @@ class Integral(System):
         return self._nb
 
     @property
-    def ms(self) -> Array:
-        """TODO what is this?"""
-        return self._ms
-
-    @property
     def spin_polarization(self) -> int:
         """Spin polarization of the system."""
         return self._ms2
@@ -265,16 +261,35 @@ class Integral(System):
         """Probability of generating a double excitation."""
         return self._pdouble
 
+    @property
+    def n_determinants(self) -> int:
+        """Total number of determinants in the hilbert space"""
+        return self._ndets
+
+    @property
+    def bitarrays(self) -> Array:
+        """Array of bitarrays in the Hilbert space."""
+        return self._bitarrays
+
+    @property
+    def hamiltonian(self) -> Array:
+        """Hamiltonian generated with the system's integrals."""
+        return self._H
+
+    @property
+    def excitation_matrix(self) -> Array:
+        """An `n_determinants`-square matrix of excitations between i and j."""
+        return self._nex_mat
+
     def __init__(self,
                  integral_file: str = None,
                  is_complex: bool = False,
+                 hamiltonian: bool = False,
+                 excitation_matrix: bool = False,
+                 determinants: bool = False,
                  reference: Array | None = None,
                  symmetry: int | None = None,
                  orbital_eigenvalues: bool = False,
-                 determinants: bool = False,
-                 hamiltonian: bool = False,
-                 excitation_matrix: bool = False,
-                 bitarray_integers: bool = False,
                  **kwargs
                  ) -> None:
 
@@ -314,30 +329,27 @@ class Integral(System):
         self._orbs = np.arange(self._norb)
         self._ref_det = np.zeros(self._norb, dtype=int)
         self._ref_det[self._ref] = 1
-        self._calculate_psingle_pdouble()
         self._ref_eng = 0.5*(np.diag(self._h1e)[self._ref]).sum()
         self._ref_eng += 0.5*self._eig[self._ref].sum() + self._h0e
+        self._calculate_psingle_pdouble()
 
         if orbital_eigenvalues:  # can only be run once
             self._generate_orbital_eigenvalues()
 
         self._ndets = None
         self._bitarrays = None
-        if determinants or hamiltonian or excitation_matrix \
-           or bitarray_integers:
-            self.generate_determinants()
+        if hamiltonian or excitation_matrix:
+            determinants = True
+        if determinants:  # Can we always generate this?
+            self._generate_determinants()
 
-        self._hii = None
         self._H = None
-        if hamiltonian:
-            self.generate_hamiltonian()
+        if hamiltonian:  # Can we always generate this?
+            self._generate_hamiltonian()
 
         self._nex_mat = None
-        # TODO: are these two mutually exclusive?
         if excitation_matrix:
-            self.generate_excitation_matrix()
-        if bitarray_integers:
-            self.generate_bitarray_integers()
+            self._generate_excitation_matrix()
 
     def _read_integral_file(self) -> None:
         """Read in an FCIDUMP file."""
@@ -468,14 +480,24 @@ class Integral(System):
                 "within the the symmetry of the system!"
                 )
 
-    def _generate_orbital_eigenvalues(self):
+    def _generate_orbital_eigenvalues(self) -> None:
         r"""
         Modify eig integral arrays with orbital occupation energies(???).
 
-        Math from Szabo and Ostlund:
-        e_a = <a|h|a> + \sum_{b != a}^{N} <ab|ab> - <ab|ba>
-        Note that, b != a only applies when a is occupied
-        and b is always occupied
+        Notes
+        -----
+        Math from Szabo and Ostlund[1]_:
+
+        .. math:: e_a = <a|h|a> + \sum_{b \neq a}^{N} <ab|ab> - <ab|ba>
+
+        Note that, :math:`b \neq a` only applies when :math`a` is occupied
+        and :math:`b` is always occupied.
+
+        References
+        ----------
+        .. [1] Attila Szabo and Neil S. Ostlund, "Modern Quantum Chemistry:
+           Introduction to Advanced Electronic Structure Theory," Dover Books
+           on Chemistry, 1996
         """
         for a in range(self._norb):
             self._eig[a] = self._h1e[a, a]
@@ -487,18 +509,15 @@ class Integral(System):
         """
         Calculate the single and double excitation probabilities.
 
-        TODO clean this up.
-        We assume that the reference state is a good candidate for the
+        The reference state is assumed to be a good candidate for the
         number of single and double excitations possible for a given system.
-
-        All we are doing here is counting the number of excitations
+        This function simply counts the number of excitations
         which are allowed by symmetry and spin conservation for each electron.
-
-        We do not do anything like consider the value of Hamiltonian element
-        between those excitations ect.
+        It does not account for factors like the value of Hamiltonian element
+        between those excitations, etc.
         """
         occ = self._orbs[self._ref_det == 1]
-        unocc, virt_ms, virt_sym, nvirt = utils.get_nvirt_ms_sym(self, occ)
+        unocc, virt_ms, virt_sym, nvirt = self.get_virtual_orbitals(occ)
 
         occ_ms = self._ms[occ]
         occ_sym = self._orbsym[occ]
@@ -522,149 +541,268 @@ class Integral(System):
         self._psingle = nsingle/(nsingle + ndouble)
         self._pdouble = ndouble/(nsingle + ndouble)
 
-    # def generate_determinants(self):
-    #     if self._ndets is not None:
-    #         raise RuntimeError("Determinants have already been generated!")
+    def get_virtual_orbitals(self,
+                             occ: Array
+                             ) -> list[Array]:
+        """
+        Given an occupied orbital array, get information on virtual orbitals.
 
-    #     self._ndets, self._bitarrays = generate_bit_arrays(
-    #                                     self._norb,
-    #                                     self._na,
-    #                                     self._nb,
-    #                                     self._orbsym,
-    #                                     self._pg_mask,
-    #                                     self._sym)
+        Parameters
+        ----------
+        occ
+            The occupied orbitals for the current determinant.
 
-    # def generate_hamiltonian(self):
-    #     self._hii = np.array([get_hij(b,b,self) for b in self._bitarrays])
-    #     esortind = np.argsort(self._hii)
-    #     self._hii = self._hii[esortind]
-    #     self._bitarrays = self._bitarrays[esortind]
-    #     self._H = np.diag(self._hii)
-    #     for i, b1 in enumerate(self._bitarrays):
-    #         for j, b2 in enumerate(self._bitarrays[i+1:]):
-    #             j += i + 1
-    #             hij = get_hij(b1,b2,self)
-    #             self._H[i,j], self._H[j,i] = hij, hij
+        Returns
+        -------
+        unocc : Array
+            The unoccupied orbital indexes in the current determinant.
+        virt_ms : Array
+            The corresponding spins of `unocc`.
+        virt_sym : Array
+            The corresponding symmetries of `unocc`.
+        nvirt : Array
+            The number of unoccupied orbitals in each
+            spin-symmetry as indexed by spin and symmetry.
 
-    # def generate_excitation_matrix(self):
-    #     self._nex_mat = np.zeros((self._ndets, self._ndets), dtype=np.int64)
-    #     for i, b1 in enumerate(self._bitarrays):
-    #         for j, b2 in enumerate(self._bitarrays[i+1:]):
-    #             j += i + 1
-    #             nex = get_nex(b1,b2)
-    #             self._nex_mat[i,j] = nex
-    #             self._nex_mat[j,i] = nex
+        Warnings
+        --------
+        There is a always an empty array corresponding to a spin of
+        :math:`ms = 0`.
+        """
+        # TODO this could probably use input checking on np.sum(occ)
+        # versus the number of electrons in the system.
+        # Should we also check np.max(occ)?
+        unocc = self.orbitals[np.isin(self.orbitals, occ, invert=True)]
+        virt_ms = self._ms[unocc]
+        virt_sym = self.orbital_pg_symmetry[unocc]
 
-    def generate_bitarray_integers(self):
-        bitints = [np.exp2(self._orbs[ba==1]).sum() for ba in self._bitarrays]
-        self.bitints = np.array(bitints).astype(np.int64)
+        nvirt = np.zeros((3, self.max_symmetry))
+        for ms, sym in zip(virt_ms, virt_sym):
+            nvirt[ms, sym] += 1
 
-    def dumpeigs(self, float_fmt=' % 24.16E', int_fmt='%3i'):
+        return unocc, virt_ms, virt_sym, nvirt
+
+    def _generate_determinants(self) -> None:
+        """
+        Generate all the determinants as bitarrays.
+
+        First, generate a reference bitarry for each of the spin channels
+        separately. Next, generate all unqiue combinations of 1's & 0's
+        for that reference. Finally, loop through all the unique
+        concatenations of the alpha & beta bitarrays and check that the point
+        group symmetry of the concatenated bitarray falls within the
+        system's possible point groups. If the concatenated bitarray
+        has an allowed point group symmetry, sore that determinant.
+
+        Notes
+        -----
+        A `bitarray` is shorthand for an array of 1's and 0's.
+        More traditionally referred to as "bitstrings,"
+        these are used to represent Slater determinants.
+        1's represent an occupied orbital and 0 an unoccupied orbital.
+
+        This function was originally called `generate_bit_arrays`.
+        It originally supported the `use_symmetry_block` boolean,
+        which controls whether to use the symmetry reduced point
+        group Hamiltonian (`True`) or whether the entire Hamiltonian
+        containing all those point-group symmetries spanned by the system will
+        be generated (`False`). Since in practice this parameter is always
+        `True` and this function does not control Hamiltonian generation,
+        this parameter has been removed from the function call and hardcoded
+        to `True` within the function body.
+        """
+        aba = np.zeros(int(self._norb/2), dtype=int)
+        aba[:self._na] = 1
+        alpha_bas = list(gen_perm_set(aba))[::-1]
+
+        bba = np.zeros(int(self._norb/2), dtype=int)
+        bba[:self._nb] = 1
+        beta_bas = list(gen_perm_set(bba))[::-1]
+
+        HS_est = len(beta_bas)*len(alpha_bas)
+        print('\n Upper bound on hilbert space: {:<22}'.format(HS_est))
+
+        bas = []
+        for bba in beta_bas:
+            bind = 2*np.nonzero(bba)[0] + 1
+            boccsym = self._orbsym[bind]
+            bsym = utils.orb_sym(boccsym, self._pg_mask)
+
+            for aba in alpha_bas:
+                aind = 2*np.nonzero(aba)[0]
+                aoccsym = self._orbsym[aind]
+                asym = utils.orb_sym(aoccsym, self._pg_mask)
+
+                sym = utils.cross_prod_pg_sym(bsym, asym, self._pg_mask)
+                ba = np.zeros(self._norb, dtype=int)
+                ba[np.arange(0, self._norb, 2)] = aba
+                ba[np.arange(1, self._norb, 2)] = bba
+
+                use_symmetry_block = True
+                if sym == self._sym:
+                    bas.append(ba)
+                elif not use_symmetry_block:
+                    bas.append(ba)
+
+        HS_est = len(bas)
+        print(' Actual size of the hilbert space: {:<22}\n'.format(HS_est))
+        self._ndets = HS_est
+        self._bitarrays = np.array(bas)
+
+    def _generate_hamiltonian(self) -> None:
+        hii = np.array([utils.get_hij(b, b, self)
+                              for b in self._bitarrays])
+        esortind = np.argsort(hii)
+        hii = hii[esortind]
+        self._bitarrays = self._bitarrays[esortind]
+        self._H = np.diag(hii)
+        for i, b1 in enumerate(self._bitarrays):
+            for j, b2 in enumerate(self._bitarrays[i+1:]):
+                j += i + 1
+                hij = utils.get_hij(b1, b2, self)
+                self._H[i, j], self._H[j, i] = hij, hij
+
+    def _generate_excitation_matrix(self):
+        self._nex_mat = np.zeros((self._ndets, self._ndets), dtype=np.int64)
+        for i, b1 in enumerate(self._bitarrays):
+            for j, b2 in enumerate(self._bitarrays[i+1:]):
+                j += i + 1
+                nex = utils.get_nex(b1, b2)
+                self._nex_mat[i, j] = nex
+                self._nex_mat[j, i] = nex
+
+    def get_bitarray_integers(self) -> Array:
+        """Integer representations of system bitarrays."""
+        if self._bitarrays is None:
+            self._generate_determinants()
+
+        bitints = [np.exp2(self._orbs[ba == 1]).sum()
+                   for ba in self._bitarrays]
+        return np.array(bitints).astype(np.int64)
+
+    def print_report(self) -> None:
+        """Print information about the system."""
+        print(' ---- System information ----')
+        print(
+            json.dumps(
+                {
+                    'int_file'  : self._input_file,
+                    'UHF'       : self._uhf,
+                    'Norb'      : self._norb,
+                    'Nvirt'     : self._nvirt,
+                    'Nel'       : self._nel,
+                    'Na'        : self._na,
+                    'Nb'        : self._nb,
+                    'MS2'       : self._ms2,
+                    'ISYM'      : self._isym,
+                    'maxsym'    : self._maxsym,
+                    'symmetry'  : self._sym,
+                    'pg_mask'   : self._pg_mask,
+                    'Href'      : self._ref_eng,
+                    'reference' : '%s' % self._ref,
+                    'ref_det'   : '%s' % self._ref_det,
+                    'p_single'  : self._psingle,
+                    'p_double'  : self._pdouble,
+                },
+                indent=4, ensure_ascii=True)
+        )
+        print()
+        print('  '+'#'*6+' Basis set table start. '+'#'*6)
+        print(' '+'-'*50)
+        print(' {:>8} {:>10} {:>6} {:>22}'.format(
+            'index', 'Symmetry', 'ms', '<i|f|i>'))
+        print(' '+'-'*50)
+        outstr = ' {:>8} {:>10} {:>6} {:> 22.12E}'
+        for i in range(self._norb):
+            print(outstr.format(i,
+                                self._orbsym[i],
+                                self._ms[i],
+                                self._eig[i]))
+        print(' '+'-'*50)
+        print('  '+'#'*6+'  Ba(sis set table end.  '+'#'*6)
+        self.print_symmetry_table()
+        print('\nEigenvalues')
+        self.print_eigenvalues()
+
+    def print_symmetry_table(self) -> None:
+        """
+        Write out the symmetry table for the system.
+
+        Write out the general pg symmetry table from all combinations
+        of point groups first.
+        Then write out the resulting point group table from the cross
+        product of the orbital point groups.
+        """
+        print('\n')
+        print(' Symmetry cross product (xp) table using:')
+        print('    pg_mask: {}'.format(self._pg_mask))
+        print('    row = pg symmetry 1')
+        print('    col = pg symmetry 2')
+        print('    xp[row,col]:')
+        print()
+
+        xp = np.zeros((self._maxsym, self._maxsym), dtype=np.int64)
+        for isym in range(0, self._maxsym):
+            for jsym in range(0, self._maxsym):
+                xp_pg = utils.bitarray_pg(isym, jsym, self._pg_mask)
+                xp[isym, jsym] = xp_pg
+
+        header = ' sym |'
+        pg_rows = [f'  {isym:>2} |' for isym in range(0, self._maxsym)]
+        for isym in range(0, self._maxsym):
+            header += f' {isym:>2}'
+            for jsym in range(0, self._maxsym):
+                pg_rows[isym] += f' {xp[isym, jsym]:>2}'
+
+        print(header)
+        print(' ' + '-'*int(6 + 3 * (self._maxsym)))
+        for isym in range(0, self._maxsym):
+            print(pg_rows[isym])
+
+        print()
+        print(' Symmetry cross product table from system orbitals:')
+        print('    pg_mask: {}'.format(self._pg_mask))
+        print('    row = orbital 1')
+        print('    col = orbital 2')
+        print('    xp[row,col]:')
+        print()
+
+        xp = np.zeros((self._norb, self._norb), dtype=np.int64)
+        for iorb in range(0, self._norb):
+            isym = self._orbsym[iorb]
+            for jorb in range(0, self._norb):
+                jsym = self._orbsym[jorb]
+                xp_pg = utils.bitarray_pg(isym, jsym, self._pg_mask)
+                xp[iorb, jorb] = xp_pg
+
+        header = ' orb |'
+        pg_rows = [f'  {iorb:>2} |' for iorb in range(0, self._norb)]
+        for iorb in range(0, self._norb):
+            header += f' {iorb:>2}'
+            for jorb in range(0, self._norb):
+                pg_rows[iorb] += f' {xp[iorb, jorb]:>2}'
+
+        print(header)
+        print(' ' + '-'*int(6 + 3 * (self._norb)))
+        for irow in range(0, self._norb):
+            print(pg_rows[irow])
+
+    def print_eigenvalues(self,
+                          float_fmt: str = ' % 24.16E',
+                          int_fmt: str = '%3i') -> None:
+        """
+        Print eigenvalues.
+
+        Parameters
+        ----------
+        float_fmt
+            Format string for floats.
+        int_fmt
+            Format string for integers.
+        """
         fmt = float_fmt + f' {int_fmt} {int_fmt} {int_fmt} {int_fmt}'
         inds = np.arange(0, self._norb, 2 - self._uhf)
         for i in inds:
             iout = int(i/(2 - self._uhf)) + 1
             out_tuple = (self._eig[i], iout, 0, 0, 0)
             print(fmt % out_tuple)
-
-    # def report(self) -> None:
-    #     """Print information about the system."""
-    #     print(' ---- System information ----')
-    #     print(
-    #         json.dumps(
-    #             {
-    #                 'int_file'  : self._input_file,
-    #                 'UHF'       : self._uhf,
-    #                 'Norb'      : self._norb,
-    #                 'Nvirt'     : self._nvirt,
-    #                 'Nel'       : self._nel,
-    #                 'Na'        : self._na,
-    #                 'Nb'        : self._nb,
-    #                 'MS2'       : self._ms2,
-    #                 'ISYM'      : self._isym,
-    #                 'maxsym'    : self._maxsym,
-    #                 'symmetry'  : self._sym,
-    #                 'pg_mask'   : self._pg_mask,
-    #                 'Href'      : self.Href,
-    #                 'reference' : '%s' % self._ref,
-    #                 'ref_det'   : '%s' % self._ref_det,
-    #                 'p_single'  : self.psingle,
-    #                 'p_double'  : self.pdouble,
-    #             },
-    #         indent=4, ensure_ascii=True)
-    #     )
-    #     print()
-    #     print('  '+'#'*6+' Basis set table start. '+'#'*6)
-    #     print(' '+'-'*50)
-    #     print(' {:>8} {:>10} {:>6} {:>22}'\
-    #             .format('index','Symmetry','ms','<i|f|i>'))
-    #     print(' '+'-'*50)
-    #     outstr = ' {:>8} {:>10} {:>6} {:> 22.12E}'
-    #     for i in range(self._norb):
-    #         print(outstr.format(i,self._orbsym[i],self._ms[i],self._eig[i]))
-    #     print(' '+'-'*50)
-    #     print('  '+'#'*6+'  Basis set table end.  '+'#'*6)
-    #     self.print_symmetry_table()
-
-    # def print_symmetry_table(self) -> None:
-    #     """
-    #     Write out the symmetry table for the system.
-        
-    #     Write out the general pg symmetry table from all combinations
-    #     of point groups first. ( I am forgetful okay :P )
-    #     Then write out the resulting point group table from the cross
-    #     product of the orbital point groups.
-    #     """
-    #     print('\n')
-    #     print( ' Symmetry cross product (xp) table using:')
-    #     print(f'    pg_mask: {self._pg_mask}')
-    #     print( '    row = pg symmetry 1')
-    #     print( '    col = pg symmetry 2')
-    #     print( '    xp[row,col]:')
-    #     print()
-
-    #     xp = np.zeros((self._maxsym, self._maxsym), dtype=np.int64)
-    #     for isym in range(0, self._maxsym):
-    #         for jsym in range(0, self._maxsym):
-    #             xp_pg = bitarray_pg(isym, jsym, self._pg_mask)
-    #             xp[isym,jsym] = xp_pg
-
-    #     header = ' sym |'
-    #     pg_rows = [f'  {isym:>2} |' for isym in range(0, self._maxsym)]
-    #     for isym in range(0, self._maxsym):
-    #         header += f' {isym:>2}'
-    #         for jsym in range(0, self._maxsym):
-    #             pg_rows[isym] += f' {xp[isym,jsym]:>2}'
-
-    #     print(header)
-    #     print(' ' + '-'*int(6 + 3 * (self._maxsym)))
-    #     for isym in range(0, self._maxsym):
-    #         print(pg_rows[isym])
-
-    #     print()
-    #     print( ' Symmetry cross product table from system orbitals:')
-    #     print(f'    pg_mask: {self._pg_mask}')
-    #     print( '    row = orbital 1')
-    #     print( '    col = orbital 2')
-    #     print( '    xp[row,col]:')
-    #     print()
-
-    #     xp = np.zeros((self._norb, self._norb), dtype=np.int64)
-    #     for iorb in range(0, self._norb):
-    #         isym = self._orbsym[iorb]
-    #         for jorb in range(0, self._norb):
-    #             jsym = self._orbsym[jorb]
-    #             xp_pg = bitarray_pg(isym, jsym, self._pg_mask)
-    #             xp[iorb,jorb] = xp_pg
-
-    #     header = ' orb |'
-    #     pg_rows = [f'  {iorb:>2} |' for iorb in range(0, self._norb)]
-    #     for iorb in range(0, self._norb):
-    #         header += f' {iorb:>2}'
-    #         for jorb in range(0, self._norb):
-    #             pg_rows[iorb] += f' {xp[iorb,jorb]:>2}'
-
-    #     print(header)
-    #     print(' ' + '-'*int(6 + 3 * (self._norb)))
-    #     for irow in range(0, self._norb):
-    #         print(pg_rows[irow])
