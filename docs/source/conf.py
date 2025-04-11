@@ -15,6 +15,7 @@ release = 'alpha'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = ['sphinx_automodapi.automodapi',
+              'numpydoc',
               'sphinx_rtd_theme',]
 
 templates_path = ['_templates']

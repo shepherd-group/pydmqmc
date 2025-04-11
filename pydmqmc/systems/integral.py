@@ -514,14 +514,14 @@ class Integral(System):
         self._pdouble = ndouble/(nsingle + ndouble)
 
     def get_virtual_orbitals(self,
-                             occ: Array
+                             occ: ArrayLike
                              ) -> list[Array]:
         """
         Given an occupied orbital array, get information on virtual orbitals.
 
         Parameters
         ----------
-        occ
+        occ : array_like
             The occupied orbitals for the current determinant.
 
         Returns
@@ -694,8 +694,15 @@ class Integral(System):
 
         return ba
 
-    def generate_renorm_excitation(self, ba: Array) -> list:
-        """Generate an excitation from the given bitarray."""
+    def generate_renorm_excitation(self, ba: ArrayLike) -> list:
+        """
+        Generate an excitation from the given bitarray.
+
+        Parameters
+        ----------
+        ba : array_like
+            Bitarray for generating the excitation.
+        """
         occ = self._orbs[ba == 1]
         occ_ms, occ_sym = self._ms[occ], self._orbsym[occ]
         unocc, virt_ms, virt_sym, nvirt = self.get_virtual_orbitals(occ)
@@ -959,9 +966,9 @@ class Integral(System):
 
         Parameters
         ----------
-        float_fmt
+        float_fmt : str
             Format string for floats.
-        int_fmt
+        int_fmt : str
             Format string for integers.
         """
         fmt = float_fmt + f' {int_fmt} {int_fmt} {int_fmt} {int_fmt}'
