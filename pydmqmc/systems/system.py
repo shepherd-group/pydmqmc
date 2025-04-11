@@ -3,11 +3,13 @@ class System:
     """
     Base class for defining quantum systems.
 
-    Attributes
+    Parameters
     ----------
-    input_file
-    is_complex
-    ref_energy
+    input_file : str
+        Name of the integral file that defines the system.
+    is_complex : bool, default True
+        Whether or not the integral is complex;
+        controls the integral index symmetry.
     """
 
     def __init__(

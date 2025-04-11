@@ -22,6 +22,8 @@ dependencies = [
     "pandas",
     "pytest",
     "sphinx",
+    "sphinx-automodapi",
+    "sphinx_rtd_theme",
     "sympy"
 ]
 

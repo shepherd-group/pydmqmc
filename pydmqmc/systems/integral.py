@@ -16,6 +16,7 @@ import json
 from sympy.utilities.iterables import multiset_permutations as gen_perm_set
 
 from numpy.typing import NDArray as Array
+from numpy.typing import ArrayLike
 
 
 def generate_ijab_symmetries_array(i: int, j: int,
@@ -98,69 +99,109 @@ class Integral(System):
 
     Parameters
     ----------
-    input_file
+    input_file : str
         Name of the integral file that defines the system.
-    is_complex
+    is_complex : bool, default True
         Whether or not the integral is complex;
         controls the integral index symmetry.
-    hamiltonian
+    hamiltonian : bool, default False
         Generate the Hamiltonian for the system.
-    excitation_matrix
+    excitation_matrix : bool, default False
         Control whether we generate the matrix of excitations
         between i and j indexing the matrix, where i and j represent the
         bitarrays at i and j.
 
     Other Parameters
     ----------------
-    determinants
+    determinants : bool, default False
         Control whether we generate all determinants spanned by the system
         within the point-group symmetry. This parameter is automatically
         set to `True` if any of `hamiltonian`, `excitation_matrix`,
         or `bitarray_integers` are set to `True`.
-    reference
+    reference : array_like, optional
         Specify the occupied spin orbitals for the system's reference
         determinant. If `None`, assume the lowest energy orbitals are
         occupied. If orbital energies are not `input_file` we assume
         the first `nel` orbitals are occupied.
-    symmetry
+    symmetry : int, optional
         Override the point-group symmetry of the system integrals
         in `input_file`. If `None`, defaults to the value of `ISYM`
         from the `input_file`.
-    orbital_eigenvalues
+    orbital_eigenvalues : bool, default False
         Calculate the orbital eigenvalues for the reference state.
         Useful if the `input_file` does not have energies for
         `N 0 0 0` states where `N` is a positive integer.
-
-    Attributes
-    ----------
-    input_file
-    is_complex
-    ref_energy
-    unrestricted_HF
-    h0e
-    h1e
-    h2e
-    eigenvalues
-    n_orbitals
-    n_virtual
-    n_electrons
-    n_alpha
-    n_beta
-    spin_polarization
-    orbital_pg_symmetry
-    ground_state_pg
-    max_symmetry
-    pg_mask
-    symmetry
-    ref_determinant
-    orbitals
-    prob_single
-    prob_double
-    n_determinants
-    bitarrays
-    hamiltonian
-    excitation_matrix
     """
+
+    def __init__(self,
+                 input_file: str,
+                 is_complex: bool = False,
+                 hamiltonian: bool = False,
+                 excitation_matrix: bool = False,
+                 determinants: bool = False,
+                 reference: ArrayLike | None = None,
+                 symmetry: int | None = None,
+                 orbital_eigenvalues: bool = False,
+                 **kwargs
+                 ) -> None:
+
+        super().__init__(input_file=input_file,
+                         is_complex=is_complex,
+                         **kwargs)
+
+        self._uhf = False
+        self._case_h0e = None
+        self._case_h1e = None
+        self._case_h2e = None
+        self._case_eig = None
+        self._h0e = 0.0
+        self._h1e = None
+        self._h2e = None
+        self._eig = None
+        self._norb = 0
+        self._nvirt = 0
+        self._nel = 0
+        self._na = 0
+        self._nb = 0
+        self._orbsym = None
+        self._ms = None  # does this need a getter?
+        self._ms2 = 0
+        self._isym = 0
+
+        self._read_integral_file()
+
+        self._maxsym = int(2**np.ceil(np.log(np.max(self._orbsym)+1)
+                                      / np.log(2)))
+        self._pg_mask = self._maxsym - 1
+
+        self._set_reference(reference)
+        self._set_symmetry(symmetry)
+        self._symmetry_check()
+
+        self._orbs = np.arange(self._norb)
+        self._ref_det = np.zeros(self._norb, dtype=int)
+        self._ref_det[self._ref] = 1
+        self._ref_eng = 0.5*(np.diag(self._h1e)[self._ref]).sum()
+        self._ref_eng += 0.5*self._eig[self._ref].sum() + self._h0e
+        self._calculate_psingle_pdouble()
+
+        if orbital_eigenvalues:  # can only be run once
+            self._generate_orbital_eigenvalues()
+
+        self._ndets = None
+        self._bitarrays = None
+        if hamiltonian or excitation_matrix:
+            determinants = True
+        if determinants:  # Can we always generate this?
+            self._generate_determinants()
+
+        self._H = None
+        if hamiltonian:  # Can we always generate this?
+            self._generate_hamiltonian()
+
+        self._nex_mat = None
+        if excitation_matrix:
+            self._generate_excitation_matrix()
 
     @property
     def unrestricted_HF(self) -> bool:
@@ -281,76 +322,6 @@ class Integral(System):
     def excitation_matrix(self) -> Array:
         """An `n_determinants`-square matrix of excitations between i and j."""
         return self._nex_mat
-
-    def __init__(self,
-                 input_file: str,
-                 is_complex: bool = False,
-                 hamiltonian: bool = False,
-                 excitation_matrix: bool = False,
-                 determinants: bool = False,
-                 reference: Array | None = None,
-                 symmetry: int | None = None,
-                 orbital_eigenvalues: bool = False,
-                 **kwargs
-                 ) -> None:
-
-        super().__init__(input_file=input_file,
-                         is_complex=is_complex,
-                         **kwargs)
-
-        self._uhf = False
-        self._case_h0e = None
-        self._case_h1e = None
-        self._case_h2e = None
-        self._case_eig = None
-        self._h0e = 0.0
-        self._h1e = None
-        self._h2e = None
-        self._eig = None
-        self._norb = 0
-        self._nvirt = 0
-        self._nel = 0
-        self._na = 0
-        self._nb = 0
-        self._orbsym = None
-        self._ms = None  # does this need a getter?
-        self._ms2 = 0
-        self._isym = 0
-
-        self._read_integral_file()
-
-        self._maxsym = int(2**np.ceil(np.log(np.max(self._orbsym)+1)
-                                      / np.log(2)))
-        self._pg_mask = self._maxsym - 1
-
-        self._set_reference(reference)
-        self._set_symmetry(symmetry)
-        self._symmetry_check()
-
-        self._orbs = np.arange(self._norb)
-        self._ref_det = np.zeros(self._norb, dtype=int)
-        self._ref_det[self._ref] = 1
-        self._ref_eng = 0.5*(np.diag(self._h1e)[self._ref]).sum()
-        self._ref_eng += 0.5*self._eig[self._ref].sum() + self._h0e
-        self._calculate_psingle_pdouble()
-
-        if orbital_eigenvalues:  # can only be run once
-            self._generate_orbital_eigenvalues()
-
-        self._ndets = None
-        self._bitarrays = None
-        if hamiltonian or excitation_matrix:
-            determinants = True
-        if determinants:  # Can we always generate this?
-            self._generate_determinants()
-
-        self._H = None
-        if hamiltonian:  # Can we always generate this?
-            self._generate_hamiltonian()
-
-        self._nex_mat = None
-        if excitation_matrix:
-            self._generate_excitation_matrix()
 
     def _read_integral_file(self) -> None:
         """Read in an FCIDUMP file."""

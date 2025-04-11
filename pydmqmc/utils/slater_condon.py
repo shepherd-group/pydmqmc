@@ -20,7 +20,7 @@ def sc0(ba: Array, sys) -> float:
 
     Notes
     -----
-    Math from Szabo and Ostlund[1]_:
+    Math from Szabo and Ostlund [1]_:
     <\Psi_{0}|H|\Psi_{0}> = \sum_{a} <a|h|a>
                             + 1/2 \sum_{a,b} <ab|ab> - <ab|ba>
 
@@ -43,7 +43,7 @@ def sc1(ba, a, r, perms, sys):
 
     Notes
     -----
-    Math from Szabo and Ostlund[1]_:
+    Math from Szabo and Ostlund [1]_:
 
     .. math::
         <\Psi_{0}|H|\Psi_{a}^{r}> = <a|h|r> + \sum_{b} <ab|rb> - <ab|br>
@@ -69,7 +69,7 @@ def sc2(a, b, r, s, perms, sys):
 
     Notes
     -----
-    Math from Szabo and Ostlund[1]_:
+    Math from Szabo and Ostlund [1]_:
 
     .. math:: <\Psi_{0}|H|\Psi_{ab}^{rs}> = <ab|rs> - <ab|sr>
 

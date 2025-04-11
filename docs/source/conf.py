@@ -14,15 +14,18 @@ release = 'alpha'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'numpydoc']
+extensions = ['sphinx_automodapi.automodapi',
+              'sphinx_rtd_theme',]
 
 templates_path = ['_templates']
-exclude_patterns = ['generated/']
+exclude_patterns = []
 
-
+numpydoc_show_class_members = False
+automodsumm_inherited_members = True
+automodapi_inheritance_diagram = False
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']

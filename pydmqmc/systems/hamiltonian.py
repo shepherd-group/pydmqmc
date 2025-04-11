@@ -49,28 +49,16 @@ class MatrixHamiltonian(System):
 
     Parameters
     ----------
-    input_file
+    input_file : str
         Filename for the Hamiltonian.
-    is_complex
+    is_complex : bool, default False
         Whether or not the Hamiltonian is complex.(???)
-    shift
+    shift : float, default 0.0
         A shift to apply to the diagonal elements of the Hamiltonian.
-    use_ip
+    use_ip : bool, default False
         Whether or not to use the interaction picture. If specified,
         the non-interacting Hamiltonian will be available through the
         `noninteracting_hamiltonian` attribute.
-
-    Attributes
-    ----------
-    input_file
-    is_complex
-    ref_energy
-    hamiltonian
-    noninteracting_hamiltonian
-    unshifted_hamiltonian
-    raw_hamiltonian
-    ndeterminants
-    sort_map
 
     Warnings
     --------
@@ -117,7 +105,7 @@ class MatrixHamiltonian(System):
             self,
             input_file: str,
             is_complex: bool = False,
-            shift: int = 0,
+            shift: float = 0.0,
             use_ip: bool = False,
             **kwargs,
             ) -> None:
@@ -163,7 +151,7 @@ class MatrixHamiltonian(System):
         self._sort_map = index_map
 
     def _shift(self,
-               shift: int,
+               shift: float,
                use_ip: bool
                ) -> None:
         """

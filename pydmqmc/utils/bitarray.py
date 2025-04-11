@@ -20,7 +20,7 @@ def bitarray_to_integer(ba: Array) -> int:
 
     Parameters
     ----------
-    ba
+    ba :
         The bitarray we wish to convert to an integer.
 
     Returns
