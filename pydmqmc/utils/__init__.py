@@ -9,7 +9,7 @@ from .bitarray import bitarray_to_integer, \
     get_ex_info, \
     bitarray_pg
 
-from .symmetry import cross_prod_pg_sym, \
+from .symmetry import cross_prod_sym, \
     orb_sym, \
     conj_sym
 

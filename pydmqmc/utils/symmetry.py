@@ -12,7 +12,7 @@ See:
 import numpy as np
 
 
-def cross_prod_pg_sym(sym1, sym2, mask):
+def cross_prod_sym(sym1, sym2, mask):
     r"""Symmetry checking using bitwise operations in
     this form is original to the HANDE code base.
     The form and function is condensed for
@@ -40,7 +40,7 @@ def orb_sym(orb_syms, mask):
     """See notes in cross_prod_pg_sym above for more information."""
     sym1 = 0
     for sym2 in orb_syms:
-        sym1 = cross_prod_pg_sym(sym1, sym2, mask)
+        sym1 = cross_prod_sym(sym1, sym2, mask)
     return sym1
 
 

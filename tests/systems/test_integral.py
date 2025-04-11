@@ -284,22 +284,22 @@ def test_Integral_init_get_bitarray_integers(input_file):
 
     assert np.allclose(sys.get_bitarray_integers(), bitints)
 
-def test_Integral_init_reference_symmetry(symmetry_input_file):
-    """
-    Test overriding both symmetry and reference.
+# def test_Integral_init_reference_symmetry(symmetry_input_file):
+#     """
+#     Test overriding both symmetry and reference.
 
-    Both must be set at the same time to avoid an error
-    in _symmetry_check().
+#     Both must be set at the same time to avoid an error
+#     in _symmetry_check().
 
-    Tests methods:
-        _set_reference
-        _set_symmetry
-        _symmetry_check
-    """
-    # sys = Integral(symmetry_input_file,
-    #                symmetry=6,
-    #                reference=[1, 36])
+#     Tests methods:
+#         _set_reference
+#         _set_symmetry
+#         _symmetry_check
+#     """
+#     # sys = Integral(symmetry_input_file,
+#     #                symmetry=6,
+#     #                reference=[1, 36])
 
-    # failing :c
-    # assert np.isclose(sys.ref_energy, -77.679962263180)
-    pass
+#     # failing :c
+#     # assert np.isclose(sys.ref_energy, -77.679962263180)
+#     pass

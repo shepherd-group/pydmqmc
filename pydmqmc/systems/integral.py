@@ -473,7 +473,7 @@ class Integral(System):
         bba_chk = self._orbsym[self._ref[self._ref % 2 != 0]]
         bsym_chk = utils.orb_sym(bba_chk, self._pg_mask)
         asym_chk = utils.orb_sym(aba_chk, self._pg_mask)
-        sym_chk = utils.cross_prod_pg_sym(bsym_chk, asym_chk, self._pg_mask)
+        sym_chk = utils.cross_prod_sym(bsym_chk, asym_chk, self._pg_mask)
         if sym_chk != self._sym:
             raise ValueError(
                 "Reference determinant is not "
@@ -527,8 +527,8 @@ class Integral(System):
         for i, (ims, isym) in enumerate(zip(occ_ms, occ_sym)):
             for jms, jsym in zip(occ_ms[i+1:], occ_sym[i+1:]):
                 for syma in np.arange(self._maxsym):
-                    symb = utils.cross_prod_pg_sym(isym, jsym, self._pg_mask)
-                    symb = utils.cross_prod_pg_sym(syma, symb, self._pg_mask)
+                    symb = utils.cross_prod_sym(isym, jsym, self._pg_mask)
+                    symb = utils.cross_prod_sym(syma, symb, self._pg_mask)
                     if syma == symb and ims == jms:
                         ndouble += nvirt[ims, syma]*(nvirt[jms, symb]-1)/2
                     elif syma == symb:
@@ -633,7 +633,7 @@ class Integral(System):
                 aoccsym = self._orbsym[aind]
                 asym = utils.orb_sym(aoccsym, self._pg_mask)
 
-                sym = utils.cross_prod_pg_sym(bsym, asym, self._pg_mask)
+                sym = utils.cross_prod_sym(bsym, asym, self._pg_mask)
                 ba = np.zeros(self._norb, dtype=int)
                 ba[np.arange(0, self._norb, 2)] = aba
                 ba[np.arange(1, self._norb, 2)] = bba
@@ -698,7 +698,7 @@ class Integral(System):
                    for ba in self._bitarrays]
         return np.array(bitints).astype(np.int64)
 
-    def random_bitarry_symspace(self) -> Array:
+    def random_bitarray_symspace(self) -> Array:
         """
         Generate a random determinant from the full space of all determinants.
 
@@ -712,15 +712,165 @@ class Integral(System):
         occb = np.random.choice(int(self._nord/2), self._nb, replace=False)
         symb = utils.orb_sym(self._orbsym[2*occb+1], self._pg_mask)
 
-        if not (utils.cross_prod_pg_sym(symb, syma, self._pg_mask)
+        if not (utils.cross_prod_sym(symb, syma, self._pg_mask)
                 == self.symmetry):
-            return self.random_bitarry_symspace()
+            return self.random_bitarray_symspace()
 
         ba = np.zeros(self._nord, dtype=int)
         ba[2*occa] = 1
         ba[2*occb+1] = 1
 
         return ba
+
+    def generate_renorm_excitation(self, ba: Array) -> list:
+        """Generate an excitation from the given bitarray."""
+        occ = self._orbs[ba == 1]
+        occ_ms, occ_sym = self._ms[occ], self._orbsym[occ]
+        unocc, virt_ms, virt_sym, nvirt = self.get_virtual_orbitals(occ)
+
+        if np.random.random() < self._psingle:
+            nsources = np.count_nonzero(nvirt[(occ_ms, occ_sym)] > 0)
+            if nsources > 0:
+                nex = 1
+                while True:
+                    i = np.random.choice(occ)
+                    ims, isym = self._ms[i], self._orbsym[i]
+                    if nvirt[ims, isym] > 0:
+                        break
+                allowed = (ims == virt_ms) & (isym == virt_sym)
+                a = np.random.choice(unocc[allowed])
+                pgen = self._psingle/(nsources*nvirt[ims, isym])
+                ba2, perms = utils.get_single_perm(ba, i, a, self._nel)
+                hij = utils.sc1(ba, i, a, perms, self)
+            else:
+                pgen, nex, hij, ba2 = 1.0, None, 0.0, None
+        else:
+            allowed_excit = False
+            i, j = np.random.choice(occ, 2, replace=False)
+            ijsym = utils.utils.conj_sym(
+                        utils.cross_prod_sym(self._orbsym[i],
+                                             self._orbsym[j],
+                                             self._pg_mask),
+                        self)
+            ijms = self._ms[i] + self._ms[j]
+            pgen_ij = 2.0/(self._nel*(self._nel-1))
+
+            if ijms == -2:
+                for syma in range(self._maxsym):
+                    symb = utils.conj_sym(
+                        utils.cross_prod_sym(syma, ijsym, self._pg_mask),
+                        self)
+                    bool1 = nvirt[-1, syma] > 0
+                    bool2 = nvirt[-1, symb] > 1
+                    bool3 = nvirt[-1, symb] == 1 and syma != symb
+                    if bool1 and (bool2 or bool3):
+                        allowed_excit = True
+                        break
+                fac = 2
+                shift = 1
+            elif ijms == 0:
+                for syma in range(self._maxsym):
+                    symb = utils.conj_sym(
+                        utils.cross_prod_sym(syma, ijsym, self._pg_mask),
+                        self)
+                    bool1 = nvirt[-1, syma] > 0 and nvirt[1, symb] > 0
+                    bool2 = nvirt[1, syma] > 0 and nvirt[-1, symb] > 0
+                    if bool1 or bool2:
+                        allowed_excit = True
+                        break
+                fac = 1
+                shift = 0
+            elif ijms == 2:
+                for syma in range(self._maxsym):
+                    symb = utils.conj_sym(
+                        utils.cross_prod_sym(syma, ijsym, self._pg_mask),
+                        self)
+                    bool1 = nvirt[1, syma] > 0
+                    bool2 = nvirt[1, symb] > 1
+                    bool3 = nvirt[1, symb] == 1 and syma != symb
+                    if bool1 and (bool2 or bool3):
+                        allowed_excit = True
+                        break
+                fac = 2
+                shift = 0
+
+            if allowed_excit:
+                nex = 2
+                while True:
+                    a = np.random.choice(unocc[unocc % fac == shift])
+                    imsb = ijms - self._ms[a]
+                    isymb = utils.conj_sym(
+                        utils.cross_prod_sym(ijsym,
+                                             self._orbsym[a],
+                                             self._pg_mask),
+                        self)
+                    bool1 = nvirt[imsb, isymb] > 1
+                    bool2 = nvirt[imsb, isymb] == 1
+                    bool3 = isymb != self._orbsym[a] or ijms == 0
+                    if bool1 or (bool2 and bool3):
+                        allowed = (imsb == virt_ms) & (isymb == virt_sym)
+                        b = np.random.choice(unocc[allowed])
+                        if b != a:
+                            break
+                if a > b:
+                    a, b = b, a
+
+                imsa = self._ms[a]
+                imsb = self._ms[b]
+                if ijms == -2:
+                    n_aij = int(self._norb/2) - self._nb
+                    for syma in range(self._maxsym):
+                        symb = utils.conj_sym(
+                            utils.cross_prod_sym(syma, ijsym, self._pg_mask),
+                            self)
+                        bool1 = nvirt[-1, symb] == 0
+                        bool2 = syma == symb and nvirt[-1, symb] == 1
+                        if bool1 or bool2:
+                            n_aij -= nvirt[-1, syma]
+                    if self._orbsym[a] == self._orbsym[b]:
+                        p_aijb = 1/(nvirt[imsa, self._orbsym[a]]-1)
+                        p_bija = 1/(nvirt[imsb, self._orbsym[b]]-1)
+                    else:
+                        p_aijb = 1/(nvirt[imsa, self._orbsym[a]])
+                        p_bija = 1/(nvirt[imsb, self._orbsym[b]])
+                elif ijms == 0:
+                    n_aij = self._norb - self._nel
+                    for syma in range(self._maxsym):
+                        symb = utils.conj_sym(
+                            utils.cross_prod_sym(syma, ijsym, self._pg_mask),
+                            self)
+                        bool1 = nvirt[-1, symb] == 0
+                        bool2 = nvirt[1, symb] == 0
+                        if bool1:
+                            n_aij -= nvirt[1, syma]
+                        if bool2:
+                            n_aij -= nvirt[-1, syma]
+                    p_aijb = 1/(nvirt[imsa, self._orbsym[a]])
+                    p_bija = 1/(nvirt[imsb, self._orbsym[b]])
+                elif ijms == 2:
+                    n_aij = int(self._norb/2) - self._na
+                    for syma in range(self._maxsym):
+                        symb = utils.conj_sym(
+                            utils.cross_prod_sym(syma, ijsym, self._pg_mask),
+                            self)
+                        bool1 = nvirt[1, symb] == 0
+                        bool2 = syma == symb and nvirt[1, symb] == 1
+                        if bool1 or bool2:
+                            n_aij -= nvirt[1, syma]
+                    if self._orbsym[a] == self._orbsym[b]:
+                        p_aijb = 1/(nvirt[imsa, self._orbsym[a]]-1)
+                        p_bija = 1/(nvirt[imsb, self._orbsym[b]]-1)
+                    else:
+                        p_aijb = 1/(nvirt[imsa, self._orbsym[a]])
+                        p_bija = 1/(nvirt[imsb, self._orbsym[b]])
+
+                pgen = self._pdouble*pgen_ij*(1/n_aij)*(p_bija+p_aijb)
+                ba2, perms = utils.get_double_perm(ba, i, j, a, b, self._nel)
+                hij = utils.sc2(i, j, a, b, perms, self)
+            else:
+                pgen, nex, hij, ba2 = 1.0, None, 0.0, None
+
+        return pgen, hij, nex, ba2
 
     def print_report(self) -> None:
         """Print information about the system."""
