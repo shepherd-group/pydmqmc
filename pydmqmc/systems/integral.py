@@ -135,7 +135,8 @@ class Integral(System):
     ----------
     input_file
     is_complex
-    unrestriced_HF
+    ref_energy
+    unrestricted_HF
     h0e
     h1e
     h2e
@@ -162,7 +163,7 @@ class Integral(System):
     """
 
     @property
-    def unrestrictd_HF(self) -> bool:
+    def unrestricted_HF(self) -> bool:
         """Does the system use unrestricted Hartree-Fock."""
         return self._uhf
 
@@ -282,7 +283,7 @@ class Integral(System):
         return self._nex_mat
 
     def __init__(self,
-                 input_file: str = None,
+                 input_file: str,
                  is_complex: bool = False,
                  hamiltonian: bool = False,
                  excitation_matrix: bool = False,

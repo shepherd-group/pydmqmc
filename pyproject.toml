@@ -17,9 +17,11 @@ dependencies = [
     "flake8-docstrings",
     "flake8-pyproject",
     "numpy",
+    "numpydoc",
     "numba",
     "pandas",
     "pytest",
+    "sphinx",
     "sympy"
 ]
 
@@ -29,6 +31,7 @@ packages = ["pydmqmc"]
 [tool.flake8]
 docstring-convention = "numpy"
 exclude = [
+    "docs",
     "tests",
     "development",
 ]

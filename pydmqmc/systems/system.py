@@ -1,6 +1,14 @@
 
 class System:
-    """Base class for defining quantum systems."""
+    """
+    Base class for defining quantum systems.
+
+    Attributes
+    ----------
+    input_file
+    is_complex
+    ref_energy
+    """
 
     def __init__(
             self,
@@ -22,11 +30,11 @@ class System:
         return self._input_file
 
     @property
-    def ref_energy(self) -> float:
-        """Reference Hartree-Fock energy."""
-        return self._ref_eng
-
-    @property
     def is_complex(self) -> bool:
         """Whether or not the Hamiltonain is complex."""
         return self._is_complex
+
+    @property
+    def ref_energy(self) -> float:
+        """Reference Hartree-Fock energy."""
+        return self._ref_eng

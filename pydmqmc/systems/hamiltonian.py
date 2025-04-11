@@ -63,8 +63,8 @@ class MatrixHamiltonian(System):
     Attributes
     ----------
     input_file
-    reference_energy
     is_complex
+    ref_energy
     hamiltonian
     noninteracting_hamiltonian
     unshifted_hamiltonian
