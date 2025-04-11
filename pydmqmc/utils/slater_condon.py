@@ -6,22 +6,30 @@ Docstrings should be checked for scientific accuracy.
 """
 
 import numpy as np
-from numpy.typing import NDArray as Array
+from numpy.typing import ArrayLike
 
 
-def sc0(ba: Array, sys) -> float:
+def sc0(ba: ArrayLike, sys) -> float:
     r"""
     Slater-Condon rule for ground state electrons(???).
 
     Parameters
     ----------
-    ba
+    ba : array_like
         bitarray
+
+    Returns
+    -------
+    float
+        The energy(???)
 
     Notes
     -----
     Math from Szabo and Ostlund [1]_:
-    <\Psi_{0}|H|\Psi_{0}> = \sum_{a} <a|h|a>
+
+    .. math::
+
+        <\Psi_{0}|H|\Psi_{0}> = \sum_{a} <a|h|a>
                             + 1/2 \sum_{a,b} <ab|ab> - <ab|ba>
 
     References
