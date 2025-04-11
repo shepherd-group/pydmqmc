@@ -98,7 +98,7 @@ class Integral(System):
 
     Parameters
     ----------
-    integral_file
+    input_file
         Name of the integral file that defines the system.
     is_complex
         Whether or not the integral is complex;
@@ -120,15 +120,15 @@ class Integral(System):
     reference
         Specify the occupied spin orbitals for the system's reference
         determinant. If `None`, assume the lowest energy orbitals are
-        occupied. If orbital energies are not `integral_file` we assume
+        occupied. If orbital energies are not `input_file` we assume
         the first `nel` orbitals are occupied.
     symmetry
         Override the point-group symmetry of the system integrals
-        in `integral_file`. If `None`, defaults to the value of `ISYM`
-        from the `integral_file`.
+        in `input_file`. If `None`, defaults to the value of `ISYM`
+        from the `input_file`.
     orbital_eigenvalues
         Calculate the orbital eigenvalues for the reference state.
-        Useful if the `integral_file` does not have energies for
+        Useful if the `input_file` does not have energies for
         `N 0 0 0` states where `N` is a positive integer.
 
     Attributes
@@ -282,7 +282,7 @@ class Integral(System):
         return self._nex_mat
 
     def __init__(self,
-                 integral_file: str = None,
+                 input_file: str = None,
                  is_complex: bool = False,
                  hamiltonian: bool = False,
                  excitation_matrix: bool = False,
@@ -293,7 +293,7 @@ class Integral(System):
                  **kwargs
                  ) -> None:
 
-        super().__init__(input_file=integral_file,
+        super().__init__(input_file=input_file,
                          is_complex=is_complex,
                          **kwargs)
 

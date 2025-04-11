@@ -49,7 +49,7 @@ class MatrixHamiltonian(System):
 
     Parameters
     ----------
-    matrix_file
+    input_file
         Filename for the Hamiltonian.
     is_complex
         Whether or not the Hamiltonian is complex.(???)
@@ -115,14 +115,14 @@ class MatrixHamiltonian(System):
 
     def __init__(
             self,
-            matrix_file: str,
+            input_file: str,
             is_complex: bool = False,
             shift: int = 0,
             use_ip: bool = False,
             **kwargs,
             ) -> None:
 
-        super().__init__(input_file=matrix_file,
+        super().__init__(input_file=input_file,
                          is_complex=is_complex,
                          **kwargs)
 

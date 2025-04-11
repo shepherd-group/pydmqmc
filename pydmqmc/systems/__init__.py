@@ -1,3 +1,5 @@
+from .system import System
+
 from .hamiltonian import MatrixHamiltonian, \
     read_matrix
 
