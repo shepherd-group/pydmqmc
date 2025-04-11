@@ -263,7 +263,7 @@ class Integral(System):
 
     @property
     def n_determinants(self) -> int:
-        """Total number of determinants in the hilbert space"""
+        """Total number of determinants in the hilbert space."""
         return self._ndets
 
     @property
@@ -650,8 +650,8 @@ class Integral(System):
         self._bitarrays = np.array(bas)
 
     def _generate_hamiltonian(self) -> None:
-        hii = np.array([utils.get_hij(b, b, self)
-                              for b in self._bitarrays])
+        hii = np.array([self._get_hij(b, b)
+                        for b in self._bitarrays])
         esortind = np.argsort(hii)
         hii = hii[esortind]
         self._bitarrays = self._bitarrays[esortind]
@@ -659,8 +659,26 @@ class Integral(System):
         for i, b1 in enumerate(self._bitarrays):
             for j, b2 in enumerate(self._bitarrays[i+1:]):
                 j += i + 1
-                hij = utils.get_hij(b1, b2, self)
+                hij = self._get_hij(b1, b2)
                 self._H[i, j], self._H[j, i] = hij, hij
+
+    def _get_hij(self,
+                 b1: Array,
+                 b2: Array,
+                 tol: float = 1E-16) -> float:
+        nex, abrs, perms = utils.get_ex_info(b1, b2, self.n_electrons)
+        if nex == 0:
+            E = utils.sc0(b1, self)
+        elif nex == 1:
+            a, _, r, _ = abrs
+            E = utils.sc1(b1, a, r, perms, self)
+        elif nex == 2:
+            a, b, r, s = abrs
+            E = utils.sc2(a, b, r, s, perms, self)
+        else:
+            E = 0.0
+        E *= int(abs(E) > tol)
+        return E
 
     def _generate_excitation_matrix(self):
         self._nex_mat = np.zeros((self._ndets, self._ndets), dtype=np.int64)
@@ -679,6 +697,30 @@ class Integral(System):
         bitints = [np.exp2(self._orbs[ba == 1]).sum()
                    for ba in self._bitarrays]
         return np.array(bitints).astype(np.int64)
+
+    def random_bitarry_symspace(self) -> Array:
+        """
+        Generate a random determinant from the full space of all determinants.
+
+        Returns
+        -------
+        Array
+            The bitarray of the determinant
+        """
+        occa = np.random.choice(int(self._nord/2), self._na, replace=False)
+        syma = utils.orb_sym(self._orbsym[2*occa], self._pg_mask)
+        occb = np.random.choice(int(self._nord/2), self._nb, replace=False)
+        symb = utils.orb_sym(self._orbsym[2*occb+1], self._pg_mask)
+
+        if not (utils.cross_prod_pg_sym(symb, syma, self._pg_mask)
+                == self.symmetry):
+            return self.random_bitarry_symspace()
+
+        ba = np.zeros(self._nord, dtype=int)
+        ba[2*occa] = 1
+        ba[2*occb+1] = 1
+
+        return ba
 
     def print_report(self) -> None:
         """Print information about the system."""

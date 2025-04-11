@@ -2,8 +2,8 @@
 Point group symmetry functions based off those in the HANDE code.
 
 The forms and functions have been condensed for use in pydmqmc.
-CK: the docstrings could benefit from more 
-See: 
+
+See:
     https://github.com/hande-qmc/hande/blob/main/src/pg_symmetry.f90
     https://doi.org/10.1021/acs.jctc.8b01217
 """
@@ -13,7 +13,7 @@ import numpy as np
 
 
 def cross_prod_pg_sym(sym1, sym2, mask):
-    """Symmetry checking using bitwise operations in
+    r"""Symmetry checking using bitwise operations in
     this form is original to the HANDE code base.
     The form and function is condensed for
     the purpose of this code.
@@ -37,16 +37,15 @@ def cross_prod_pg_sym(sym1, sym2, mask):
 
 
 def orb_sym(orb_syms, mask):
-    """See notes in cross_prod_pg_sym above for more information.
-    """
+    """See notes in cross_prod_pg_sym above for more information."""
     sym1 = 0
     for sym2 in orb_syms:
-        sym1 = cross_prod_pg_sym(sym1,sym2,mask)
+        sym1 = cross_prod_pg_sym(sym1, sym2, mask)
     return sym1
 
 
 def conj_sym(sym, mask):
-    """See notes in cross_prod_pg_sym above for more information.
+    r"""See notes in cross_prod_pg_sym above for more information.
     mask was originally sym and sym.pg_mask
 
     ! In:
