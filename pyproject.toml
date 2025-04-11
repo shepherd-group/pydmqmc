@@ -31,7 +31,6 @@ docstring-convention = "numpy"
 exclude = [
     "tests",
     "development",
-    "outline_example",
 ]
 per-file-ignores = [
     # imported but unused
