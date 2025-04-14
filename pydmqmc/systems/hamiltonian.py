@@ -7,38 +7,6 @@ from typing import Dict
 from numpy.typing import NDArray as Array
 
 
-def read_matrix(matrix_filename: str, is_complex: bool = False) -> Array:
-    """Load matrix from a HANDE file into a NumPy array."""
-    if is_complex:
-        raise NotImplementedError(
-            'Reading complete HANDE Hamiltonians is not currently '
-            'implemented please send patches!'
-        )
-
-    ndets = 0
-    elements = {}
-
-    with open(matrix_filename, 'rt') as stream:
-        for line in stream:
-            i, j, hij = line.split()
-
-            i = int(i)
-            j = int(j)
-            hij = float(hij)
-
-            ndets = max(i, j, ndets)
-
-            elements[i, j] = hij
-
-    ham = np.zeros((ndets, ndets), dtype=float)
-
-    for (i, j), hij in elements.items():
-        ham[i - 1, j - 1] = hij
-        ham[j - 1, i - 1] = hij
-
-    return ham
-
-
 class MatrixHamiltonian(System):
     """
     System defined by a HANDE-created Hamiltonian matrix.
@@ -71,6 +39,31 @@ class MatrixHamiltonian(System):
     unless `use_ip` is specified when calling `initialize()`.
     """
 
+    def __init__(
+            self,
+            input_file: str,
+            is_complex: bool = False,
+            shift: float = 0.0,
+            use_ip: bool = False,
+            **kwargs,
+            ) -> None:
+
+        super().__init__(input_file=input_file,
+                         is_complex=is_complex,
+                         **kwargs)
+
+        self._read_matrix()  # sets self._raw_hamil
+        self._ndet = self._raw_hamil.shape[0]
+        self._ref_eng = self._raw_hamil[0, 0]
+
+        # The following are set by self._shift()
+        # though self._non_interacting will remain None if use_ip is False.
+        self._sorted_hamil = None
+        self._sort_map = None
+        self._shifted_hamil = None
+        self._non_interacting = None
+        self._shift(shift, use_ip)
+
     @property
     def hamiltonian(self) -> Array | None:
         """Hamiltonian shifted by Hartree-Fock energy & any provided shift."""
@@ -101,30 +94,36 @@ class MatrixHamiltonian(System):
         """Maps original index of raw diagonals & their sorted position."""
         return self._sort_map
 
-    def __init__(
-            self,
-            input_file: str,
-            is_complex: bool = False,
-            shift: float = 0.0,
-            use_ip: bool = False,
-            **kwargs,
-            ) -> None:
+    def _read_matrix(self) -> None:
+        """Load matrix from a HANDE file into a NumPy array."""
+        if self._is_complex:
+            raise NotImplementedError(
+                'Reading complete HANDE Hamiltonians is not currently '
+                'implemented please send patches!'
+            )
 
-        super().__init__(input_file=input_file,
-                         is_complex=is_complex,
-                         **kwargs)
+        ndets = 0
+        elements = {}
 
-        self._raw_hamil = read_matrix(self._input_file, self._is_complex)
-        self._ndet = self._raw_hamil.shape[0]
-        self._ref_eng = self._raw_hamil[0, 0]
+        with open(self._input_file, 'rt') as stream:
+            for line in stream:
+                i, j, hij = line.split()
 
-        # The following are set by self._shift()
-        # though self._non_interacting will remain None if use_ip is False.
-        self._sorted_hamil = None
-        self._sort_map = None
-        self._shifted_hamil = None
-        self._non_interacting = None
-        self._shift(shift, use_ip)
+                i = int(i)
+                j = int(j)
+                hij = float(hij)
+
+                ndets = max(i, j, ndets)
+
+                elements[i, j] = hij
+
+        ham = np.zeros((ndets, ndets), dtype=float)
+
+        for (i, j), hij in elements.items():
+            ham[i - 1, j - 1] = hij
+            ham[j - 1, i - 1] = hij
+
+        self._raw_hamil = ham
 
     def _sort_on_diagonals(self) -> None:
         """

@@ -168,7 +168,7 @@ def test_Integral_init_default(input_file, eig):
     sys = Integral(input_file)
 
     # Values set by _read_integral_file
-    assert sys.unrestrictd_HF == False
+    assert sys.unrestricted_HF == False
     assert sys.n_electrons == 2
     assert sys.n_alpha == 1
     assert sys.n_beta == 1

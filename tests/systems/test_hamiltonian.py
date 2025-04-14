@@ -4,7 +4,7 @@ from os.path import dirname, join
 
 from numpy.typing import NDArray as Array
 
-from pydmqmc.systems import read_matrix, MatrixHamiltonian
+from pydmqmc.systems import MatrixHamiltonian
 
 @fixture
 def input_file(request) -> str:
@@ -28,18 +28,10 @@ def known_diag() -> Array:
 
     return np.array(values)
 
-def test_read_matrix(input_file, known_diag):
-
-    ham = read_matrix(input_file, is_complex=False)
-
-    # Check the Hamiltonian.
-    assert ham.shape == (20,20)
-    assert np.allclose(np.diag(ham), known_diag)
-
-def test_read_matrix_complex(input_file):
+def test_MatrixHamiltonian_load_complex(input_file):
 
     with raises(NotImplementedError):
-        read_matrix(input_file, is_complex=True)
+        MatrixHamiltonian(input_file, is_complex=True)
 
 def test_MatrixHamiltonian_load(input_file, known_diag):
     """Tests __init__() before the call to _shift()."""
