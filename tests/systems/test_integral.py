@@ -129,7 +129,8 @@ def test_Integral_init_determinants(input_file):
     bitarray = np.array([[1, 1, 0, 0],
                          [0, 0, 1, 1]])
 
-    sys = Integral(input_file, determinants=True)
+    sys = Integral(input_file)
+    sys.generate_determinants()
 
     assert sys.n_determinants == 2
     assert np.allclose(sys.bitarrays, bitarray)
@@ -139,7 +140,8 @@ def test_Integral_init_hamiltonian(input_file):
     H = np.array([[-1.11675931,  0.18121046],
                   [ 0.18121046,  0.46261815]])
 
-    sys = Integral(input_file, hamiltonian=True)
+    sys = Integral(input_file)
+    sys.generate_hamiltonian()
 
     assert np.allclose(sys.hamiltonian, H)
 
@@ -149,6 +151,7 @@ def test_Integral_init_excitation_matrix(input_file):
                         [2, 0]])
 
     sys = Integral(input_file, excitation_matrix=True)
+    sys.generate_excitation_matrix()
 
     assert np.allclose(sys.excitation_matrix, nex_mat)
 

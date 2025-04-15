@@ -30,20 +30,9 @@ class Integral(System):
     is_complex : bool, default True
         Whether or not the integral is complex;
         controls the integral index symmetry.
-    hamiltonian : bool, default False
-        Generate the Hamiltonian for the system.
-    excitation_matrix : bool, default False
-        Control whether we generate the matrix of excitations
-        between i and j indexing the matrix, where i and j represent the
-        bitarrays at i and j.
 
     Other Parameters
     ----------------
-    determinants : bool, default False
-        Control whether we generate all determinants spanned by the system
-        within the point-group symmetry. This parameter is automatically
-        set to `True` if any of `hamiltonian`, `excitation_matrix`,
-        or `bitarray_integers` are set to `True`.
     reference : array_like, optional
         Specify the occupied spin orbitals for the system's reference
         determinant. If `None`, assume the lowest energy orbitals are
@@ -62,9 +51,6 @@ class Integral(System):
     def __init__(self,
                  input_file: str,
                  is_complex: bool = False,
-                 hamiltonian: bool = False,
-                 excitation_matrix: bool = False,
-                 determinants: bool = False,
                  reference: ArrayLike | None = None,
                  symmetry: int | None = None,
                  orbital_eigenvalues: bool = False,
@@ -114,20 +100,13 @@ class Integral(System):
         if orbital_eigenvalues:  # can only be run once
             self._generate_orbital_eigenvalues()
 
+        # Each of these are set by "generate" methods.
+        # They can only be set if None, meaning they
+        # can each only be set once.
         self._ndets = None
         self._bitarrays = None
-        if hamiltonian or excitation_matrix:
-            determinants = True
-        if determinants:  # Can we always generate this?
-            self._generate_determinants()
-
         self._H = None
-        if hamiltonian:  # Can we always generate this?
-            self._generate_hamiltonian()
-
         self._nex_mat = None
-        if excitation_matrix:
-            self._generate_excitation_matrix()
 
     @property
     def unrestricted_HF(self) -> bool:
@@ -480,17 +459,27 @@ class Integral(System):
 
         return unocc, virt_ms, virt_sym, nvirt
 
-    def _generate_determinants(self) -> None:
+    def generate_determinants(self) -> None:
         """
-        Generate all the determinants as bitarrays.
+        Generate all determinants as bitarrays.
 
-        First, generate a reference bitarry for each of the spin channels
-        separately. Next, generate all unqiue combinations of 1's & 0's
-        for that reference. Finally, loop through all the unique
+        This function sets the `n_determinants` and `bitarrays` members.
+        All determinints spanned by the system within the point-group symmetry
+        will be generated.
+
+        It first generates a reference bitarry for each of the spin channels
+        separately. Next, it generates all unqiue combinations of 1's & 0's
+        for that reference. Finally, it loops through all the unique
         concatenations of the alpha & beta bitarrays and check that the point
         group symmetry of the concatenated bitarray falls within the
         system's possible point groups. If the concatenated bitarray
-        has an allowed point group symmetry, sore that determinant.
+        has an allowed point group symmetry, that determinant is stored.
+
+        Warnings
+        --------
+        This function will only have an effect the first time it is run.
+        If members `n_determinants` and `bitarrays` are not `None`, this
+        function will return without making any changes.
 
         Notes
         -----
@@ -499,16 +488,19 @@ class Integral(System):
         these are used to represent Slater determinants.
         1's represent an occupied orbital and 0 an unoccupied orbital.
 
-        This function was originally called `generate_bit_arrays`.
-        It originally supported the `use_symmetry_block` boolean,
+        This function was originally called `generate_bit_arrays`
+        and supported the `use_symmetry_block` boolean,
         which controls whether to use the symmetry reduced point
         group Hamiltonian (`True`) or whether the entire Hamiltonian
         containing all those point-group symmetries spanned by the system will
-        be generated (`False`). Since in practice this parameter is always
+        be generated (`False`). Since in practice this parameter was always
         `True` and this function does not control Hamiltonian generation,
         this parameter has been removed from the function call and hardcoded
         to `True` within the function body.
         """
+        if (self._ndets is not None) and (self._bitarrays is not None):
+            return
+
         aba = np.zeros(int(self._norb/2), dtype=int)
         aba[:self._na] = 1
         alpha_bas = list(gen_perm_set(aba))[::-1]
@@ -547,7 +539,26 @@ class Integral(System):
         self._ndets = HS_est
         self._bitarrays = np.array(bas)
 
-    def _generate_hamiltonian(self) -> None:
+    def generate_hamiltonian(self) -> None:
+        """
+        Generate the Hamiltonian for the system.
+
+        Sets the `hamiltonian` member.
+        It will also generate the system determinants if they have not already
+        been generated, thereby setting `n_determinants` and `bitarrays`.
+
+        Warnings
+        --------
+        This function will only have an effect the first time it is run.
+        If the `hamiltonian` member is not `None`, this
+        function will return without making any changes.
+        """
+        if self._H is not None:
+            return
+
+        # Generate bitarrays if not already set.
+        self.generate_determinants()
+
         hii = np.array([self._get_hij(b, b)
                         for b in self._bitarrays])
         esortind = np.argsort(hii)
@@ -578,7 +589,26 @@ class Integral(System):
         E *= int(abs(E) > tol)
         return E
 
-    def _generate_excitation_matrix(self):
+    def generate_excitation_matrix(self) -> None:
+        """
+        Generate the matrix of excitations.
+
+        Sets the `excitation_matrix` member. Each matrix index i, j represents
+        the transition between bitarrays i and j. This function will also
+        generate the system determinants if they have not already
+        been generated, thereby setting `n_determinants` and `bitarrays`.
+
+        Warnings
+        --------
+        This function will only have an effect the first time it is run.
+        If the `hamiltonian` member is not `None`, this
+        function will return without making any changes.
+        """
+        if self._nex_mat is not None:
+            return
+
+        # Generate bitarrays if not already set.
+        self.generate_determinants()
         self._nex_mat = np.zeros((self._ndets, self._ndets), dtype=np.int64)
         for i, b1 in enumerate(self._bitarrays):
             for j, b2 in enumerate(self._bitarrays[i+1:]):
@@ -589,8 +619,8 @@ class Integral(System):
 
     def get_bitarray_integers(self) -> Array:
         """Integer representations of system bitarrays."""
-        if self._bitarrays is None:
-            self._generate_determinants()
+        # Generate bitarrays if not already set.
+        self.generate_determinants()
 
         bitints = [np.exp2(self._orbs[ba == 1]).sum()
                    for ba in self._bitarrays]
