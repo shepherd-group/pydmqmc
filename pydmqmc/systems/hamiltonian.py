@@ -63,7 +63,7 @@ class MatrixHamiltonian(System):
         self._shift(shift, use_ip)
 
     @property
-    def hamiltonian(self) -> Array | None:
+    def hamiltonian(self) -> Array:
         """Hamiltonian shifted by Hartree-Fock energy & any provided shift."""
         return self._shifted_hamil
 
@@ -73,7 +73,7 @@ class MatrixHamiltonian(System):
         return self._non_interacting
 
     @property
-    def unshifted_hamiltonian(self) -> Array | None:
+    def unshifted_hamiltonian(self) -> Array:
         """Sorted, unshifted Hamiltonian matrix."""
         return self._sorted_hamil
 
@@ -88,7 +88,7 @@ class MatrixHamiltonian(System):
         return self._ndet
 
     @property
-    def sort_map(self) -> Dict[int, int] | None:
+    def sort_map(self) -> Dict[int, int]:
         """Maps original index of raw diagonals & their sorted position."""
         return self._sort_map
 
