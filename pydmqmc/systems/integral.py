@@ -20,7 +20,7 @@ from numpy.typing import ArrayLike
 
 
 class Integral(System):
-    """
+    r"""
     System defined by a HANDE-created FCIDUMP integral file.
 
     Parameters
@@ -46,6 +46,22 @@ class Integral(System):
         Calculate the orbital eigenvalues for the reference state.
         Useful if the `input_file` does not have energies for
         `N 0 0 0` states where `N` is a positive integer.
+
+    Notes
+    -----
+    Enabling `orbital_eigenvalues` using the following math
+    from Szabo and Ostlund[1]_:
+
+    .. math:: e_a = <a|h|a> + \sum_{b \neq a}^{N} <ab|ab> - <ab|ba>
+
+    Note that, :math:`b \neq a` only applies when :math`a` is occupied
+    and :math:`b` is always occupied.
+
+    References
+    ----------
+    .. [1] Attila Szabo and Neil S. Ostlund, "Modern Quantum Chemistry:
+        Introduction to Advanced Electronic Structure Theory," Dover Books
+        on Chemistry, 1996
     """
 
     def __init__(self,
