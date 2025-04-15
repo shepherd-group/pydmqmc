@@ -4,16 +4,8 @@ from os.path import dirname, join, splitext
 
 from numpy.typing import NDArray as Array
 
-from pydmqmc.systems import generate_ijab_symmetries_array, Integral
+from pydmqmc.systems import Integral
 
-@fixture
-def good_indexes() -> tuple[int]:
-    i = 1
-    j = 0
-    a = 0
-    b = 0
-    
-    return (i, j, a, b)
 
 @fixture
 def input_file(request) -> str:
@@ -21,122 +13,19 @@ def input_file(request) -> str:
                 "..", "inputs", "integrals", "H2-STO-3G-0.74Ang.fcidump")
     return file
 
+
 @fixture
 def symmetry_input_file(request) -> str:
     file = join(dirname(request.path),
                 "..", "inputs", "integrals", "c2h4_ccpvdz.fcidump")
     return file
 
+
 @fixture
 def eig() -> Array:
     return np.array([-0.5785538598290489, -0.5785538598290489,
                      0.6711434915572507,  0.6711434915572507])
 
-def test_generate_ijab_symmetries_array_ef_false_rhf_false(good_indexes):
-    res = np.array(
-      [[1, 0, 0, 0],
-       [0, 0, 1, 0],
-       [0, 1, 0, 0],
-       [0, 0, 0, 1]]
-    )
-
-    assert np.allclose(generate_ijab_symmetries_array(*good_indexes, 
-                                                      eight_fold=False, rhf=False),
-                       res)
-    
-def test_generate_ijab_symmetries_array_ef_true_rhf_false(good_indexes):
-    res = np.array(
-      [[1, 0, 0, 0],
-       [0, 1, 0, 0],
-       [0, 0, 1, 0],
-       [0, 0, 0, 1],
-       [0, 0, 1, 0],
-       [0, 1, 0, 0],
-       [1, 0, 0, 0],
-       [0, 0, 0, 1]]
-    )
-
-    assert np.allclose(generate_ijab_symmetries_array(*good_indexes,
-                                                      eight_fold=True, rhf=False),
-                       res)
-
-def test_generate_ijab_symmetries_array_ef_false_rhf_true(good_indexes):
-    res = np.array(
-      [[2, 0, 0, 0],
-       [3, 1, 1, 1],
-       [2, 1, 0, 1],
-       [3, 0, 1, 0],
-       [0, 0, 2, 0],
-       [1, 1, 3, 1],
-       [0, 1, 2, 1],
-       [1, 0, 3, 0],
-       [0, 2, 0, 0],
-       [1, 3, 1, 1],
-       [0, 3, 0, 1],
-       [1, 2, 1, 0],
-       [0, 0, 0, 2],
-       [1, 1, 1, 3],
-       [0, 1, 0, 3],
-       [1, 0, 1, 2]]
-    )
-
-    assert np.allclose(generate_ijab_symmetries_array(*good_indexes,
-                                                      eight_fold=False, rhf=True),
-                       res)
-
-def test_generate_ijab_symmetries_array_ef_true_rhf_true(good_indexes):
-    res = np.array(
-      [[2, 0, 0, 0],
-       [3, 1, 1, 1],
-       [2, 1, 0, 1],
-       [3, 0, 1, 0],
-       [0, 2, 0, 0],
-       [1, 3, 1, 1],
-       [0, 3, 0, 1],
-       [1, 2, 1, 0],
-       [0, 0, 2, 0],
-       [1, 1, 3, 1],
-       [0, 1, 2, 1],
-       [1, 0, 3, 0],
-       [0, 0, 0, 2],
-       [1, 1, 1, 3],
-       [0, 1, 0, 3],
-       [1, 0, 1, 2],
-       [0, 0, 2, 0],
-       [1, 1, 3, 1],
-       [0, 1, 2, 1],
-       [1, 0, 3, 0],
-       [0, 2, 0, 0],
-       [1, 3, 1, 1],
-       [0, 3, 0, 1],
-       [1, 2, 1, 0],
-       [2, 0, 0, 0],
-       [3, 1, 1, 1],
-       [2, 1, 0, 1],
-       [3, 0, 1, 0],
-       [0, 0, 0, 2],
-       [1, 1, 1, 3],
-       [0, 1, 0, 3],
-       [1, 0, 1, 2]]
-    )
-
-    assert np.allclose(generate_ijab_symmetries_array(*good_indexes,
-                                                      eight_fold=True, rhf=True),
-                       res)
-
-def test_generate_ijab_symmetries_array_input_check_ia(good_indexes):
-    i, j, a, b = good_indexes
-    a = 10
-
-    with raises(ValueError):
-        generate_ijab_symmetries_array(i, j, a, b)
-
-def test_generate_ijab_symmetries_array_input_check_jb(good_indexes):
-    i, j, a, b = good_indexes
-    b = 10
-
-    with raises(ValueError):
-        generate_ijab_symmetries_array(i, j, a, b)
 
 def test_Integral_init_default(input_file, eig):
     """
@@ -202,10 +91,12 @@ def test_Integral_init_default(input_file, eig):
     assert np.isclose(sys.prob_single, 0.0)
     assert np.isclose(sys.prob_double, 1.0)
 
+
 def test_Integral_init_check_symmetry(input_file):
     """Tests error checking _set_symmetry."""
     with raises(ValueError):
         sys = Integral(input_file, symmetry=3)
+
 
 def test_Ingetral_init_check_reference(input_file):
     """
@@ -218,6 +109,7 @@ def test_Ingetral_init_check_reference(input_file):
     with raises(ValueError):
         sys = Integral(input_file,
                        symmetry=4)
+
 
 def test_Integral_init_orbital_eigenvalues(input_file, eig):
     """
@@ -232,6 +124,7 @@ def test_Integral_init_orbital_eigenvalues(input_file, eig):
 
     assert np.allclose(sys.eigenvalues, eig)
 
+
 def test_Integral_init_determinants(input_file):
     bitarray = np.array([[1, 1, 0, 0],
                          [0, 0, 1, 1]])
@@ -241,6 +134,7 @@ def test_Integral_init_determinants(input_file):
     assert sys.n_determinants == 2
     assert np.allclose(sys.bitarrays, bitarray)
 
+
 def test_Integral_init_hamiltonian(input_file):
     H = np.array([[-1.11675931,  0.18121046],
                   [ 0.18121046,  0.46261815]])
@@ -249,6 +143,7 @@ def test_Integral_init_hamiltonian(input_file):
 
     assert np.allclose(sys.hamiltonian, H)
 
+
 def test_Integral_init_excitation_matrix(input_file):
     nex_mat = np.array([[0, 2],
                         [2, 0]])
@@ -256,6 +151,7 @@ def test_Integral_init_excitation_matrix(input_file):
     sys = Integral(input_file, excitation_matrix=True)
 
     assert np.allclose(sys.excitation_matrix, nex_mat)
+
 
 def test_Integral_get_virtual_orbitals(input_file):
     """
@@ -277,12 +173,14 @@ def test_Integral_get_virtual_orbitals(input_file):
     assert np.allclose(virt_sym, ref_virt_sym)
     assert np.allclose(nvirt, ref_nvirt)
 
+
 def test_Integral_init_get_bitarray_integers(input_file):
     bitints = np.array([3, 12], dtype=np.int64)
 
     sys = Integral(input_file)
 
     assert np.allclose(sys.get_bitarray_integers(), bitints)
+
 
 # def test_Integral_init_reference_symmetry(symmetry_input_file):
 #     """
