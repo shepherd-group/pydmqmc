@@ -6,11 +6,13 @@ from numpy.typing import NDArray as Array
 
 from pydmqmc.systems import MatrixHamiltonian
 
+
 @fixture
 def input_file(request) -> str:
     file = join(dirname(request.path),
                 "..", "inputs", "hamiltonians", "EQUILIBRIUM-H4-STO3G.hamil")
     return file
+
 
 @fixture
 def known_diag() -> Array:
@@ -28,10 +30,12 @@ def known_diag() -> Array:
 
     return np.array(values)
 
+
 def test_MatrixHamiltonian_load_complex(input_file):
 
     with raises(NotImplementedError):
         MatrixHamiltonian(input_file, is_complex=True)
+
 
 def test_MatrixHamiltonian_load(input_file, known_diag):
     """Tests __init__() before the call to _shift()."""
@@ -47,6 +51,7 @@ def test_MatrixHamiltonian_load(input_file, known_diag):
     assert sys.ndeterminants == 20
     assert sys.ref_energy == known_diag[0]
 
+
 def test_MatrixHamiltonian_sort_on_diagonals(input_file, known_diag):
     """Tests _shift()."""
     sorted_diag = np.sort(known_diag)
@@ -58,6 +63,7 @@ def test_MatrixHamiltonian_sort_on_diagonals(input_file, known_diag):
     # attribute is accurate.
     diag = np.diag(sys.unshifted_hamiltonian)
     assert np.allclose(diag, sorted_diag)
+
 
 def test_MatrixHamiltonian_shift_shift(input_file):
     """Tests _shift()."""
@@ -71,6 +77,7 @@ def test_MatrixHamiltonian_shift_shift(input_file):
     II = np.eye(sys.ndeterminants)
     target = H + sys.ref_energy*II + shift*II
     assert np.allclose(target, sys.unshifted_hamiltonian)
+
 
 def test_MatrixHamiltonian_shift_use_ip(input_file):
     """Tests _shift()."""
