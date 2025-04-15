@@ -21,7 +21,7 @@ from numpy.typing import ArrayLike
 
 class Integral(System):
     r"""
-    System defined by a HANDE-created FCIDUMP integral file.
+    System defined by a set of integral files.
 
     Parameters
     ----------
@@ -70,12 +70,10 @@ class Integral(System):
                  reference: ArrayLike | None = None,
                  symmetry: int | None = None,
                  orbital_eigenvalues: bool = False,
-                 **kwargs
                  ) -> None:
 
         super().__init__(input_file=input_file,
-                         is_complex=is_complex,
-                         **kwargs)
+                         is_complex=is_complex)
 
         self._uhf = False
         self._case_h0e = None

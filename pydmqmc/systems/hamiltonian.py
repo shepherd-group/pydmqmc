@@ -9,7 +9,7 @@ from numpy.typing import NDArray as Array
 
 class MatrixHamiltonian(System):
     """
-    System defined by a HANDE-created Hamiltonian matrix.
+    System defined by a Hamiltonian matrix written to file.
 
     Use this class for systems defined by a triangular Hamiltonian matrix
     output by HANDE. The Hamiltonian will be stored as a 2D NumPy array.
@@ -45,12 +45,10 @@ class MatrixHamiltonian(System):
             is_complex: bool = False,
             shift: float = 0.0,
             use_ip: bool = False,
-            **kwargs,
             ) -> None:
 
         super().__init__(input_file=input_file,
-                         is_complex=is_complex,
-                         **kwargs)
+                         is_complex=is_complex)
 
         self._read_matrix()  # sets self._raw_hamil
         self._ndet = self._raw_hamil.shape[0]
