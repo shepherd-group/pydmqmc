@@ -15,6 +15,12 @@ def input_file(request) -> str:
 
 
 @fixture
+def integral_system(input_file) -> Integral:
+    sys = Integral(input_file)
+    return sys
+
+
+@fixture
 def symmetry_input_file(request) -> str:
     file = join(dirname(request.path),
                 "..", "inputs", "integrals", "c2h4_ccpvdz.fcidump")
@@ -125,38 +131,35 @@ def test_Integral_init_orbital_eigenvalues(input_file, eig):
     assert np.allclose(sys.eigenvalues, eig)
 
 
-def test_Integral_init_determinants(input_file):
+def test_Integral_generate_determinants(integral_system):
     bitarray = np.array([[1, 1, 0, 0],
                          [0, 0, 1, 1]])
 
-    sys = Integral(input_file)
-    sys.generate_determinants()
+    integral_system.generate_determinants()
 
-    assert sys.n_determinants == 2
-    assert np.allclose(sys.bitarrays, bitarray)
+    assert integral_system.n_determinants == 2
+    assert np.allclose(integral_system.bitarrays, bitarray)
 
 
-def test_Integral_init_hamiltonian(input_file):
+def test_Integral_generate_hamiltonian(integral_system):
     H = np.array([[-1.11675931,  0.18121046],
                   [ 0.18121046,  0.46261815]])
 
-    sys = Integral(input_file)
-    sys.generate_hamiltonian()
+    integral_system.generate_hamiltonian()
 
-    assert np.allclose(sys.hamiltonian, H)
+    assert np.allclose(integral_system.hamiltonian, H)
 
 
-def test_Integral_init_excitation_matrix(input_file):
+def test_Integral_generate_excitation_matrix(integral_system):
     nex_mat = np.array([[0, 2],
                         [2, 0]])
 
-    sys = Integral(input_file, excitation_matrix=True)
-    sys.generate_excitation_matrix()
+    integral_system.generate_excitation_matrix()
 
-    assert np.allclose(sys.excitation_matrix, nex_mat)
+    assert np.allclose(integral_system.excitation_matrix, nex_mat)
 
 
-def test_Integral_get_virtual_orbitals(input_file):
+def test_Integral_get_virtual_orbitals(integral_system):
     """
     This function is run as part of Integral.__init__()
     but we'll also test it individually.
@@ -167,9 +170,8 @@ def test_Integral_get_virtual_orbitals(input_file):
     ref_nvirt = np.array([[0., 0., 0., 0., 0., 0., 0., 0.],
                           [1., 0., 0., 0., 1., 0., 0., 0.],
                           [0., 0., 0., 0., 1., 0., 0., 0.]])
-    
-    sys = Integral(input_file)
-    unocc, virt_ms, virt_sym, nvirt = sys.get_virtual_orbitals([1,1])
+
+    unocc, virt_ms, virt_sym, nvirt = integral_system.get_virtual_orbitals([1,1])
 
     assert np.allclose(unocc, ref_unocc)
     assert np.allclose(virt_ms, ref_virt_ms)
@@ -177,12 +179,10 @@ def test_Integral_get_virtual_orbitals(input_file):
     assert np.allclose(nvirt, ref_nvirt)
 
 
-def test_Integral_init_get_bitarray_integers(input_file):
+def test_Integral_get_bitarray_integers(integral_system):
     bitints = np.array([3, 12], dtype=np.int64)
 
-    sys = Integral(input_file)
-
-    assert np.allclose(sys.get_bitarray_integers(), bitints)
+    assert np.allclose(integral_system.get_bitarray_integers(), bitints)
 
 
 # def test_Integral_init_reference_symmetry(symmetry_input_file):
