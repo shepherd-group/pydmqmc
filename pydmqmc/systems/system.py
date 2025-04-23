@@ -40,3 +40,8 @@ class System:
     def ref_energy(self) -> float:
         """Reference Hartree-Fock energy."""
         return self._ref_eng
+
+    @property
+    def hamiltonian(self) -> None:
+        """Placeholder for the system's Hamiltonian."""
+        return None
