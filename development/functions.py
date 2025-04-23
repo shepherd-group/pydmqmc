@@ -104,6 +104,9 @@ def piecewise_ip_bloch(A,B,A0,dt,current_t,piecewise_t,symmetric=False):
             delta_B = bloch(A,B,dt)
     return delta_B
 
+####
+# DONE replicated in methods/fci.py
+####
 
 def FCI(hamil):
     r'''
@@ -150,57 +153,57 @@ def sum_of_states(eigenspectrum, beta):
 # DONE Replicated in systems/hamiltonian.py
 ####
 
-# def build_hamiltonian(hamilf):
-#     r'''
-#         In:
-#             hamilf: The file containing what is assumed to be a triangle 
-#                 (upper or lower) of the Hamiltonian we are interested in.
-#         Out:
-#             hamiltonian: A 2D NumPy array representation of our matrix
-#             hilbert_space: The length of our determinant space
-#             HF: The reference energy state, this is assumed to be the zeroth
-#                 element of our matrix.
-#     '''
-#     H_data = []
+def build_hamiltonian(hamilf):
+    r'''
+        In:
+            hamilf: The file containing what is assumed to be a triangle 
+                (upper or lower) of the Hamiltonian we are interested in.
+        Out:
+            hamiltonian: A 2D NumPy array representation of our matrix
+            hilbert_space: The length of our determinant space
+            HF: The reference energy state, this is assumed to be the zeroth
+                element of our matrix.
+    '''
+    H_data = []
 
-#     with open(hamilf, 'r') as f:
-#         for line in f:
-#             i, j, hij = line.split()
-#             i, j, hij = int(i), int(j), float(hij)
-#             H_data.append((i,j,hij))
+    with open(hamilf, 'r') as f:
+        for line in f:
+            i, j, hij = line.split()
+            i, j, hij = int(i), int(j), float(hij)
+            H_data.append((i,j,hij))
     
-#     hilbert_space = i
-#     hamiltonian = np.zeros((hilbert_space,hilbert_space))
+    hilbert_space = i
+    hamiltonian = np.zeros((hilbert_space,hilbert_space))
 
-#     for (i,j,hij) in H_data:
-#         hamiltonian[i-1,j-1] = hij
-#         hamiltonian[j-1,i-1] = hij
+    for (i,j,hij) in H_data:
+        hamiltonian[i-1,j-1] = hij
+        hamiltonian[j-1,i-1] = hij
         
-#     return hamiltonian, hilbert_space, hamiltonian[0,0]
+    return hamiltonian, hilbert_space, hamiltonian[0,0]
 
 ####
 # SKIP Used in removed drivers/drive_asm_IPDMQMC_VMAX_calculation.py
 ####
 
-# def unphysical_hamiltonian(hamiltonian):
-#     r'''
-#     Generates an unphysical Hamiltonian from the physical version.
-#     Note that unphysical is another way of saying "stoquastic".
+def unphysical_hamiltonian(hamiltonian):
+    r'''
+    Generates an unphysical Hamiltonian from the physical version.
+    Note that unphysical is another way of saying "stoquastic".
 
-#         In:
-#             hamiltonian: The system Hamiltonian we are interested
-#                 in investigating.
-#         Out:
-#             V: The unphysical version of that hamiltonian which should
-#                 not have a sign problem.
-#     '''
-#     V = np.copy(hamiltonian)
-#     V_diags = np.diag(np.diag(V))
-#     V -= V_diags
-#     V_pos = -V.clip(min=0)
-#     V_neg = V.clip(max=0)
-#     V = V_pos + V_neg + V_diags
-#     return V
+        In:
+            hamiltonian: The system Hamiltonian we are interested
+                in investigating.
+        Out:
+            V: The unphysical version of that hamiltonian which should
+                not have a sign problem.
+    '''
+    V = np.copy(hamiltonian)
+    V_diags = np.diag(np.diag(V))
+    V -= V_diags
+    V_pos = -V.clip(min=0)
+    V_neg = V.clip(max=0)
+    V = V_pos + V_neg + V_diags
+    return V
 
 
 def seperate_signs(array, diagonals=False):
@@ -272,81 +275,81 @@ def expectation(hamil, dm, observable):
     return expectation, expectation_num, expectation_den
 
 ####
+# SKIP existed mostly for testing
+####
+
+def sort_index_by_diagonal(hamil, hilbert):
+    r'''
+        In:
+            hamil: The hamiltonian we want to sort based on the
+                ascending order of the diagonal elements.
+            hilbert: The hilbert space of the wavefunction, makes
+                forming arrays nice and quick.
+        Out:
+            sorted_hamil: The hamiltonian now rearanged to be ascending on the
+                diagonal elements.
+            sorted_diags: A list of the sorted diagonal elements.
+            index_map: The index map to sort matrix's if we want to later.
+    '''
+    diags = np.diag(hamil)
+    sorted_index = np.argsort(diags)
+    sorted_diags = diags[sorted_index]
+    index_map = {int(ii):i for i,ii in enumerate(sorted_index)}
+    sorted_hamil = np.zeros((hilbert,hilbert))
+
+    for i in range(hilbert):
+        for j in range(hilbert):
+            ii = index_map[i]
+            jj = index_map[j]
+            sorted_hamil[ii,jj] = hamil[i,j]
+
+    return sorted_hamil, sorted_diags, index_map
+
+####
 # DONE replicated in systems/hamiltonian.py
 ####
 
-# def sort_index_by_diagonal(hamil, hilbert):
-#     r'''
-#         In:
-#             hamil: The hamiltonian we want to sort based on the
-#                 ascending order of the diagonal elements.
-#             hilbert: The hilbert space of the wavefunction, makes
-#                 forming arrays nice and quick.
-#         Out:
-#             sorted_hamil: The hamiltonian now rearanged to be ascending on the
-#                 diagonal elements.
-#             sorted_diags: A list of the sorted diagonal elements.
-#             index_map: The index map to sort matrix's if we want to later.
-#     '''
-#     diags = np.diag(hamil)
-#     sorted_index = np.argsort(diags)
-#     sorted_diags = diags[sorted_index]
-#     index_map = {int(ii):i for i,ii in enumerate(sorted_index)}
-#     sorted_hamil = np.zeros((hilbert,hilbert))
+def system_initialize(hamilf, shift=0, return_raw=False, ip=False):
+    r'''
+    Set up a system and return relevent matrix's for running analytical
+    QMC.
 
-#     for i in range(hilbert):
-#         for j in range(hilbert):
-#             ii = index_map[i]
-#             jj = index_map[j]
-#             sorted_hamil[ii,jj] = hamil[i,j]
+        In:
+            hamilf: The system Hamiltonian we are interested in.
+            shift (default=0): A shift to apply to the diagonal elements of
+                the Hamiltonian
+            return_raw (optional, default=False): Return the raw Hamiltonian
+                and the index map for the sorted?
+            ip (optional, defaul=False): A boolean for running the 
+                Interaction Picture, if this is true we return the
+                non-interacting Hamiltonian.
+        Out:
+            H: The Hamiltonian shifted by the Hartree-Fock and the
+                provided shift.
+            Heval: The system Hamiltonian without any shifting so we can
+                calculate expectation values.
+            HS: The Hilbert space for the system. Very useful for generating
+                matrix's and other arrays on the fly that we need for
+                many calculations.
+            Hraw (optional): Returns the unsorted array if that is needed.
+            sorted_hash (optional): Returns the hash map used to sort the
+                Hamiltonian, useful for mapping determinants to HANDE.
+            H0 (optional): The non-interacting Hamiltonian.
+    '''
+    Hraw, HS, HF = build_hamiltonian(hamilf)
+    H, sorted_diags, sorted_hash = sort_index_by_diagonal(Hraw, HS)
+    Heval = np.copy(H)
+    H = H - (np.eye(HS)*HF) - (np.eye(HS)*shift)
 
-#     return sorted_hamil, sorted_diags, index_map
-
-####
-# DONE replicated in systems/hamiltonian.py
-####
-
-# def system_initialize(hamilf, shift=0, return_raw=False, ip=False):
-#     r'''
-#     Set up a system and return relevent matrix's for running analytical
-#     QMC.
-
-#         In:
-#             hamilf: The system Hamiltonian we are interested in.
-#             shift (default=0): A shift to apply to the diagonal elements of
-#                 the Hamiltonian
-#             return_raw (optional, default=False): Return the raw Hamiltonian
-#                 and the index map for the sorted?
-#             ip (optional, defaul=False): A boolean for running the 
-#                 Interaction Picture, if this is true we return the
-#                 non-interacting Hamiltonian.
-#         Out:
-#             H: The Hamiltonian shifted by the Hartree-Fock and the
-#                 provided shift.
-#             Heval: The system Hamiltonian without any shifting so we can
-#                 calculate expectation values.
-#             HS: The Hilbert space for the system. Very useful for generating
-#                 matrix's and other arrays on the fly that we need for
-#                 many calculations.
-#             Hraw (optional): Returns the unsorted array if that is needed.
-#             sorted_hash (optional): Returns the hash map used to sort the
-#                 Hamiltonian, useful for mapping determinants to HANDE.
-#             H0 (optional): The non-interacting Hamiltonian.
-#     '''
-#     Hraw, HS, HF = build_hamiltonian(hamilf)
-#     H, sorted_diags, sorted_hash = sort_index_by_diagonal(Hraw, HS)
-#     Heval = np.copy(H)
-#     H = H - (np.eye(HS)*HF) - (np.eye(HS)*shift)
-
-#     if return_raw:
-#         if ip:
-#             return H, Heval, HS, np.diag(np.diag(H))
-#         else:
-#             return H, Heval, HS, Hraw, sorted_hash
-#     elif ip:
-#         return H, Heval, HS, np.diag(np.diag(H))
-#     else:
-#         return H, Heval, HS
+    if return_raw:
+        if ip:
+            return H, Heval, HS, np.diag(np.diag(H))
+        else:
+            return H, Heval, HS, Hraw, sorted_hash
+    elif ip:
+        return H, Heval, HS, np.diag(np.diag(H))
+    else:
+        return H, Heval, HS
 
 
 def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,

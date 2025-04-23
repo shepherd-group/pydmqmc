@@ -56,8 +56,6 @@ class MatrixHamiltonian(System):
 
         # The following are set by self._shift()
         # though self._non_interacting will remain None if use_ip is False.
-        self._sorted_hamil = None
-        self._sort_map = None
         self._shifted_hamil = None
         self._non_interacting = None
         self._shift(shift, use_ip)
@@ -74,23 +72,13 @@ class MatrixHamiltonian(System):
 
     @property
     def unshifted_hamiltonian(self) -> Array:
-        """Sorted, unshifted Hamiltonian matrix."""
-        return self._sorted_hamil
-
-    @property
-    def raw_hamiltonian(self) -> Array:
-        """Unsorted, unshifted Hamiltonian matrix."""
+        """Unshifted Hamiltonian matrix."""
         return self._raw_hamil
 
     @property
     def ndeterminants(self) -> int:
-        """Size of the determinant space."""
+        """Size of the Hilbert space."""
         return self._ndet
-
-    @property
-    def sort_map(self) -> Dict[int, int]:
-        """Maps original index of raw diagonals & their sorted position."""
-        return self._sort_map
 
     def _read_matrix(self) -> None:
         """Load matrix from a HANDE file into a NumPy array."""
@@ -163,10 +151,9 @@ class MatrixHamiltonian(System):
             the non-interacting Hamiltonian will be available through the
             `noninteracting_hamiltonian` attribute.
         """
-        self._sort_on_diagonals()  # sets self._sorted_hamil
 
         II = np.eye(self.ndeterminants)
-        H = self._sorted_hamil - self.ref_energy * II - shift * II
+        H = self._raw_hamil - self.ref_energy * II - shift * II
 
         if use_ip:
             self._non_interacting = np.diag(np.diag(H))

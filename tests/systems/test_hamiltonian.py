@@ -41,7 +41,7 @@ def test_MatrixHamiltonian_load(input_file, known_diag):
     """Tests __init__() before the call to _shift()."""
 
     sys = MatrixHamiltonian(input_file)
-    raw = sys.raw_hamiltonian
+    raw = sys.unshifted_hamiltonian
 
     # Check the Hamiltonian.
     assert raw.shape == (20,20)
@@ -50,19 +50,6 @@ def test_MatrixHamiltonian_load(input_file, known_diag):
     # Check derived quantities about the Hamiltonian.
     assert sys.ndeterminants == 20
     assert sys.ref_energy == known_diag[0]
-
-
-def test_MatrixHamiltonian_sort_on_diagonals(input_file, known_diag):
-    """Tests _shift()."""
-    sorted_diag = np.sort(known_diag)
-
-    sys = MatrixHamiltonian(input_file)
-
-    # Test that Hamiltonian has been sorted correctly.
-    # A successful sort implicitly verifies that the sort_map
-    # attribute is accurate.
-    diag = np.diag(sys.unshifted_hamiltonian)
-    assert np.allclose(diag, sorted_diag)
 
 
 def test_MatrixHamiltonian_shift_shift(input_file):
