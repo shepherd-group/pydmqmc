@@ -76,7 +76,7 @@ class MatrixHamiltonian(System):
         return self._raw_hamil
 
     @property
-    def ndeterminants(self) -> int:
+    def n_determinants(self) -> int:
         """Size of the Hilbert space."""
         return self._ndet
 

@@ -48,7 +48,7 @@ def test_MatrixHamiltonian_load(input_file, known_diag):
     assert np.allclose(np.diag(raw), known_diag)
 
     # Check derived quantities about the Hamiltonian.
-    assert sys.ndeterminants == 20
+    assert sys.n_determinants == 20
     assert sys.ref_energy == known_diag[0]
 
 

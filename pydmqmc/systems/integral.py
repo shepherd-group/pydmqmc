@@ -224,7 +224,7 @@ class Integral(System):
 
     @property
     def n_determinants(self) -> int:
-        """Total number of determinants in the hilbert space."""
+        """Size of the Hilbert space."""
         return self._ndets
 
     @property
@@ -234,7 +234,7 @@ class Integral(System):
 
     @property
     def hamiltonian(self) -> Array:
-        """Hamiltonian generated with the system's integrals."""
+        """Hamiltonian generated from the system's integrals."""
         return self._H
 
     @property

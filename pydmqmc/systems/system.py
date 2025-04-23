@@ -45,3 +45,7 @@ class System:
     def hamiltonian(self) -> None:
         """Placeholder for the system's Hamiltonian."""
         return None
+
+    @property
+    def n_determinants(self) -> None:
+        """Placeholder for the size of the system's Hilbert space."""
