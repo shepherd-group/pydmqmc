@@ -126,8 +126,8 @@ class MatrixHamiltonian(System):
 
         sorted_hamil = np.zeros_like(self._raw_hamil)
 
-        for i in range(self.ndeterminants):
-            for j in range(self.ndeterminants):
+        for i in range(self.n_determinants):
+            for j in range(self.n_determinants):
                 ii = index_map[i]
                 jj = index_map[j]
                 sorted_hamil[ii, jj] = self._raw_hamil[i, j]
@@ -152,7 +152,7 @@ class MatrixHamiltonian(System):
             `noninteracting_hamiltonian` attribute.
         """
 
-        II = np.eye(self.ndeterminants)
+        II = np.eye(self.n_determinants)
         H = self._raw_hamil - self.ref_energy * II - shift * II
 
         if use_ip:

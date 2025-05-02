@@ -61,7 +61,7 @@ def test_MatrixHamiltonian_shift_shift(input_file):
     # Test that Hamiltonian has been shifted correctly 
     # by undoing the calculation.
     H = sys.hamiltonian
-    II = np.eye(sys.ndeterminants)
+    II = np.eye(sys.n_determinants)
     target = H + sys.ref_energy*II + shift*II
     assert np.allclose(target, sys.unshifted_hamiltonian)
 
@@ -82,4 +82,4 @@ def test_MatrixHamiltonian_shift_use_ip(input_file):
     # index [0, 0] will be zero. Manually mask that value for easier checking.
     diag_mask = np.ma.masked_array(nH, mask = nH!=0)
     diag_mask.mask[0, 0] = True
-    assert np.allclose(diag_mask.mask, np.eye(sys.ndeterminants))
+    assert np.allclose(diag_mask.mask, np.eye(sys.n_determinants))
