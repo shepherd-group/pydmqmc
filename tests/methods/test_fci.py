@@ -31,7 +31,7 @@ def test_FCI_MatrixHamiltonian(matrix_system):
     )
 
     mthd = FullConfigurationInteraction(matrix_system)
-    mthd.start()
+    mthd.run()
 
     assert np.allclose(mthd.energies, ref_eng)
     assert mthd.wavefunctions.shape == (20, 20)
@@ -43,7 +43,7 @@ def test_FCI_Integral(integral_system):
                         [ 0.11254389, -0.99364675]])
 
     mthd = FullConfigurationInteraction(integral_system)
-    mthd.start()
+    mthd.run()
 
     assert np.allclose(mthd.energies, ref_eng)
     assert np.allclose(mthd.wavefunctions, ref_wav)

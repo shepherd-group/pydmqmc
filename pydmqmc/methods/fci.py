@@ -43,7 +43,7 @@ class FullConfigurationInteraction(Analytic):
         """FCI wavefunctions."""
         return self._wavefunctions
 
-    def start(self) -> None:
+    def run(self) -> None:
         """TODO: Write start docstring here."""
         self._energies, self._wavefunctions = eigh(self.system.hamiltonian)
         return

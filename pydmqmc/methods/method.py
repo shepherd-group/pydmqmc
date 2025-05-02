@@ -15,12 +15,18 @@ class Method:
             system: systems.System,
             ) -> None:
         self.system = system
+        # Consider putting generate Hamiltonian portion here.
+        # Unless not every method needs a Hamiltonian...?
+        # But if every system needs a Hamiltonian,
+        # Integral should just always generate it
+        # (if it's too computationally intensive, an alternate
+        # method can be added later)
         return
 
-    def start(self) -> None:
-        """TODO: Write start docstring here."""
+    def run(self) -> None:
+        """TODO: Write run docstring here."""
         raise NotImplementedError(
-            'The start function is not currently implemented; '
+            'The run function is not currently implemented; '
             'please check your method or send patches!'
         )
 
@@ -41,8 +47,6 @@ class Analytic(Method):
                  system: systems.System):
         super().__init__(system)
 
-        # consider putting generate hamiltonian portion here
-
 
 class Iterative(Method):
     """
@@ -57,10 +61,10 @@ class Iterative(Method):
     def __init__(self, system: systems.System):
         super().__init__(system)
 
-    def iterate(self) -> None:
-        """TODO: Write iterate docstring here."""
+    def setup(self) -> None:
+        """TODO: Write setup docstring here."""
         raise NotImplementedError(
-            'The iterate function is not currently implemented; '
+            'The setup function is not currently implemented; '
             'please check your method or send patches!'
         )
 
