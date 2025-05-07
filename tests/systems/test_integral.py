@@ -28,6 +28,13 @@ def symmetry_input_file(request) -> str:
 
 
 @fixture
+def hamiltonian() -> Array:
+    H = np.array([[-1.11675931,  0.18121046],
+                  [ 0.18121046,  0.46261815]])
+    return H
+
+
+@fixture
 def eig() -> Array:
     return np.array([-0.5785538598290489, -0.5785538598290489,
                      0.6711434915572507,  0.6711434915572507])
@@ -141,14 +148,18 @@ def test_Integral_generate_determinants(integral_system):
     assert np.allclose(integral_system.bitarrays, bitarray)
 
 
-def test_Integral_generate_hamiltonian(integral_system):
-    H = np.array([[-1.11675931,  0.18121046],
-                  [ 0.18121046,  0.46261815]])
-
+def test_Integral_generate_hamiltonian(integral_system, hamiltonian):
     integral_system.generate_hamiltonian()
 
-    assert np.allclose(integral_system.hamiltonian, H)
+    assert np.allclose(integral_system.hamiltonian, hamiltonian)
 
+def test_Integral_zero_hamiltonian(integral_system, hamiltonian):
+    ref = hamiltonian - np.eye(hamiltonian.shape[0]) * hamiltonian[0,0]
+
+    integral_system.generate_hamiltonian()
+    integral_system.zero_hamiltonian()
+
+    assert np.allclose(integral_system.hamiltonian, ref)
 
 def test_Integral_generate_excitation_matrix(integral_system):
     nex_mat = np.array([[0, 2],

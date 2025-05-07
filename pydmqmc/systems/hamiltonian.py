@@ -51,34 +51,8 @@ class MatrixHamiltonian(System):
                          is_complex=is_complex)
 
         self._read_matrix()  # sets self._raw_hamil
-        self._ndet = self._raw_hamil.shape[0]
-        self._ref_eng = self._raw_hamil[0, 0]
-
-        # The following are set by self._shift()
-        # though self._non_interacting will remain None if use_ip is False.
-        self._shifted_hamil = None
-        self._non_interacting = None
-        self._shift(shift, use_ip)
-
-    @property
-    def hamiltonian(self) -> Array:
-        """Hamiltonian shifted by Hartree-Fock energy & any provided shift."""
-        return self._shifted_hamil
-
-    @property
-    def noninteracting_hamiltonian(self) -> Array | None:
-        """Non-interacting Hamiltonian."""
-        return self._non_interacting
-
-    @property
-    def unshifted_hamiltonian(self) -> Array:
-        """Unshifted Hamiltonian matrix."""
-        return self._raw_hamil
-
-    @property
-    def n_determinants(self) -> int:
-        """Size of the Hilbert space."""
-        return self._ndet
+        self._ndets = self._H.shape[0]
+        self._ref_eng = self._H[0, 0]
 
     def _read_matrix(self) -> None:
         """Load matrix from a HANDE file into a NumPy array."""
@@ -109,53 +83,5 @@ class MatrixHamiltonian(System):
             ham[i - 1, j - 1] = hij
             ham[j - 1, i - 1] = hij
 
-        self._raw_hamil = ham
+        self._H = ham
 
-    def _sort_on_diagonals(self) -> None:
-        """
-        Sort Hamiltonian based on ascending order of diagonal elements.
-
-        Rearrange the Hamiltonian to be ascending on its diagonal elements.
-        Store the sorted Hamiltonian array, array of sorted diagonals,
-        and the dictionary mapping the diagonal's original index
-        to its sorted position.
-        """
-        diags = np.diag(self._raw_hamil)
-        sorted_index = np.argsort(diags)
-        index_map = {int(ii): i for i, ii in enumerate(sorted_index)}
-
-        sorted_hamil = np.zeros_like(self._raw_hamil)
-
-        for i in range(self.n_determinants):
-            for j in range(self.n_determinants):
-                ii = index_map[i]
-                jj = index_map[j]
-                sorted_hamil[ii, jj] = self._raw_hamil[i, j]
-
-        self._sorted_hamil = sorted_hamil
-        self._sort_map = index_map
-
-    def _shift(self,
-               shift: float,
-               use_ip: bool
-               ) -> None:
-        """
-        Initialize & store relevant matrices for analytical QMC.
-
-        Parameters
-        ----------
-        shift
-            A shift to apply to the diagonal elements of the Hamiltonian.
-        use_ip
-            Whether or not to use the interaction picture. If specified,
-            the non-interacting Hamiltonian will be available through the
-            `noninteracting_hamiltonian` attribute.
-        """
-
-        II = np.eye(self.n_determinants)
-        H = self._raw_hamil - self.ref_energy * II - shift * II
-
-        if use_ip:
-            self._non_interacting = np.diag(np.diag(H))
-
-        self._shifted_hamil = H

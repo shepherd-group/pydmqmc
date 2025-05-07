@@ -306,7 +306,7 @@ def sort_index_by_diagonal(hamil, hilbert):
     return sorted_hamil, sorted_diags, index_map
 
 ####
-# DONE replicated in systems/hamiltonian.py
+# SKIP functionality determined to be superfluous
 ####
 
 def system_initialize(hamilf, shift=0, return_raw=False, ip=False):

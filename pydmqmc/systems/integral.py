@@ -223,19 +223,9 @@ class Integral(System):
         return self._pdouble
 
     @property
-    def n_determinants(self) -> int:
-        """Size of the Hilbert space."""
-        return self._ndets
-
-    @property
     def bitarrays(self) -> Array:
         """Array of bitarrays in the Hilbert space."""
         return self._bitarrays
-
-    @property
-    def hamiltonian(self) -> Array:
-        """Hamiltonian generated from the system's integrals."""
-        return self._H
 
     @property
     def excitation_matrix(self) -> Array:

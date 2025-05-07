@@ -38,48 +38,26 @@ def test_MatrixHamiltonian_load_complex(input_file):
 
 
 def test_MatrixHamiltonian_load(input_file, known_diag):
-    """Tests __init__() before the call to _shift()."""
+    """Tests __init__()"""
 
     sys = MatrixHamiltonian(input_file)
-    raw = sys.unshifted_hamiltonian
+    H = sys.hamiltonian
 
     # Check the Hamiltonian.
-    assert raw.shape == (20,20)
-    assert np.allclose(np.diag(raw), known_diag)
+    assert H.shape == (20,20)
+    assert np.allclose(np.diag(H), known_diag)
 
     # Check derived quantities about the Hamiltonian.
     assert sys.n_determinants == 20
     assert sys.ref_energy == known_diag[0]
 
+def test_MatrixHamiltonian_zero_hamiltonian(input_file, known_diag):
+    """Tests zero_hamiltonian inherited from System."""
 
-def test_MatrixHamiltonian_shift_shift(input_file):
-    """Tests _shift()."""
-
-    shift = 2
-    sys = MatrixHamiltonian(input_file, shift=shift)
-
-    # Test that Hamiltonian has been shifted correctly 
-    # by undoing the calculation.
+    sys = MatrixHamiltonian(input_file)
+    sys.zero_hamiltonian()
     H = sys.hamiltonian
-    II = np.eye(sys.n_determinants)
-    target = H + sys.ref_energy*II + shift*II
-    assert np.allclose(target, sys.unshifted_hamiltonian)
 
+    ref = known_diag - sys.ref_energy
 
-def test_MatrixHamiltonian_shift_use_ip(input_file):
-    """Tests _shift()."""
-
-    sys = MatrixHamiltonian(input_file, use_ip=True)
-
-    # Test that the non-interacting Hamiltonian was constructed correctly
-    H = sys.hamiltonian
-    nH = sys.noninteracting_hamiltonian
-    assert nH.shape == H.shape
-    assert np.allclose(np.diag(nH), np.diag(H))
-    # To check the off diagonal values are zero, mask out nonzero values
-    # and compare the mask to the identity matrix.
-    # Note that due to the shifting that subtracts off the reference energy,
-    # index [0, 0] will be zero. Manually mask that value for easier checking.
-    diag_mask = np.ma.masked_array(nH, mask = nH!=0)
-    diag_mask.mask[0, 0] = True
-    assert np.allclose(diag_mask.mask, np.eye(sys.n_determinants))
+    assert np.allclose(np.diag(H), ref)
