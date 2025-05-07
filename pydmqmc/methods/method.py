@@ -1,5 +1,7 @@
 from .. import systems
+from .. import utils
 
+from collections.abc import Callable
 class Method:
     """
     Base class for defining calculation methods.
@@ -14,7 +16,7 @@ class Method:
             self,
             system: systems.System,
             ) -> None:
-        self.system = system
+        self._system = system
         # Consider putting generate Hamiltonian portion here.
         # Unless not every method needs a Hamiltonian...?
         # But if every system needs a Hamiltonian,
@@ -22,6 +24,11 @@ class Method:
         # (if it's too computationally intensive, an alternate
         # method can be added later)
         return
+
+    @property
+    def system(self) -> systems.System:
+        """The System object to which this method is applied."""
+        return self._system
 
     def run(self) -> None:
         """TODO: Write run docstring here."""
@@ -69,3 +76,15 @@ class Iterative(Method):
         )
 
         return
+    
+    def parse_method(self, method: str = "euler") -> Callable:
+        """
+        Parse the supplied string to return the corresponding function.
+
+        Call signature is func, x, y, dy where func(x, y) = dx/dy.
+        I should list supported methods.
+        """
+        if method.lower() == "euler":
+            return utils.euler
+        else:
+            raise RuntimeError(f"Update method {method} is not recognized.")
