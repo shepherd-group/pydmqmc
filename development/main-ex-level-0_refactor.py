@@ -41,12 +41,13 @@ def propagate(dt, p, H, S, nadd, cutoff, ilvl, flvl):
         initiator level 0 regardless of its population (from any site).
     '''
     dets = p.shape[0]
-    dp = np.zeros(p.shape, dtype=nb.float64) + p
+    dp = np.zeros(p.shape, dtype=np.float64)
 
     for i in range(dets):
         for j in range(dets):
 
-            dp[i,j] -= p[i,j] * dt * (H[j,j] - H[0,0] - S[i])
+            Stot = H[0,0] + S[i]
+            dp[i,j] = p[i,j] * (Stot - H[j,j])  # -(H_jj - S)
 
             p_ij = abs(p[i,j])
 
@@ -59,7 +60,7 @@ def propagate(dt, p, H, S, nadd, cutoff, ilvl, flvl):
                 ichk2 = flvl and i == j
 
                 if abs(p[i,k]) >= nadd or p_ij != 0.0 or ichk1 or ichk2:
-                    pr = -dt * p[i,k] * H[k,j]
+                    pr = p[i,k] * H[k,j]
 
                     if abs(pr) < cutoff:
                         pr /= cutoff
@@ -67,20 +68,17 @@ def propagate(dt, p, H, S, nadd, cutoff, ilvl, flvl):
                         pr = np.trunc(pr)
                         pr *= cutoff
 
-                    dp[i,j] += pr
+                    dp[i,j] -= pr  # -sum_k!=j(p_ik * H_kj)
 
-            # This adjustment happens to each element
-            # after each element has been updated.
-            # if abs(dp[i,j]) < 1.0:
-            #     sign = np.sign(dp[i,j])
-            #     pr = dp[i,j] + sign * np.random.random()
-            #     dp[i,j] = np.trunc(pr)
+    # Vectorized like this is the ultimate goal.
+    # `propagate()` will become `func(x, y)` 
+    # (or rather, `func(p, t)`)
+    p = p + dt*dp
+    np.where(np.abs(p < 1.0),
+                 np.trunc(p + np.sign(p)*np.random.random(p.shape)),
+                 p)
 
-    np.where(np.abs(dp < 1.0),
-             np.trunc(dp + np.sign(dp)*np.random.random(dp.shape)),
-             dp)
-
-    return dp # minomer; is actually updated p
+    return p
 
 
 def estimates(p, H, S, onw, A, zt, dt, rbr):
@@ -95,7 +93,7 @@ def estimates(p, H, S, onw, A, zt, dt, rbr):
 
     tr = p.trace()
     en = (p @ H).trace()
-    oc = np.count_nonzero(p)
+    oc = np.count_nonzero(p) #occupied
 
     return S, tr, en, nw, oc
 
@@ -141,26 +139,28 @@ def main(clargs):
 
     H = np.copy(sys.H)
 
-    nadd = 3.0 if do_init == 1 else 0.0
-    spawn_cutoff = 0.01
-    tau = 0.001
-    ncycles = 10
-    final_beta = 25.0
-    nreports = int(final_beta/(tau*ncycles))
-    zeta = 0.05
-    initial_particles = int(float(1E5))
-    row_by_row = True if do_rbr == 1 else False
-    rbr = 1 if row_by_row else None
-    ilevel = True if do_ilvl else False
-    flevel = True if do_flvl else False
+    nadd = 3.0 if do_init == 1 else 0.0  # run -> propagate
+    spawn_cutoff = 0.01  # run -> propagate
+    tau = 0.001  # run 
+    ncycles = 10  # run 
+    final_beta = 25.0  # run
+    nreports = int(final_beta/(tau*ncycles))  # run
+    zeta = 0.05  # estimates
+    initial_particles = int(float(1E5))  # setup
+    row_by_row = True if do_rbr == 1 else False  # estimates
+    rbr = 1 if row_by_row else None  # estimates
+    ilevel = True if do_ilvl else False  # run -> propagate
+    flevel = True if do_flvl else False  # run -> propagate
 
     p = initialize(H, initial_particles)
     S = np.zeros(H.shape[0], dtype=np.float64)
-    nw = np.sum(p, axis=rbr)
+    nw = np.sum(p, axis=rbr)  # estimates
 
     S, tr, en, nw, oc = estimates(p, H, S, nw, ncycles, zeta, tau, rbr)
     df = store_row_data(p, H, S, df, 0.0)
-    print
+    print(f" {'Beta':>9}  {'Mean Shift':>18}  {'Trace':>18}  "
+          f"{'Energy?':>18}  {'NW? Sum':>18}  {'OC?':>6}  "
+          f"{'en/tr':>18}")
     report(0, S, tr, en, nw, oc)
 
     for irep in range(nreports):
@@ -179,7 +179,7 @@ def main(clargs):
         sini = '1' if nadd == 3.0 else 0
         silvl = '1' if ilevel == True else 0
         sflvl = '1' if flevel == True else 0
-        pklf = 'rerandom-stretched-H4-row-data'
+        pklf = 'refactored-stretched-H4-row-data'
         pklf += f'-ilvl{silvl}-flvl{sflvl}-initiator{sini}-rbr{srbr}-rng{rng}.pickle'
         with open(pklf, 'wb') as handle:
             pickle.dump(df, handle, protocol=4)

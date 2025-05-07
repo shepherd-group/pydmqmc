@@ -50,7 +50,7 @@ for betaloop in range(1,beta_loops+1):
                     IP-DMQMC non-symmetric propagator:
                     dd/dtau = H0 @ d - d @ H
                 '''
-                deltad = tau*(H0 @ d - d @ H)
+                deltad = tau*(H0 @ d - d @ H) # eqn 9 in IP-DMQMC paper; d = f
                 deltad = fn.stochastic_round(deltad)
                 d += deltad
 
