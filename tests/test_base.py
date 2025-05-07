@@ -32,10 +32,11 @@ def test_System_zero_hamiltonian(dummy_system):
 def test_Method(dummy_system):
     mtd = Method(dummy_system)
 
-    assert id(mtd.system) == id(dummy_system)
+    assert mtd.system is dummy_system
 
 
 def test_Method_run(dummy_system):
+    """Test that errors flag correctly."""
     mtd = Method(dummy_system)
 
     with raises(NotImplementedError):
@@ -43,12 +44,14 @@ def test_Method_run(dummy_system):
 
 
 def test_Analytic(dummy_system):
+    """Test we initialized the parent correctly."""
     mtd = Analytic(dummy_system)
 
-    assert id(mtd.system) == id(dummy_system)
+    assert mtd.system is dummy_system
 
 
 def test_Analytic_run(dummy_system):
+    """Test that errors flag correctly."""
     mtd = Analytic(dummy_system)
 
     with raises(NotImplementedError):
@@ -56,15 +59,18 @@ def test_Analytic_run(dummy_system):
 
 
 def test_Iterative(dummy_iterative, dummy_system):
-    assert id(dummy_iterative.system) == id(dummy_system)
+    """Test we initialized the parent correctly."""
+    assert dummy_iterative.system is dummy_system
 
 
 def test_Iterative_run(dummy_iterative):
+    """Test that errors flag correctly."""
     with raises(NotImplementedError):
         dummy_iterative.run()
 
 
 def test_Iterative_setup(dummy_iterative):
+    """Test that errors flag correctly."""
     with raises(NotImplementedError):
         dummy_iterative.setup()
 

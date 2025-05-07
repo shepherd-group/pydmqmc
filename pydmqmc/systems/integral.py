@@ -50,7 +50,7 @@ class Integral(System):
     Notes
     -----
     Enabling `orbital_eigenvalues` using the following math
-    from Szabo and Ostlund[1]_:
+    from Szabo and Ostlund [1]_:
 
     .. math:: e_a = <a|h|a> + \sum_{b \neq a}^{N} <ab|ab> - <ab|ba>
 
@@ -514,7 +514,7 @@ class Integral(System):
         beta_bas = list(gen_perm_set(bba))[::-1]
 
         HS_est = len(beta_bas)*len(alpha_bas)
-        print('\n Upper bound on hilbert space: {:<22}'.format(HS_est))
+        print('  Upper bound on hilbert space: {:<22}'.format(HS_est))
 
         bas = []
         for bba in beta_bas:
@@ -539,7 +539,7 @@ class Integral(System):
                     bas.append(ba)
 
         HS_est = len(bas)
-        print(' Actual size of the hilbert space: {:<22}\n'.format(HS_est))
+        print('  Actual size of the hilbert space: {:<22}\n'.format(HS_est))
         self._ndets = HS_est
         self._bitarrays = np.array(bas)
 
