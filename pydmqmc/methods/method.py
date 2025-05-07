@@ -17,12 +17,6 @@ class Method:
             system: systems.System,
             ) -> None:
         self._system = system
-        # Consider putting generate Hamiltonian portion here.
-        # Unless not every method needs a Hamiltonian...?
-        # But if every system needs a Hamiltonian,
-        # Integral should just always generate it
-        # (if it's too computationally intensive, an alternate
-        # method can be added later)
         return
 
     @property
