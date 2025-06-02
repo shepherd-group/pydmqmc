@@ -3,6 +3,10 @@
 API Reference
 =============
 
-.. automodapi:: pydmqmc.systems
+.. toctree::
+    :maxdepth: 2
+    :caption: Submodules:
 
-.. automodapi:: pydmqmc.utils
+    systems
+    methods
+    utils

@@ -14,16 +14,30 @@ release = 'alpha'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx_automodapi.automodapi',
+extensions = ['sphinx.ext.autodoc',
+              'sphinx.ext.intersphinx',
               'numpydoc',
-              'sphinx_rtd_theme',]
+              'sphinx_rtd_theme',
+              ]
+
+autodoc_typehints = "none"
+autodoc_member_order = "groupwise"
+autodoc_default_options = {
+    "inherited-members": True,
+    "show-inheritance": True
+}
+
+numpydoc_show_class_members = True
+numpydoc_show_inherited_class_members = True
+numpydoc_attributes_as_param_list = False
+numpydoc_class_members_toctree = False
+
+intersphinx_mapping = {
+    'numpy': ('https://numpy.org/doc/stable/', None)
+}
 
 templates_path = ['_templates']
 exclude_patterns = []
-
-numpydoc_show_class_members = False
-automodsumm_inherited_members = True
-automodapi_inheritance_diagram = False
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

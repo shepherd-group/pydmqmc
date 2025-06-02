@@ -69,7 +69,7 @@ class DensityMatrixQMC(Iterative):
               diag: ArrayLike | None = None,
               ) -> None:
         """
-        Specify conditions for the QMC realizations.
+        Specify conditions for the DMQMC realization.
 
         These conditions include the initial density matrix and update method.
 
@@ -167,7 +167,7 @@ class DensityMatrixQMC(Iterative):
         Run a DMQMC realization.
 
         TODO: What are psips? Initiator & free level approximations?
-        Comment on rounding below |p_ij| > 1.0
+        Comment on rounding below `|p_ij| > 1.0`
 
         Parameters
         ----------
@@ -187,7 +187,7 @@ class DensityMatrixQMC(Iterative):
             If False, calculate one shift for the entire Hamiltonian.
         spawn_cuttoff : float, default 0.01
             Only accumulate psips if the change in a density matrix
-            site :math:`|\partial p_{ik}| > \mathtt{spawn_cutoff}`.
+            site :math:`|\partial p_{ik}| > \mathtt{spawn\_cutoff}`.
         n_add : float, default None
             If not `None`, utilize the initiator approximation
             and limit psip spawning at denisty matrix site
@@ -208,7 +208,7 @@ class DensityMatrixQMC(Iterative):
         References
         ----------
         .. [1] N. S. Blunt et al., "Density-matrix quantum Monte Carlo method,"
-        Physical Review B, 89, 24, 2014
+               Physical Review B, 89, 24, 2014
         """
         if self._density_matrix is None:
             raise RuntimeError("You must first run the setup() method!")
