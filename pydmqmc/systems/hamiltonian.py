@@ -3,9 +3,6 @@ from .system import System
 
 import numpy as np
 
-from typing import Dict
-from numpy.typing import NDArray as Array
-
 
 class MatrixHamiltonian(System):
     """
@@ -84,4 +81,3 @@ class MatrixHamiltonian(System):
             ham[j - 1, i - 1] = hij
 
         self._H = ham
-

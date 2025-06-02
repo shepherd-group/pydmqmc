@@ -2,6 +2,8 @@ from .. import systems
 from .. import utils
 
 from collections.abc import Callable
+
+
 class Method:
     """
     Base class for defining calculation methods.
@@ -37,14 +39,14 @@ class Method:
 class Analytic(Method):
     """
     Base class for analytic calculations.
-    
+
     Parameters
     ----------
     system : System object
         The predefined System to run the model with.
     """
 
-    def __init__(self, 
+    def __init__(self,
                  system: systems.System):
         super().__init__(system)
 
@@ -52,7 +54,7 @@ class Analytic(Method):
 class Iterative(Method):
     """
     Base class for iterative calculations.
-    
+
     Parameters
     ----------
     system : System object
@@ -70,7 +72,7 @@ class Iterative(Method):
         )
 
         return
-    
+
     def parse_method(self, method: str = "euler") -> Callable:
         """
         Parse the supplied string to return the corresponding function.

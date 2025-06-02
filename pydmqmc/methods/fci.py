@@ -20,7 +20,7 @@ class FullConfigurationInteraction(Analytic):
     def __init__(
             self,
             system: systems.System
-        ) -> None:
+            ) -> None:
         super().__init__(system)
 
         # Prepare the system, if needed

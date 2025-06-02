@@ -2,6 +2,7 @@ from numpy import eye
 
 from numpy.typing import NDArray as Array
 
+
 class System:
     """
     Base class for defining quantum systems.
