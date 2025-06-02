@@ -8,9 +8,9 @@ import pandas as pd
 from integrals_readin import integral_system as readin 
 
 
-@nb.njit
+#@nb.njit
 def set_numba_seed(rng):
-    np.random.seed(rng+10000)
+    np.random.seed(rng)
 
 
 @nb.njit
@@ -71,20 +71,20 @@ def propagate(dt, p, H, S, nadd, cutoff, ilvl, flvl):
 
             # This adjustment happens to each element
             # after each element has been updated.
-            # if abs(dp[i,j]) < 1.0:
-            #     sign = np.sign(dp[i,j])
-            #     pr = dp[i,j] + sign * np.random.random()
-            #     dp[i,j] = np.trunc(pr)
+            if abs(dp[i,j]) < 1.0:
+                sign = np.sign(dp[i,j])
+                pr = dp[i,j] + sign * np.random.random()
+                dp[i,j] = np.trunc(pr)
 
-    np.where(np.abs(dp < 1.0),
-             np.trunc(dp + np.sign(dp)*np.random.random(dp.shape)),
-             dp)
+    # np.where(np.abs(dp) < 1.0,
+    #          np.trunc(dp + np.sign(dp)*np.random.random(dp.shape)),
+    #          dp)
 
     return dp # minomer; is actually updated p
 
 
 def estimates(p, H, S, onw, A, zt, dt, rbr):
-
+    #estimates(p, H, S, nw, ncycles, zeta, tau, rbr)
     nw = np.abs(p).sum(axis=rbr)
     if rbr is not None:
         for i in range(p.shape[0]):
@@ -127,7 +127,8 @@ def report(b, S, tr, en, nw, oc):
 def main(clargs):
 
     rng, do_rbr, do_save, do_init, do_ilvl, do_flvl = [int(k) for k in clargs]
-    rng += 100
+
+    print(rng, do_rbr, do_save, do_init, do_ilvl, do_flvl)
 
     np.random.seed(rng)
     set_numba_seed(rng)
@@ -135,7 +136,7 @@ def main(clargs):
     df = {'beta': [], 'shift': [], 'trace': [], 'pH': [], 'nw': []}
 
     sys = readin(
-            int_file = '../tests/inputs/integrals/STRICT-STO3G-STR-H4.FCIDUMP',
+            int_file = 'tests/inputs/integrals/STRICT-STO3G-STR-H4.FCIDUMP',
             hamiltonian = True,
         )
 
@@ -144,9 +145,10 @@ def main(clargs):
     nadd = 3.0 if do_init == 1 else 0.0
     spawn_cutoff = 0.01
     tau = 0.001
-    ncycles = 10
+    ncycles = 1000
     final_beta = 25.0
     nreports = int(final_beta/(tau*ncycles))
+    print(nreports)
     zeta = 0.05
     initial_particles = int(float(1E5))
     row_by_row = True if do_rbr == 1 else False
@@ -155,12 +157,15 @@ def main(clargs):
     flevel = True if do_flvl else False
 
     p = initialize(H, initial_particles)
+    np.save("initial_dm.npy", np.diag(p))
     S = np.zeros(H.shape[0], dtype=np.float64)
     nw = np.sum(p, axis=rbr)
 
     S, tr, en, nw, oc = estimates(p, H, S, nw, ncycles, zeta, tau, rbr)
     df = store_row_data(p, H, S, df, 0.0)
-    print
+    print(f" {'Beta':>9}  {'Mean Shift':>18}  {'Trace':>18}  "
+          f"{'Energy?':>18}  {'NW? Sum':>18}  {'OC?':>6}  "
+          f"{'en/tr':>18}")
     report(0, S, tr, en, nw, oc)
 
     for irep in range(nreports):
@@ -173,6 +178,8 @@ def main(clargs):
         df = store_row_data(p, H, S, df, beta)
         S, tr, en, nw, oc = estimates(p, H, S, nw, ncycles, zeta, tau, rbr)
         report(beta, S, tr, en, nw, oc)
+
+    print(np.trace(p))
 
     if do_save == 1:
         srbr = '1' if rbr == 1 else 0

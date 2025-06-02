@@ -49,7 +49,7 @@ class DensityMatrixQMC(Iterative):
         """Density matrix."""
         return self._density_matrix
 
-    def reset_rng(self, 
+    def reset_rng(self,
                   rng_seed: None | int | ArrayLike = None
                   ) -> None:
         """
@@ -66,7 +66,6 @@ class DensityMatrixQMC(Iterative):
     def setup(self,
               initialization: str = "deterministic",
               n_particles: int = 1,
-              row_list: ArrayLike | None = None,
               diag: ArrayLike | None = None,
               ) -> None:
         """
@@ -86,20 +85,15 @@ class DensityMatrixQMC(Iterative):
 
             - deterministic
             - uniform-random
-            - specific-rows
             - fixed
 
         n_particles : int, default 1
-            TODO what does this mean
-        defined_thermal_weights : array_like, optional
-            Supply pre-defined thermal weights instead of using the
-            auto-generated weights. Useful for, e.g., supplying FCI weights.
-        row_list : array_like, optional
-            Series of rows to be used with the "specific-rows"
-            initialization method.
+            The initial number of psip particles that should be present
+            in the density matrix. Only used with the "deterministic" method.
         diag : array_like, optional
             Directly defined the diagonal of the density matrix when used
-            with the "fixed" initialization method.
+            with the "fixed" initialization method. The length of `diag`
+            must be the same as the number of determinants in the system.
 
         Notes
         -----
@@ -114,28 +108,23 @@ class DensityMatrixQMC(Iterative):
             multiple times. This is how HANDE initializes the
             density matrix.
 
-        specific-rows:
-            Takes the optional parameter `row_list` and occupies
-            those specific rows with a weight of 1.
-
         fixed:
             Takes the optional parameter `diag` which is used as the
             diagonal of the density matrix.
         """
         self._density_matrix = self._init_dm(initialization,
                                              n_particles,
-                                             row_list,
                                              diag)
         self._S = np.zeros(self.system.n_determinants, dtype=np.float64)
 
     def _init_dm(self,
                  init: str,
                  particles: int,
-                 rows: ArrayLike | None,
                  diag: ArrayLike | None
                  ) -> Array:
         """
-        CK Note: This is copied from functions.py::initialize_dm.
+        CK Note: copied from functions.py::initialize_dm.
+
         I separated all methods with "thermal" in the name to an `IP_DMQMC`
         child class because based on the original docstring, those methods
         seemed to be designed for IP-DMQMC. Separating DMQMC and IP-DMQMC
@@ -150,11 +139,11 @@ class DensityMatrixQMC(Iterative):
             randomrows = np.bincount(randomrows,
                                      minlength=self.system.n_determinants
                                      ).astype(np.float64)
-        elif init == 'specific-rows':
-            randomrows = np.bincount(rows,
-                                     minlength=self.system.n_determinants
-                                     ).astype(np.float64)
         elif init == 'fixed':
+            if len(diag) != self.system.n_determinants:
+                raise RuntimeError(f"The length of 'diag' ({len(diag)}) "
+                                   "must be equal to the number of "
+                                   "determinants in the system.")
             randomrows = diag
         else:
             raise RuntimeError(f'Unknown initalization method {init}')
@@ -164,14 +153,15 @@ class DensityMatrixQMC(Iterative):
 
     def run(self,
             final_beta: float,
-            n_reports: int,
-            n_cycles: int,
+            dbeta: float,
+            cycles_per_shift: int,
+            shift_dampening: float,
+            shift_by_rows: bool = False,
             spawn_cutoff: float = 0.01,
             n_add: int | None = None,
             ilevel: bool = False,
             flevel: bool = False,
             update_method: str = "euler",
-            copy_dm: bool = False,
             ):
         r"""
         Run a DMQMC realization.
@@ -179,21 +169,22 @@ class DensityMatrixQMC(Iterative):
         TODO: What are psips? Initiator & free level approximations?
         Comment on rounding below |p_ij| > 1.0
 
-        CK Note: instead of specifying tau, I thought it
-        was more intuitive for the user to specify a number of reports.
-        I'm not really sure what the initiator and free level
-        approximations are.
-
         Parameters
         ----------
         final_beta : float
-            Target temperature expressed as 
+            Target inverse temperature expressed as
             :math:`\beta = 1 / (k_\mathrm{B} T)`
-        n_reports : int
-            Number of reports about system properties to produce
-            as :math:`\beta` evolves towards `final_beta`.
-        n_cycles : int
-            Number of psip updates to perform per report.
+        dbeta : float
+            Size of a single update step in inverse temperature :math:`\beta`.
+        cycles_per_shift : int
+            Number of updates to :math:`\beta` made before updating
+            the Hamiltonian shift.
+        shift_dampening : float
+            Affects how much the Hamiltonian shift varies as it updates
+            every `cycles_per_shift` steps.
+        shift_by_rows : bool, default false
+            If True, calculate a shift for each row of the Hamiltonian.
+            If False, calculate one shift for the entire Hamiltonian.
         spawn_cuttoff : float, default 0.01
             Only accumulate psips if the change in a density matrix
             site :math:`|\partial p_{ik}| > \mathtt{spawn_cutoff}`.
@@ -209,27 +200,36 @@ class DensityMatrixQMC(Iterative):
         update_method : str, default "euler"
             One of the supported update methods from (TODO link to)
             Iterative.parse_method()
-        copy_dm : bool, default False
-            Evolve a copy of the density matrix created by the `setup` method.
-            Though this consumes more memory, it can be useful for running
-            multiple realizations.
+
+        Notes
+        -----
+        The shift update follows Equation 16 in Blunt et al. 2014 [1]_.
+
+        References
+        ----------
+        .. [1] N. S. Blunt et al., "Density-matrix quantum Monte Carlo method,"
+        Physical Review B, 89, 24, 2014
         """
         if self._density_matrix is None:
             raise RuntimeError("You must first run the setup() method!")
 
         # While it makes sense for a parameter to be None when a feature
-        # is disabled, Numba-compiled propagate methods in child classes
+        # is disabled, Numba-compiled `propagate` methods in child classes
         # will require a float value
         if n_add is None:
             n_add = 0.0
 
-        tau = final_beta / (n_reports * n_cycles)
+        n_shifts = int(final_beta/(dbeta*cycles_per_shift))
         update_func = super().parse_method(update_method)
+        rbr = 1 if shift_by_rows else None
 
-        if copy_dm:
-            p = self._density_matrix.copy()
-        else:
-            p = self._density_matrix  # a mutable view
+        p = self._density_matrix
+
+        # set initial shift
+        # np will not be altered in this instance
+        npsip = np.sum(p, axis=rbr)
+        npsip = self._update_shift(p, npsip, cycles_per_shift,
+                                   shift_dampening, dbeta, rbr)
 
         # print initial report
         print(f"{'Beta':>9}  {'Trace':>18}  "
@@ -238,19 +238,19 @@ class DensityMatrixQMC(Iterative):
         print(f"{0:>9.3f}  {p.trace():>18.12e}  "
               f"{en:>18.12e}  {en/p.trace():>18.12f}")
 
-        for report in range(n_reports):
+        for shift in range(n_shifts):
 
-            for cycle in range(n_cycles):
+            for cycle in range(cycles_per_shift):
 
                 p = update_func(self._propagate,  # func for dx/dy
-                                p,    # x
-                                None, # y
-                                tau,  # stepsize dy
+                                p,      # x
+                                None,   # y
+                                dbeta,  # stepsize dy
                                 spawn_cutoff, n_add,  # args for func
                                 ilevel, flevel  # args for func
                                 )
 
-                # Only store |p_ij| > 1.0, otherwise 
+                # Only store |p_ij| > 1.0, otherwise
                 # round below this threshold in a non-biased manner
                 replace = np.trunc(p +
                                    np.sign(p)*self._rng.random(p.shape))
@@ -258,13 +258,36 @@ class DensityMatrixQMC(Iterative):
                          replace,
                          p)
 
+            # update shift every report period
+            npsip = self._update_shift(p, npsip, cycles_per_shift,
+                                       shift_dampening, dbeta, rbr)
+
             # do periodic reporting here
             en = (p @ self.system.hamiltonian).trace()
-            print(f"{(report+1)*n_cycles*tau:>9.3f}  {p.trace():>18.12e}  "
-                  f"{en:>18.12e}  {en/p.trace():>18.12f}")
+            print(f"{(shift+1)*cycles_per_shift*dbeta:>9.3f}  "
+                  f"{p.trace():>18.12e}  "
+                  f"{en:>18.12e}"
+                  f"{en/p.trace():>18.12f}")
 
         # save final results
         self._density_matrix = p
+
+    def _update_shift(self,
+                      p: Array,
+                      np_old: Array,
+                      A: int,
+                      zeta: float,
+                      dbeta: float,
+                      rbr: int | None):
+        npsip = np.abs(p).sum(axis=rbr)
+        if rbr:
+            for i in range(p.shape[0]):
+                if npsip[i] != 0.0 and np_old[i] != 0.0:
+                    self._S[i] -= (zeta/(A*dbeta))*np.log(npsip[i]/np_old[i])
+        else:
+            self._S -= (zeta/(A*dbeta))*np.log(npsip/np_old)
+
+        return npsip
 
     def _propagate(self, p, dummy, *args, **kwargs):
         raise NotImplementedError(
@@ -288,6 +311,7 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
         Seed or sequence of seeds for the psuedo random number generator.
         See :func:`numpy.random.default_rng`
     """
+
     def __init__(
             self,
             system: systems.System,
@@ -297,11 +321,12 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
 
     def _propagate(self, p, dummy, *args, **kwargs) -> Array:
         """
-        This function matches the form expected by the integrators
-        and is used to pass attributes into the Numba-compiled
-        `_propagate_core` method.
+        Wrap `_propagate_core` with the expected call signature.
+
+        Call signature is dictated by the "integrator" functions.
+        Numba-compiled functions do not have access to class attributes.
         """
-        return self._propagate_core(p, 
+        return self._propagate_core(p,
                                     self.system.hamiltonian,
                                     self._S,
                                     self._rng,
@@ -309,10 +334,10 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
                                     **kwargs)
 
     @staticmethod
-    #@njit
-    def _propagate_core(p: Array, 
-                        H: Array, 
-                        S: Array, 
+    @njit
+    def _propagate_core(p: Array,
+                        H: Array,
+                        S: Array,
                         rng,
                         cutoff: float,
                         nadd: float,
@@ -324,11 +349,11 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
         for i in range(dets):
             for j in range(dets):
 
-                Stot = H[0,0] + S[i]
-                dp[i,j] = p[i,j] * \
-                    (Stot - H[j,j])  # -(H_jj - S)
+                Stot = H[0, 0] + S[i]
+                dp[i, j] = p[i, j] * \
+                    (Stot - H[j, j])  # -(H_jj - S)
 
-                p_ij = abs(p[i,j])
+                p_ij = abs(p[i, j])
 
                 for k in range(dets):
 
@@ -338,8 +363,8 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
                     ichk1 = ilvl and i == k
                     ichk2 = flvl and i == j
 
-                    if abs(p[i,k]) >= nadd or p_ij != 0.0 or ichk1 or ichk2:
-                        pr = p[i,k] * H[k,j]
+                    if abs(p[i, k]) >= nadd or p_ij != 0.0 or ichk1 or ichk2:
+                        pr = p[i, k] * H[k, j]
 
                         if abs(pr) < cutoff:
                             pr /= cutoff
@@ -347,19 +372,25 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
                             pr = np.trunc(pr)
                             pr *= cutoff
 
-                        dp[i,j] -= pr  # -sum_k!=j(p_ik * H_kj)
+                        dp[i, j] -= pr  # -sum_k!=j(p_ik * H_kj)
 
         return dp
+
 
 class IPDensityMatrixQMC(DensityMatrixQMC):
     """
     Interaction-picture density matrix quantum Monte Carlo.
+
+    Parameters
+    ----------
+    system : System object
+        The predefined System to run the model with.
     """
 
     def __init__(
             self,
             system: systems.System,
-        ) -> None:
+            ) -> None:
         super().__init__(system)
 
     def setup(self,
@@ -412,14 +443,6 @@ class IPDensityMatrixQMC(DensityMatrixQMC):
             to the thermal weight of the FCI Hamiltonian diagonal
             elements. Then occupies that determinant with 1 walker.
         """
-        # Construct data container
-        data = {'Beta':[],
-                'Shift':[],
-                'Tr(Hp)':[],
-                'Tr(p)':[],
-                'Nw':[],
-                '<E>':[],
-                'N_rows':[]}
         self._init_dm(initialization,
                       n_particles,
                       target_beta,
@@ -450,7 +473,7 @@ class IPDensityMatrixQMC(DensityMatrixQMC):
         elif init == 'uniform-thermal':
             randomrows = self._rng.choice(self.system.n_determinants,
                                           size=particles)
-            randomrows = np.bincount(randomrows, 
+            randomrows = np.bincount(randomrows,
                                      minlength=self.system.n_determinants
                                      ).astype(np.float64)
             randomrows *= thermal_weights

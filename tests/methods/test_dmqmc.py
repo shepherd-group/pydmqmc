@@ -65,14 +65,21 @@ def test_DMQMC_setup_uniform_random(dmqmc):
                        diag)
 
 
-def test_DMQMC_setup_specific_rows(dmqmc):
-    rows = [1, 15, 7, 10, 18, 3]
-    diag = [0, 1, 0, 1, 0, 0, 0, 1, 0, 0,
-            1, 0, 0, 0, 0, 1, 0, 0, 1, 0]
+def test_DMQMC_setup_fixed(dmqmc):
+    diag = [10, 30, 40, 25, 18, 54, 22, 34, 47, 36,
+            45, 37, 23, 46, 41, 31, 27, 49, 17, 38]
 
-    dmqmc.setup("specific-rows", row_list=rows)
+    dmqmc.setup("fixed", diag=diag)
     assert np.allclose(np.diag(dmqmc.density_matrix),
                        diag)
+    assert dmqmc.density_matrix.size == 400
+
+
+def test_DMQMC_setup_fixed_bad(dmqmc):
+    diag = [10, 30, 40]
+
+    with raises(RuntimeError):
+        dmqmc.setup("fixed", diag=diag)
 
 
 def test_DMQMC_setup_unknown(dmqmc):
@@ -85,14 +92,40 @@ def test_DMQMC_run(matrix_system):
     mtd.setup("deterministic")
 
     with raises(NotImplementedError):
-        mtd.run(25, 10, 10)
+        mtd.run(25, 0.01, 10, 0.05)
 
 
 def test_DMQMC_run_no_setup(dmqmc):
     with raises(RuntimeError):
-        dmqmc.run(25, 10, 10)
+        dmqmc.run(25, 0.01, 10, 0.05)
 
 
 def test_AsymmetricBlochDMQMC_basic(integral_system_large):
+    mtd = AsymmetricBlochDMQMC(integral_system_large,
+                               rng_seed=42)
+    mtd.setup("uniform-random", n_particles=int(1e5))
+    mtd.run(final_beta=25,
+        dbeta=0.001,
+        cycles_per_shift=1000,
+        shift_dampening=0.05,
+        spawn_cutoff=0.01,
+        shift_by_rows=False)
 
-    pass
+    assert np.isclose(mtd.density_matrix.trace(), 67981.48932281222)
+    eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
+    assert np.isclose(eng, -141115.38639919003)
+
+def test_AsymmetricBlochDMQMC_basic_rbr(integral_system_large):
+    mtd = AsymmetricBlochDMQMC(integral_system_large,
+                               rng_seed=42)
+    mtd.setup("uniform-random", n_particles=int(1e5))
+    mtd.run(final_beta=25,
+        dbeta=0.001,
+        cycles_per_shift=1000,
+        shift_dampening=0.05,
+        spawn_cutoff=0.01,
+        shift_by_rows=True)
+
+    assert np.isclose(mtd.density_matrix.trace(), 22493.37887777515)
+    eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
+    assert np.isclose(eng, -46578.848998115835)
