@@ -243,9 +243,8 @@ class DensityMatrixQMC(Iterative):
             for cycle in range(cycles_per_shift):
 
                 p = update_func(self._propagate,  # func for dx/dy
-                                p,      # x
-                                None,   # y
-                                dbeta,  # stepsize dy
+                                p,      # y
+                                dbeta,  # stepsize dt
                                 spawn_cutoff, n_add,  # args for func
                                 ilevel, flevel  # args for func
                                 )
@@ -289,7 +288,7 @@ class DensityMatrixQMC(Iterative):
 
         return npsip
 
-    def _propagate(self, p, dummy, *args, **kwargs):
+    def _propagate(self, p, *args, **kwargs):
         raise NotImplementedError(
             "DensityMatrixQMC does not have it's own psip propagation "
             "method defined. Please use either SymmetricBlochDMQMC or "
@@ -319,7 +318,7 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
             ) -> None:
         super().__init__(system, rng_seed)
 
-    def _propagate(self, p, dummy, *args, **kwargs) -> Array:
+    def _propagate(self, p, *args, **kwargs) -> Array:
         """
         Wrap `_propagate_core` with the expected call signature.
 

@@ -1,12 +1,15 @@
 from numpy.typing import NDArray as Array
 
-def euler(func, x, y, dy, *args, **kwargs):
+def euler(func, y, dt, *args, **kwargs):
     """
-    Update `x` using Euler's method.
+    Update `y` using Euler's method.
 
     Function `func` is of the form::
 
-        dx/dy = func(x, y, ...)
+        dy/dt = func(y, ...)
     """
-    dx_dy = func(x, y, *args, **kwargs)
-    return x + dy * dx_dy
+    dx_dt = func(y, *args, **kwargs)
+    return y + dt * dx_dt
+
+def rk4(func, y, dt, *args, **kwargs):
+    pass
