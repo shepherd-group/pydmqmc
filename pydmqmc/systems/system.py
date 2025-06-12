@@ -1,3 +1,5 @@
+"""Base class for the `systems` submodule."""
+
 from numpy import eye
 
 from numpy.typing import NDArray as Array

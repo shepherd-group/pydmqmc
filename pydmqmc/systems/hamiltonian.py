@@ -1,4 +1,4 @@
-"""Functions & System class for reading & using HANDE-created Hamiltonians."""
+"""System-derived class for reading & using HANDE-created Hamiltonians."""
 from .system import System
 
 import numpy as np

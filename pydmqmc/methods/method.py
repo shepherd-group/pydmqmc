@@ -1,3 +1,5 @@
+"""Base classes for the `methods` submodule."""
+
 from .. import systems
 from .. import utils
 

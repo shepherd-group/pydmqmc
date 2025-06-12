@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+"""Analytic FCI method."""
 
 from .method import Analytic
 from .. import systems

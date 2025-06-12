@@ -1,11 +1,10 @@
 """
-Functions & System class for using HANDE-created integrals (FCIDUMP files).
+System-derived class for using HANDE-created integrals (FCIDUMP files).
 
 Notes
 -----
 TODO I pulled `parallel_hamiltonian` out of this class for now
-for ease of development. All Numba-related functions should not
-be forgotton.
+for ease of development.
 """
 
 from .. import utils

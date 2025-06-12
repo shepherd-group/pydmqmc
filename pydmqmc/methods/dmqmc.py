@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+"""Iterative DMQMC and IP-DMQMC methods."""
 
 from .method import Iterative
 from .. import systems

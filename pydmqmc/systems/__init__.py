@@ -1,3 +1,5 @@
+"""Submodule for defining systems."""
+
 from .system import System
 
 from .hamiltonian import MatrixHamiltonian
