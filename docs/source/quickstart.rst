@@ -16,7 +16,7 @@ All :doc:`System<systems>` classes require an input file. The contents
 of this file are used to define the System's Hamiltonian according to the
 class used to load the file. For example, if you wish to use integrals in
 `FCIDUMP format <https://hande.readthedocs.io/en/stable/manual/integrals.html#fcidump-format>`_,
-use the :ref:`pydmqmc.systems.Integral<api-system-integral>` class.
+use the :ref:`Integral<api-system-integral>` class.
 
 The :doc:`Methods<methods>` classes require a System object at initialization.
 The various methods fall into two categories: :doc:`iterative<iterative>`
