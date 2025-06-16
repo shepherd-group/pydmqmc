@@ -1,14 +1,14 @@
 # coding: utf-8
 import numpy as np
 from pydmqmc.systems import Integral
-from pydmqmc.methods import AsymmetricBlochDMQMC
+from pydmqmc.methods import SymmetricBlochDMQMC
 
 sys = Integral("tests/inputs/integrals/STRICT-STO3G-STR-H4.FCIDUMP")
-mtd = AsymmetricBlochDMQMC(sys, rng_seed=42)
+mtd = SymmetricBlochDMQMC(sys, rng_seed=42)
 
 dm_diag = np.load("development/initial_dm.npy")
 
-# mtd.setup("fixed", diag=dm_diag)
+#mtd.setup("fixed", diag=dm_diag)
 
 mtd.setup("uniform-random", n_particles=int(1e5))
 print("Ref:", dm_diag)
@@ -22,6 +22,6 @@ mtd.run(final_beta=25,
         shift_by_rows=True
         )
 
-print(mtd.density_matrix.trace())
-print((mtd.density_matrix @ sys.hamiltonian).trace())
+print("Trace", mtd.density_matrix.trace())
+print("Energy", (mtd.density_matrix @ sys.hamiltonian).trace())
 #print((mtd.density_matrix @ mtd.system.hamiltonian).trace())

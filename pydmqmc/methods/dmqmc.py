@@ -196,7 +196,7 @@ class DensityMatrixQMC(Iterative):
             Turn on initiator level zero(?).
         flevel : bool, default False
             Free level; allow spawning to initiator level zero (from any site)
-            regardless of its population.
+            regardless of population.
         update_method : str, default "euler"
             One of the supported update methods from (TODO link to)
             Iterative.parse_method()
@@ -288,7 +288,21 @@ class DensityMatrixQMC(Iterative):
 
         return npsip
 
-    def _propagate(self, p, *args, **kwargs):
+    def _propagate(self, p, *args, **kwargs) -> Array:
+        """
+        Wrap `_propagate_core` with the expected call signature.
+
+        Numba-compiled functions do not have access to class attributes.
+        Call signature is dictated by the "integrator" functions.
+        """
+        return self._propagate_core(p,
+                                    self.system.hamiltonian,
+                                    self._S,
+                                    self._rng,
+                                    *args,
+                                    **kwargs)
+
+    def _propagate_core(self, p, *args, **kwargs):
         raise NotImplementedError(
             "DensityMatrixQMC does not have it's own psip propagation "
             "method defined. Please use either SymmetricBlochDMQMC or "
@@ -317,20 +331,6 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
             rng_seed: None | int | ArrayLike = None
             ) -> None:
         super().__init__(system, rng_seed)
-
-    def _propagate(self, p, *args, **kwargs) -> Array:
-        """
-        Wrap `_propagate_core` with the expected call signature.
-
-        Call signature is dictated by the "integrator" functions.
-        Numba-compiled functions do not have access to class attributes.
-        """
-        return self._propagate_core(p,
-                                    self.system.hamiltonian,
-                                    self._S,
-                                    self._rng,
-                                    *args,
-                                    **kwargs)
 
     @staticmethod
     @njit
@@ -372,6 +372,82 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
                             pr *= cutoff
 
                         dp[i, j] -= pr  # -sum_k!=j(p_ik * H_kj)
+
+        return dp
+
+
+class SymmetricBlochDMQMC(DensityMatrixQMC):
+    """
+    Density matrix quantum Monte Carlo using the assymetric Bloch equation.
+
+    TODO: write math here
+
+    Parameters
+    ----------
+    system : System object
+        The predefined System to run the model with.
+    rng_seed : int or array_like of ints, optional
+        Seed or sequence of seeds for the psuedo random number generator.
+        See :func:`numpy.random.default_rng`
+    """
+
+    def __init__(
+            self,
+            system: systems.System,
+            rng_seed: None | int | ArrayLike = None
+            ) -> None:
+        super().__init__(system, rng_seed)
+
+    @staticmethod
+    @njit
+    def _propagate_core(p: Array,
+                        H: Array,
+                        S: Array,
+                        rng,
+                        cutoff: float,
+                        nadd: float,
+                        ilvl: bool,
+                        flvl: bool):
+        dets = p.shape[0]
+        dp = np.zeros_like(p, dtype=np.float64)
+
+        for i in range(dets):
+            for j in range(dets):
+
+                Stot = H[0, 0] + S[i]
+                dp[i, j] = p[i, j]/2 * \
+                           (Stot - H[i, i])
+                dp[i, j] += p[i, j]/2 * \
+                            (Stot - H[j, j])
+
+                p_ij = abs(p[i, j])
+
+                for k in range(dets):
+
+                    # ichk1 = ilvl and i == k
+                    # ichk2 = flvl and i == j
+
+                    if k != j and (abs(p[i, k]) >= nadd or p_ij != 0.0):
+                        pr = 0.5 * p[i, k] * H[k, j]
+
+                        if abs(pr) < cutoff:
+                            pr /= cutoff
+                            pr += np.sign(pr) * rng.random()
+                            pr = np.trunc(pr)
+                            pr *= cutoff
+
+                        dp[i, j] -= pr
+
+                    if k != i and (abs(p[k, j]) >= nadd or p_ij != 0.0):
+                        pr = 0.5 * H[i, k] * p[k, j]
+
+                        if abs(pr) < cutoff:
+                            pr /= cutoff
+                            pr += np.sign(pr) * rng.random()
+                            pr = np.trunc(pr)
+                            pr *= cutoff
+
+                        dp[i, j] -= pr
 
         return dp
 

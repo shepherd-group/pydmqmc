@@ -10,4 +10,6 @@ Density-Matrix Quantum Monte Carlo
 Asymmetric Bloch Equation
 -------------------------
 
+.. autoclass:: pydmqmc.methods.SymmetricBlochDMQMC
+
 .. autoclass:: pydmqmc.methods.AsymmetricBlochDMQMC
