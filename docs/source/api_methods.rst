@@ -1,4 +1,4 @@
-.. _methods-api:
+.. _api-methods:
 
 Methods Submodule
 =================
@@ -7,4 +7,4 @@ Methods Submodule
     :maxdepth: 2
     :caption: Method Types:
 
-    dmqmc
+    api_dmqmc

@@ -1,4 +1,4 @@
-.. _systems-api:
+.. _api-systems:
 
 Systems Submodule
 =================

@@ -7,6 +7,7 @@ API Reference
     :maxdepth: 2
     :caption: Submodules:
 
-    systems
-    methods
-    utils
+    api_systems
+    api_methods
+    api_utils
+    api_base

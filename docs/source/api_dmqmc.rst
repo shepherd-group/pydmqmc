@@ -1,4 +1,4 @@
-.. _dmqmc-api:
+.. _api-dmqmc:
 
 Density-Matrix Quantum Monte Carlo
 ==================================
