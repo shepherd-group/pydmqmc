@@ -12,8 +12,12 @@ documentation for details.
 
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+    :maxdepth: 2
+    :caption: Contents:
 
-   installation
-   api
+    installation
+    quickstart
+    systems
+    methods
+    dev_guide
+    api

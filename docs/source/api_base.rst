@@ -9,11 +9,13 @@ to be used internally.
 .. contents:: Table of Contents
     :depth: 3
 
+.. _api-base-systems:
 Systems Submodule
 -----------------
 
 .. autoclass:: pydmqmc.systems.System
 
+.. _api-base-methods:
 Methods Submodule
 -----------------
 .. autosummary::
