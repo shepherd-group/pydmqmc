@@ -32,9 +32,23 @@ def matrix_system(request) -> MatrixHamiltonian:
     return sys
 
 
-@fixture
+@fixture(scope="module")
 def dmqmc(matrix_system) -> DensityMatrixQMC:
     mtd = DensityMatrixQMC(matrix_system)
+    return mtd
+
+
+@fixture(scope="module")
+def asym_dmqmc(integral_system_large):
+    """Make sure to call asym_dmqmc.reset_rng every use!"""
+    mtd = AsymmetricBlochDMQMC(integral_system_large)
+    return mtd
+
+
+@fixture(scope="module")
+def sym_dmqmc(integral_system_large):
+    """Make sure to call sym_dmqmc.reset_rng every use!"""
+    mtd = SymmetricBlochDMQMC(integral_system_large)
     return mtd
 
 
@@ -108,51 +122,49 @@ def test_DMQMC_run_bad_ilevel(dmqmc):
         dmqmc.run(25, 0.01, 10, 0.05, ilevel=0.1)
 
 
-def test_AsymmetricBlochDMQMC_basic(integral_system_large):
+def test_AsymmetricBlochDMQMC_basic(asym_dmqmc):
     """
     Implicitly tests dummy matrix created for ilevel = None and ilevel = 0.
     """
-    mtd = AsymmetricBlochDMQMC(integral_system_large,
-                               rng_seed=42)
-    mtd.setup("uniform-random", n_particles=int(1e5))
-    mtd.run(final_beta=25,
+    asym_dmqmc.reset_rng(42)
+    asym_dmqmc.setup("uniform-random", n_particles=int(1e5))
+    asym_dmqmc.run(final_beta=25,
         dbeta=0.001,
         cycles_per_shift=1000,
         shift_dampening=0.05,
         spawn_cutoff=0.01,
         shift_by_rows=False)
 
-    assert np.isclose(mtd.density_matrix.trace(), 67981.48932281222)
-    eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
+    assert np.isclose(asym_dmqmc.density_matrix.trace(), 67981.48932281222)
+    eng = (asym_dmqmc.density_matrix @ asym_dmqmc.system.hamiltonian).trace()
     assert np.isclose(eng, -141115.38639919003)
 
 
-def test_AsymmetricBlochDMQMC_rbr(integral_system_large):
-    mtd = AsymmetricBlochDMQMC(integral_system_large,
-                               rng_seed=42)
-    mtd.setup("uniform-random", n_particles=int(1e5))
-    mtd.run(final_beta=25,
+def test_AsymmetricBlochDMQMC_rbr(asym_dmqmc):
+    asym_dmqmc.reset_rng(42)
+    asym_dmqmc.setup("uniform-random", n_particles=int(1e5))
+    asym_dmqmc.run(final_beta=25,
         dbeta=0.001,
         cycles_per_shift=1000,
         shift_dampening=0.05,
         spawn_cutoff=0.01,
         shift_by_rows=True)
 
-    assert np.isclose(mtd.density_matrix.trace(), 22493.37887777515)
-    eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
+    assert np.isclose(asym_dmqmc.density_matrix.trace(), 22493.37887777515)
+    eng = (asym_dmqmc.density_matrix @ asym_dmqmc.system.hamiltonian).trace()
     assert np.isclose(eng, -46578.848998115835)
 
 
-def test_AsymmetricBlochDMQMC_ilevel_zero(integral_system_large):
+def test_AsymmetricBlochDMQMC_ilevel_zero(asym_dmqmc):
     """
     Test functionality of ilevel = 0 (and dummy matrix functionality).
 
-    Set n_add such that psip spawning from ilevel=0 is emphasized.
+    Set density matrix and n_add such that psip spawning 
+    using ilevel=0 is emphasized.
     """
-    mtd = AsymmetricBlochDMQMC(integral_system_large,
-                               rng_seed=42)
-    mtd.setup("deterministic")
-    mtd.run(final_beta=25,
+    asym_dmqmc.reset_rng(42)
+    asym_dmqmc.setup("deterministic")
+    asym_dmqmc.run(final_beta=25,
         dbeta=0.001,
         cycles_per_shift=1000,
         shift_dampening=0.05,
@@ -160,53 +172,90 @@ def test_AsymmetricBlochDMQMC_ilevel_zero(integral_system_large):
         n_add=3,  # strongly limit this spawn channel to emph ilevel
         ilevel=0)
 
-    assert np.isclose(mtd.density_matrix.trace(), 14.206870483605295)
-    eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
+    assert np.isclose(asym_dmqmc.density_matrix.trace(), 14.206870483605295)
+    eng = (asym_dmqmc.density_matrix @ asym_dmqmc.system.hamiltonian).trace()
     assert np.isclose(eng, -29.461275823860465)
 
 
-def test_AsymmetricBlochDMQMC_ilevel_nonzero(integral_system_large):
-    mtd = AsymmetricBlochDMQMC(integral_system_large,
-                               rng_seed=42)
-    mtd.setup("uniform-random", n_particles=int(1e5))
-    mtd.run(final_beta=25,
+def test_AsymmetricBlochDMQMC_ilevel_nonzero(asym_dmqmc):
+    asym_dmqmc.reset_rng(42)
+    asym_dmqmc.setup("uniform-random", n_particles=int(1e5))
+    asym_dmqmc.run(final_beta=25,
         dbeta=0.001,
         cycles_per_shift=1000,
         shift_dampening=0.05,
         spawn_cutoff=0.01,
         ilevel=2)
 
-    assert np.isclose(mtd.density_matrix.trace(), 67981.48986893434)
-    eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
+    assert np.isclose(asym_dmqmc.density_matrix.trace(), 67981.48986893434)
+    eng = (asym_dmqmc.density_matrix @ asym_dmqmc.system.hamiltonian).trace()
     assert np.isclose(eng, -141115.3875013612)
 
 
-def test_SymmetricBlochDMQMC_basic(integral_system_large):
-    mtd = SymmetricBlochDMQMC(integral_system_large,
-                              rng_seed=42)
-    mtd.setup("uniform-random", n_particles=int(1e5))
-    mtd.run(final_beta=25,
+def test_SymmetricBlochDMQMC_basic(sym_dmqmc):
+    sym_dmqmc.reset_rng(42)
+    sym_dmqmc.setup("uniform-random", n_particles=int(1e5))
+    sym_dmqmc.run(final_beta=25,
         dbeta=0.001,
         cycles_per_shift=1000,
         shift_dampening=0.05,
         spawn_cutoff=0.01,
         shift_by_rows=False)
 
-    assert np.isclose(mtd.density_matrix.trace(), 67926.38108893688)
-    eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
+    assert np.isclose(sym_dmqmc.density_matrix.trace(), 67926.38108893688)
+    eng = (sym_dmqmc.density_matrix @ sym_dmqmc.system.hamiltonian).trace()
     assert np.isclose(eng, -141000.99315753282)
 
-def test_SymmetricBlochDMQMC_rbr(integral_system_large):
-    mtd = SymmetricBlochDMQMC(integral_system_large,
-                              rng_seed=42)
-    mtd.setup("uniform-random", n_particles=int(1e5))
-    mtd.run(final_beta=25,
+
+def test_SymmetricBlochDMQMC_rbr(sym_dmqmc):
+    sym_dmqmc.reset_rng(42)
+    sym_dmqmc.setup("uniform-random", n_particles=int(1e5))
+    sym_dmqmc.run(final_beta=25,
         dbeta=0.001,
         cycles_per_shift=1000,
         shift_dampening=0.05,
         spawn_cutoff=0.01,
         shift_by_rows=True)
 
-    assert np.isclose(mtd.density_matrix.trace(), 20325.670796384442)
-    eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
+    assert np.isclose(sym_dmqmc.density_matrix.trace(), 20325.670796384442)
+    eng = (sym_dmqmc.density_matrix @ sym_dmqmc.system.hamiltonian).trace()
     assert np.isclose(eng, -42058.99263000391)
+
+
+def test_SymmetricBlochDMQMC_ilevel_zero(sym_dmqmc):
+    """
+    Test functionality of ilevel = 0 (and dummy matrix functionality).
+
+    Set density matrix and n_add such that psip spawning 
+    using ilevel=0 is emphasized.
+    """
+    sym_dmqmc.reset_rng(42)
+    sym_dmqmc.setup("deterministic")
+    sym_dmqmc.run(final_beta=25,
+                  dbeta=0.001,
+                  cycles_per_shift=1000,
+                  shift_dampening=0.05,
+                  spawn_cutoff=0.01,
+                  n_add=3,
+                  ilevel=0
+                  )
+
+    assert np.isclose(sym_dmqmc.density_matrix.trace(), 13.608499042255167)
+    eng = (sym_dmqmc.density_matrix @ sym_dmqmc.system.hamiltonian).trace()
+    assert np.isclose(eng, -28.215638757282814)
+
+
+def test_SymmetricBlochDMQMC_ilevel_nonzero(sym_dmqmc):
+    sym_dmqmc.reset_rng(42)
+    sym_dmqmc.setup("uniform-random", n_particles=int(1e5))
+    sym_dmqmc.run(final_beta=25,
+                dbeta=0.001,
+                cycles_per_shift=1000,
+                shift_dampening=0.05,
+                spawn_cutoff=0.01,
+                ilevel=2
+                )
+
+    assert np.isclose(sym_dmqmc.density_matrix.trace(), 67926.38161070104)
+    eng = (sym_dmqmc.density_matrix @ sym_dmqmc.system.hamiltonian).trace()
+    assert np.isclose(eng, -141000.99421006895)
