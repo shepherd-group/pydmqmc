@@ -278,6 +278,7 @@ class DensityMatrixQMC(Iterative):
 
                 # Only store |p_ij| > 1.0, otherwise
                 # round below this threshold in a non-biased manner
+                # (stochastic rounding)
                 replace = np.trunc(p +
                                    np.sign(p)*self._rng.random(p.shape))
                 np.where(np.abs(p) < 1.0,

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from numpy import linalg as LA
 
-
+# determinisitic
 def symmetric_bloch(A,B,dt):
     r'''
     Calculates the symmetric bloch equation given matrix A and B
@@ -25,7 +25,7 @@ def symmetric_bloch(A,B,dt):
     '''
     return -(dt/2.0)*(A @ B + B @ A)
 
-
+# deterministic
 def bloch(A,B,dt,rows=True):
     r'''
     Calculate the bloch equation given by matrix A and B, where A and B are
@@ -53,7 +53,7 @@ def bloch(A,B,dt,rows=True):
     else:
         return -dt*(A @ B)
 
-
+# deterministic
 def ip_bloch(A,B,A0,dt):
     r'''
     Calculate the bloch equation within the interaction picture framework.
@@ -72,7 +72,7 @@ def ip_bloch(A,B,A0,dt):
     '''
     return dt*(A0 @ B - B @ A)
 
-
+# deterministic
 def piecewise_ip_bloch(A,B,A0,dt,current_t,piecewise_t,symmetric=False):
     r'''
     A simple wrapper for piecewise interaction picture DMQMC
@@ -205,7 +205,8 @@ def unphysical_hamiltonian(hamiltonian):
     V = V_pos + V_neg + V_diags
     return V
 
-
+# used in drive_stochastic_symmetric_DMQMC.py and
+# drive_symmetric_dmqmc_stochastic_rounding_sign_seperated.py
 def seperate_signs(array, diagonals=False):
     r'''
     Takes a NumPy array and seperates it into two matrix's one for each sign
@@ -351,6 +352,9 @@ def system_initialize(hamilf, shift=0, return_raw=False, ip=False):
     else:
         return H, Heval, HS
 
+####
+# DONE copied into DensityMatrixQMC class(es)
+####
 
 def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
                   defined_thermal_weights=None):
@@ -460,6 +464,10 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
     return f, occrows, df
 
 
+####
+# SKIP functionality replicated in main-ex-level-0.py & ported from there
+####
+
 def update_shift(shift, nw, nw_old, zeta, tau, cycles, hamil, fci_dets):
     r'''
     Update the shift in the classical way.
@@ -486,6 +494,10 @@ def update_shift(shift, nw, nw_old, zeta, tau, cycles, hamil, fci_dets):
     return hamil, new_shift
 
 
+####
+# SKIP functionality replicated in main-ex-level-0.py & ported from there
+####
+
 def stochastic_round_f(f):
     r'''
     Stochastically rounds a single float.
@@ -499,6 +511,9 @@ def stochastic_round_f(f):
     i = f + np.sign(f)*np.random.random()
     return np.trunc(i)
 
+####
+# SKIP functionality replicated when porting main-ex-level-0.py (though w/out variable threshold)
+####
 
 def stochastic_round(array, threshold=1.0):
     r'''
