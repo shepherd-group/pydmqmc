@@ -6,7 +6,7 @@ from pydmqmc.methods import FullConfigurationInteraction
 from pydmqmc.systems import MatrixHamiltonian, Integral
 
 
-@fixture
+@fixture(scope="module")
 def matrix_system(request) -> MatrixHamiltonian:
     file = join(dirname(request.path),
                 "..", "inputs", "hamiltonians", "EQUILIBRIUM-H4-STO3G.hamil")
@@ -14,7 +14,7 @@ def matrix_system(request) -> MatrixHamiltonian:
     return sys
 
 
-@fixture
+@fixture(scope="module")
 def integral_system(request) -> Integral:
     file = join(dirname(request.path),
                 "..", "inputs", "integrals", "H2-STO-3G-0.74Ang.fcidump")

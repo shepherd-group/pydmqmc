@@ -7,14 +7,14 @@ from numpy.typing import NDArray as Array
 from pydmqmc.systems import MatrixHamiltonian
 
 
-@fixture
+@fixture(scope="module")
 def input_file(request) -> str:
     file = join(dirname(request.path),
                 "..", "inputs", "hamiltonians", "EQUILIBRIUM-H4-STO3G.hamil")
     return file
 
 
-@fixture
+@fixture(scope="module")
 def known_diag() -> Array:
     values = [
        -2.11534977839243    , -1.13379264192082    ,

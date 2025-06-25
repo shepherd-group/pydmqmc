@@ -4,7 +4,7 @@ from pytest import fixture, raises
 from pydmqmc.utils import generate_ijab_symmetries_array
 
 
-@fixture
+@fixture(scope="module")
 def good_indexes() -> tuple[int]:
     i = 1
     j = 0

@@ -7,34 +7,34 @@ from numpy.typing import NDArray as Array
 from pydmqmc.systems import Integral
 
 
-@fixture
+@fixture(scope="module")
 def input_file(request) -> str:
     file = join(dirname(request.path),
                 "..", "inputs", "integrals", "H2-STO-3G-0.74Ang.fcidump")
     return file
 
 
-@fixture
+@fixture(scope="module")
 def integral_system(input_file) -> Integral:
     sys = Integral(input_file)
     return sys
 
 
-@fixture
+@fixture(scope="module")
 def symmetry_input_file(request) -> str:
     file = join(dirname(request.path),
                 "..", "inputs", "integrals", "c2h4_ccpvdz.fcidump")
     return file
 
 
-@fixture
+@fixture(scope="module")
 def hamiltonian() -> Array:
     H = np.array([[-1.11675931,  0.18121046],
                   [ 0.18121046,  0.46261815]])
     return H
 
 
-@fixture
+@fixture(scope="module")
 def eig() -> Array:
     return np.array([-0.5785538598290489, -0.5785538598290489,
                      0.6711434915572507,  0.6711434915572507])

@@ -4,24 +4,24 @@ from pytest import fixture
 from pydmqmc.utils.bitarray import *
 
 
-@fixture
+@fixture(scope="module")
 def bitarrays():
     ba1 = np.array([1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0])
     ba2 = np.array([1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0])
     return (ba1, ba2)
 
 
-@fixture
+@fixture(scope="module")
 def norbitals(bitarrays):
     return bitarrays[0].size
 
 
-@fixture
+@fixture(scope="module")
 def integers():
     return [63, 363]
 
 
-@fixture
+@fixture(scope="module")
 def label():
     return 1486911
 
