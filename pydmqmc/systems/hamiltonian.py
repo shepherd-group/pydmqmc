@@ -29,11 +29,6 @@ class MatrixHamiltonian(System):
     --------
     Support for complex Hamiltonians is not yet implemented.
     Setting `is_complex = True` will raise `NotImplementedError`.
-
-    Notes
-    -----
-    The `noninteracting_hamiltonian` will be `None`
-    unless `use_ip` is specified when calling `initialize()`.
     """
 
     def __init__(

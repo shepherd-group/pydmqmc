@@ -226,11 +226,6 @@ class Integral(System):
         """Array of bitarrays in the Hilbert space."""
         return self._bitarrays
 
-    @property
-    def excitation_matrix(self) -> Array:
-        """An `n_determinants`-square matrix of excitations between i and j."""
-        return self._nex_mat
-
     def _read_integral_file(self) -> None:
         """Read in an FCIDUMP file."""
         with open(self.input_file, 'r') as open_int_file:
@@ -470,13 +465,14 @@ class Integral(System):
         All determinints spanned by the system within the point-group symmetry
         will be generated.
 
-        It first generates a reference bitarry for each of the spin channels
-        separately. Next, it generates all unqiue combinations of 1's & 0's
-        for that reference. Finally, it loops through all the unique
-        concatenations of the alpha & beta bitarrays and check that the point
-        group symmetry of the concatenated bitarray falls within the
-        system's possible point groups. If the concatenated bitarray
-        has an allowed point group symmetry, that determinant is stored.
+        A reference bitarry is first generated separately for each of
+        the spin channels. Next, all unqiue combinations of 1's & 0's are
+        generated for that reference. Finally, all the unique
+        concatenations of the alpha & beta bitarrays are iterated over,
+        checking that the point group symmetry of the concatenated bitarray
+        falls within the system's possible point groups.
+        If the concatenated bitarray has an allowed point group symmetry,
+        that determinant is stored.
 
         Warnings
         --------
@@ -604,7 +600,7 @@ class Integral(System):
         Warnings
         --------
         This function will only have an effect the first time it is run.
-        If the `hamiltonian` member is not `None`, this
+        If the `excitation_matrix` member is not `None`, this
         function will return without making any changes.
         """
         if self._nex_mat is not None:

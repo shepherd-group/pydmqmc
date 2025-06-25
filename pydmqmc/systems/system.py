@@ -32,6 +32,8 @@ class System:
         self._H = None
         self._ndets = None
 
+        self._nex_mat = None
+
         return
 
     @property
@@ -59,6 +61,11 @@ class System:
         """Size of the Hilbert space."""
         return self._ndets
 
+    @property
+    def excitation_matrix(self) -> Array:
+        """An `n_determinants`-square matrix of excitations between i and j."""
+        return self._nex_mat
+
     def zero_hamiltonian(self) -> None:
         """
         Subtract the Hartree-Fock energy from the Hamiltonian.
@@ -71,3 +78,9 @@ class System:
         else:
             raise RuntimeError(
                 "The Hamiltonian is currently `None` and cannot be shifted.")
+
+    def generate_excitation_matrix(self):
+        """Replace with child-specific method."""
+        raise NotImplementedError(f"{self.__class__.__name__} does not "
+                                  "currently have a method for generating the "
+                                  "excitation matrix. Please send patches!")

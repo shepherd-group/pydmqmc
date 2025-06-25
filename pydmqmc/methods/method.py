@@ -31,8 +31,8 @@ class Method:
     def run(self) -> None:
         """TODO: Write run docstring here."""
         raise NotImplementedError(
-            'The run function is not currently implemented; '
-            'please check your method or send patches!'
+            f'The run method for {self.__class__.__name__} is not '
+            'currently implemented; please check your method or send patches!'
         )
 
         return
@@ -69,8 +69,8 @@ class Iterative(Method):
     def setup(self) -> None:
         """TODO: Write setup docstring here."""
         raise NotImplementedError(
-            'The setup function is not currently implemented; '
-            'please check your method or send patches!'
+            f'The setup method for {self.__class__.__name__} is not '
+            'currently implemented; please check your method or send patches!'
         )
 
         return

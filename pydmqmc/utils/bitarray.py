@@ -113,6 +113,7 @@ def extract_bitarrays_from_label(label: int, norb: int) -> Array:
 
 
 def get_nex(b1: Array, b2: Array) -> int:
+    """Return the number of excitations between two states."""
     return int(np.count_nonzero(b1 != b2)/2)
 
 

@@ -6,11 +6,12 @@ Quickstart Guide
 Each pydmqmc simulation has three components: the :doc:`System<systems>`,
 the :doc:`simulation Method<methods>`, and
 outputs derived from the simulation. These components are encapsulated
-in three different submodules: :doc:`systems<api_systems>`, 
-the :doc:`methods<api_methods>`,
+in three different submodules: :doc:`Systems API<api_systems>`, 
+the :doc:`Methods API<api_methods>`,
 and **not yet implemented**.
 You'll need to instantiate an object from each submodule in order to execute
-a full pydmqmc simulation.
+a full pydmqmc simulation. See the additional pages within this documentation
+to better understand your options.
 
 All :doc:`System<systems>` classes require an input file. The contents 
 of this file are used to define the System's Hamiltonian according to the

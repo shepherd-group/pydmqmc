@@ -8,6 +8,8 @@ from numba import njit
 
 from numpy.typing import ArrayLike, NDArray as Array
 
+import warnings  # remove when no longer in use
+
 
 class DensityMatrixQMC(Iterative):
     """
@@ -158,9 +160,8 @@ class DensityMatrixQMC(Iterative):
             shift_dampening: float,
             shift_by_rows: bool = False,
             spawn_cutoff: float = 0.01,
-            n_add: int | None = None,
-            ilevel: bool = False,
-            flevel: bool = False,
+            n_add: float | None = None,
+            ilevel: int | None = None,
             update_method: str = "euler",
             ):
         r"""
@@ -190,13 +191,15 @@ class DensityMatrixQMC(Iterative):
             site :math:`|\partial p_{ik}| > \mathtt{spawn\_cutoff}`.
         n_add : float, default None
             If not `None`, utilize the initiator approximation
-            and limit psip spawning at denisty matrix site
-            :math:`p_{ik}` to those :math:`|p_{ik}| \ge \mathtt{n_add}`.
-        ilevel : bool, default False
-            Turn on initiator level zero(?).
-        flevel : bool, default False
-            Free level; allow spawning to initiator level zero (from any site)
-            regardless of population.
+            and only allow spawning from sites :math:`p_{ij}` to empty
+            sites :math:`p_{ik}` if :math:`|p_{ij}| > \mathtt{n_add}`.
+        ilevel : int, default None
+            If not `None`, utilize the initiator level approximation,
+            allowing sites :math:`p_{ij}` to spawn if
+            the difference in number of excitations between :math:`i`
+            and :math:`j` is less than `ilevel`. Requires the system's
+            `excitation_matrix` to be defineable
+            if :math:`\texttt{ilevel} > 0`.
         update_method : str, default "euler"
             One of the supported update methods from (TODO link to)
             Iterative.parse_method()
@@ -204,6 +207,8 @@ class DensityMatrixQMC(Iterative):
         Notes
         -----
         The shift update follows Equation 16 in Blunt et al. 2014 [1]_.
+        For more about the various approximations available, see
+        :ref:`initiator-approximations`.
 
         References
         ----------
@@ -213,11 +218,34 @@ class DensityMatrixQMC(Iterative):
         if self._density_matrix is None:
             raise RuntimeError("You must first run the setup() method!")
 
+        if ilevel is not None and not isinstance(ilevel, int):
+            raise TypeError("Parameter ilevel must be type int; "
+                            f"supplied value is type {type(ilevel)}.")
+
         # While it makes sense for a parameter to be None when a feature
         # is disabled, Numba-compiled `propagate` methods in child classes
-        # will require a float value
+        # will require numeric values
         if n_add is None:
             n_add = 0.0
+        if ilevel is None:
+            ilevel = -1
+
+        if ilevel > 0:
+            self.system.generate_excitation_matrix()
+            n_ex = self.system.excitation_matrix
+            # Please remove this warning after the methods have been verified
+            warnings.warn(f"Initiator level > 0 has not been "
+                          "robustly verified. Please check for correctness "
+                          "in all DMQMC child methods and remove this "
+                          "warning.")
+        else:
+            # Make a dummy matrix with 0's on the diagonal
+            # This allows classes w/ undefied generate_excitation_matrix()
+            # to still work with ilevel 0. It also keeps Numba happy for
+            # ilevel = None
+            n_ex = np.ones((self.system.n_determinants, 
+                            self.system.n_determinants), dtype=np.int64) \
+                 - np.eye(self.system.n_determinants)
 
         n_shifts = int(final_beta/(dbeta*cycles_per_shift))
         update_func = super().parse_method(update_method)
@@ -246,8 +274,7 @@ class DensityMatrixQMC(Iterative):
                                 p,      # y
                                 dbeta,  # stepsize dt
                                 spawn_cutoff, n_add,  # args for func
-                                ilevel, flevel  # args for func
-                                )
+                                ilevel, n_ex)  # args for func
 
                 # Only store |p_ij| > 1.0, otherwise
                 # round below this threshold in a non-biased manner
@@ -306,7 +333,7 @@ class DensityMatrixQMC(Iterative):
         raise NotImplementedError(
             "DensityMatrixQMC does not have it's own psip propagation "
             "method defined. Please use either SymmetricBlochDMQMC or "
-            "AsymmetricBlochDMQMC."
+            "AsymmetricBlochDMQMC, or a custom child class."
         )
 
 
@@ -340,8 +367,8 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
                         rng,
                         cutoff: float,
                         nadd: float,
-                        ilvl: bool,
-                        flvl: bool):
+                        ilvl: int,
+                        nex: Array):
         dets = p.shape[0]
         dp = np.zeros_like(p, dtype=np.float64)
 
@@ -354,15 +381,20 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
 
                 p_ij = abs(p[i, j])
 
+                # Iterate over sites that may spawn here at p_ij
                 for k in range(dets):
 
                     if k == j:
                         continue
 
-                    ichk1 = ilvl and i == k
-                    ichk2 = flvl and i == j
+                    # While the docs write the rules as p_ij spawning at p_ik,
+                    # we are actually checking if p_ik will
+                    # spawn at/contribute to p_ij through the action of H_kj.
 
-                    if abs(p[i, k]) >= nadd or p_ij != 0.0 or ichk1 or ichk2:
+                    # The excitation matrix is not required for ilvl 0.
+                    ichk = nex[i, k] <= ilvl
+
+                    if abs(p[i, k]) > nadd or p_ij != 0.0 or ichk:
                         pr = p[i, k] * H[k, j]
 
                         if abs(pr) < cutoff:
@@ -406,8 +438,8 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
                         rng,
                         cutoff: float,
                         nadd: float,
-                        ilvl: bool,
-                        flvl: bool):
+                        ilvl: int,
+                        nex: Array):
         dets = p.shape[0]
         dp = np.zeros_like(p, dtype=np.float64)
 
@@ -416,38 +448,48 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
 
                 Stot = H[0, 0] + S[i]
                 dp[i, j] = p[i, j]/2 * \
-                           (Stot - H[i, i])
+                    (Stot - H[i, i])
                 dp[i, j] += p[i, j]/2 * \
-                            (Stot - H[j, j])
+                    (Stot - H[j, j])
 
                 p_ij = abs(p[i, j])
 
+                # Iterate over sites that may spawn here at p_ij
                 for k in range(dets):
 
-                    # ichk1 = ilvl and i == k
-                    # ichk2 = flvl and i == j
+                    if k != j:
+                        # While the docs write the rules as p_ij spawning at
+                        # p_ik, we are actually checking if p_ik will
+                        # spawn at/contribute to p_ij thru the action of H_kj.
 
-                    if k != j and (abs(p[i, k]) >= nadd or p_ij != 0.0):
-                        pr = 0.5 * p[i, k] * H[k, j]
+                        ichk = nex[i, k] <= ilvl
 
-                        if abs(pr) < cutoff:
-                            pr /= cutoff
-                            pr += np.sign(pr) * rng.random()
-                            pr = np.trunc(pr)
-                            pr *= cutoff
+                        if abs(p[i, k]) > nadd or p_ij != 0.0 or ichk:
+                            pr = 0.5 * p[i, k] * H[k, j]
 
-                        dp[i, j] -= pr
+                            if abs(pr) < cutoff:
+                                pr /= cutoff
+                                pr += np.sign(pr) * rng.random()
+                                pr = np.trunc(pr)
+                                pr *= cutoff
 
-                    if k != i and (abs(p[k, j]) >= nadd or p_ij != 0.0):
-                        pr = 0.5 * H[i, k] * p[k, j]
+                            dp[i, j] -= pr
 
-                        if abs(pr) < cutoff:
-                            pr /= cutoff
-                            pr += np.sign(pr) * rng.random()
-                            pr = np.trunc(pr)
-                            pr *= cutoff
+                    if k != i:
+                        # Now we check if p_kj can spwan at p_ij thru H_ik.
 
-                        dp[i, j] -= pr
+                        ichk = nex[k, j] <= ilvl
+
+                        if abs(p[k, j]) >= nadd or p_ij != 0.0:
+                            pr = 0.5 * H[i, k] * p[k, j]
+
+                            if abs(pr) < cutoff:
+                                pr /= cutoff
+                                pr += np.sign(pr) * rng.random()
+                                pr = np.trunc(pr)
+                                pr *= cutoff
+
+                            dp[i, j] -= pr
 
         return dp
 

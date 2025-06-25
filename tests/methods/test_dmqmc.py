@@ -8,15 +8,7 @@ from pydmqmc.methods import DensityMatrixQMC, \
         SymmetricBlochDMQMC
 
 
-@fixture
-def matrix_system(request) -> MatrixHamiltonian:
-    file = join(dirname(request.path),
-                "..", "inputs", "hamiltonians", "EQUILIBRIUM-H4-STO3G.hamil")
-    sys = MatrixHamiltonian(file)
-    return sys
-
-
-@fixture
+@fixture(scope="module")
 def integral_system_small(request) -> Integral:
     file = join(dirname(request.path),
                 "..", "inputs", "integrals", "H2-STO-3G-0.74Ang.fcidump")
@@ -24,11 +16,19 @@ def integral_system_small(request) -> Integral:
     return sys
 
 
-@fixture
+@fixture(scope="module")
 def integral_system_large(request) -> Integral:
     file = join(dirname(request.path),
                 "..", "inputs", "integrals", "STRICT-STO3G-STR-H4.FCIDUMP")
     sys = Integral(file)
+    return sys
+
+
+@fixture(scope="module")
+def matrix_system(request) -> MatrixHamiltonian:
+    file = join(dirname(request.path),
+                "..", "inputs", "hamiltonians", "EQUILIBRIUM-H4-STO3G.hamil")
+    sys = MatrixHamiltonian(file)
     return sys
 
 
@@ -89,12 +89,11 @@ def test_DMQMC_setup_unknown(dmqmc):
         dmqmc.setup("bad-method")
 
 
-def test_DMQMC_run(matrix_system):
-    mtd = DensityMatrixQMC(matrix_system)
-    mtd.setup("deterministic")
+def test_DMQMC_run(dmqmc):
+    dmqmc.setup("deterministic")
 
     with raises(NotImplementedError):
-        mtd.run(25, 0.01, 10, 0.05)
+        dmqmc.run(25, 0.01, 10, 0.05)
 
 
 def test_DMQMC_run_no_setup(dmqmc):
@@ -102,7 +101,17 @@ def test_DMQMC_run_no_setup(dmqmc):
         dmqmc.run(25, 0.01, 10, 0.05)
 
 
+def test_DMQMC_run_bad_ilevel(dmqmc):
+    dmqmc.setup("deterministic")
+
+    with raises(TypeError):
+        dmqmc.run(25, 0.01, 10, 0.05, ilevel=0.1)
+
+
 def test_AsymmetricBlochDMQMC_basic(integral_system_large):
+    """
+    Implicitly tests dummy matrix created for ilevel = None and ilevel = 0.
+    """
     mtd = AsymmetricBlochDMQMC(integral_system_large,
                                rng_seed=42)
     mtd.setup("uniform-random", n_particles=int(1e5))
@@ -117,7 +126,8 @@ def test_AsymmetricBlochDMQMC_basic(integral_system_large):
     eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
     assert np.isclose(eng, -141115.38639919003)
 
-def test_AsymmetricBlochDMQMC_basic_rbr(integral_system_large):
+
+def test_AsymmetricBlochDMQMC_rbr(integral_system_large):
     mtd = AsymmetricBlochDMQMC(integral_system_large,
                                rng_seed=42)
     mtd.setup("uniform-random", n_particles=int(1e5))
@@ -132,7 +142,44 @@ def test_AsymmetricBlochDMQMC_basic_rbr(integral_system_large):
     eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
     assert np.isclose(eng, -46578.848998115835)
 
-# test initiator and free approximations
+
+def test_AsymmetricBlochDMQMC_ilevel_zero(integral_system_large):
+    """
+    Test functionality of ilevel = 0 (and dummy matrix functionality).
+
+    Set n_add such that psip spawning from ilevel=0 is emphasized.
+    """
+    mtd = AsymmetricBlochDMQMC(integral_system_large,
+                               rng_seed=42)
+    mtd.setup("deterministic")
+    mtd.run(final_beta=25,
+        dbeta=0.001,
+        cycles_per_shift=1000,
+        shift_dampening=0.05,
+        spawn_cutoff=0.01,
+        n_add=3,  # strongly limit this spawn channel to emph ilevel
+        ilevel=0)
+
+    assert np.isclose(mtd.density_matrix.trace(), 14.206870483605295)
+    eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
+    assert np.isclose(eng, -29.461275823860465)
+
+
+def test_AsymmetricBlochDMQMC_ilevel_nonzero(integral_system_large):
+    mtd = AsymmetricBlochDMQMC(integral_system_large,
+                               rng_seed=42)
+    mtd.setup("uniform-random", n_particles=int(1e5))
+    mtd.run(final_beta=25,
+        dbeta=0.001,
+        cycles_per_shift=1000,
+        shift_dampening=0.05,
+        spawn_cutoff=0.01,
+        ilevel=2)
+
+    assert np.isclose(mtd.density_matrix.trace(), 67981.48986893434)
+    eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
+    assert np.isclose(eng, -141115.3875013612)
+
 
 def test_SymmetricBlochDMQMC_basic(integral_system_large):
     mtd = SymmetricBlochDMQMC(integral_system_large,
@@ -149,7 +196,7 @@ def test_SymmetricBlochDMQMC_basic(integral_system_large):
     eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
     assert np.isclose(eng, -141000.99315753282)
 
-def test_SymmetricBlochDMQMC_basic(integral_system_large):
+def test_SymmetricBlochDMQMC_rbr(integral_system_large):
     mtd = SymmetricBlochDMQMC(integral_system_large,
                               rng_seed=42)
     mtd.setup("uniform-random", n_particles=int(1e5))

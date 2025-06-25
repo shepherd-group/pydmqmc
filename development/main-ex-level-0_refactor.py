@@ -142,7 +142,7 @@ def main(clargs):
     nadd = 3.0 if do_init == 1 else 0.0  # run -> propagate
     spawn_cutoff = 0.01  # run -> propagate
     tau = 0.001  # run 
-    ncycles = 10  # run 
+    ncycles = 1000  # run 
     final_beta = 25.0  # run
     nreports = int(final_beta/(tau*ncycles))  # run
     zeta = 0.05  # estimates
@@ -151,6 +151,7 @@ def main(clargs):
     rbr = 1 if row_by_row else None  # estimates
     ilevel = True if do_ilvl else False  # run -> propagate
     flevel = True if do_flvl else False  # run -> propagate
+    print("rng:", rng, "rbr:", do_rbr, "save:", do_save, "n_add:", nadd, "ilvl:", do_ilvl, "flvl:", do_flvl)
 
     p = initialize(H, initial_particles)
     S = np.zeros(H.shape[0], dtype=np.float64)

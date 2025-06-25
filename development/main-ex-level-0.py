@@ -136,7 +136,7 @@ def main(clargs):
     df = {'beta': [], 'shift': [], 'trace': [], 'pH': [], 'nw': []}
 
     sys = readin(
-            int_file = 'tests/inputs/integrals/STRICT-STO3G-STR-H4.FCIDUMP',
+            int_file = '../tests/inputs/integrals/STRICT-STO3G-STR-H4.FCIDUMP',
             hamiltonian = True,
         )
 
@@ -155,6 +155,7 @@ def main(clargs):
     rbr = 1 if row_by_row else None
     ilevel = True if do_ilvl else False
     flevel = True if do_flvl else False
+    print("rng:", rng, "rbr:", do_rbr, "save:", do_save, "n_add:", nadd, "ilvl:", do_ilvl, "flvl:", do_flvl)
 
     p = initialize(H, initial_particles)
     np.save("initial_dm.npy", np.diag(p))
