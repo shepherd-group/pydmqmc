@@ -1,7 +1,7 @@
-"""Iterative DMQMC and IP-DMQMC methods."""
+"""Iterative DMQMC methods using symmetric & asymmetric Bloch equations."""
 
 from .method import Iterative
-from .. import systems
+from ..systems import System
 
 import numpy as np
 from numba import njit
@@ -29,7 +29,7 @@ class DensityMatrixQMC(Iterative):
 
     def __init__(
             self,
-            system: systems.System,
+            system: System,
             rng_seed: None | int | ArrayLike = None
             ) -> None:
         super().__init__(system)
@@ -68,7 +68,7 @@ class DensityMatrixQMC(Iterative):
     def setup(self,
               initialization: str = "deterministic",
               n_particles: int = 1,
-              diag: ArrayLike | None = None,
+              fixed_diagonal: ArrayLike | None = None,
               ) -> None:
         """
         Specify conditions for the DMQMC realization.
@@ -86,7 +86,7 @@ class DensityMatrixQMC(Iterative):
             Must be one of:
 
             - deterministic
-            - uniform-random
+            - random-uniform
             - fixed
 
         n_particles : int, default 1
@@ -104,19 +104,19 @@ class DensityMatrixQMC(Iterative):
             elements. This works out to be just the identity
             matrix and is the canonical starting point for DMQMC.
 
-        uniform-random:
+        random-uniform:
             Randomly selects diagonal determinants and adds
             a weight of 1 to that determinant. This can happen
             multiple times. This is how HANDE initializes the
             density matrix.
 
         fixed:
-            Takes the optional parameter `diag` which is used as the
+            Takes the optional parameter `fixed_diagonal` which is used as the
             diagonal of the density matrix.
         """
         self._density_matrix = self._init_dm(initialization,
                                              n_particles,
-                                             diag)
+                                             fixed_diagonal)
         self._S = np.zeros(self.system.n_determinants, dtype=np.float64)
 
     def _init_dm(self,
@@ -135,7 +135,7 @@ class DensityMatrixQMC(Iterative):
         if init == 'deterministic':
             randomrows = np.ones(self.system.n_determinants)
 
-        elif init == 'uniform-random':
+        elif init == 'random-uniform':
             randomrows = self._rng.choice(self.system.n_determinants,
                                           size=particles)
             randomrows = np.bincount(randomrows,
@@ -186,7 +186,7 @@ class DensityMatrixQMC(Iterative):
         shift_by_rows : bool, default false
             If True, calculate a shift for each row of the Hamiltonian.
             If False, calculate one shift for the entire Hamiltonian.
-        spawn_cuttoff : float, default 0.01
+        spawn_cutoff : float, default 0.01
             Only accumulate psips if the change in a density matrix
             site :math:`|\partial p_{ik}| > \mathtt{spawn\_cutoff}`.
         n_add : float, default None
@@ -355,7 +355,7 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
 
     def __init__(
             self,
-            system: systems.System,
+            system: System,
             rng_seed: None | int | ArrayLike = None
             ) -> None:
         super().__init__(system, rng_seed)
@@ -426,7 +426,7 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
 
     def __init__(
             self,
-            system: systems.System,
+            system: System,
             rng_seed: None | int | ArrayLike = None
             ) -> None:
         super().__init__(system, rng_seed)
@@ -493,128 +493,3 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
                             dp[i, j] -= pr
 
         return dp
-
-
-class IPDensityMatrixQMC(DensityMatrixQMC):
-    """
-    Interaction-picture density matrix quantum Monte Carlo.
-
-    Parameters
-    ----------
-    system : System object
-        The predefined System to run the model with.
-    """
-
-    def __init__(
-            self,
-            system: systems.System,
-            ) -> None:
-        super().__init__(system)
-
-    def setup(self,
-              initialization: str = "deterministic",
-              n_particles: int = 1,
-              target_beta: float = 0.0,
-              defined_thermal_weights: ArrayLike | None = None,
-              ) -> None:
-        """
-        Set parameters for each of the realizations.
-
-        Parameters
-        ----------
-        initialization : str, default "deterministic"
-            Initialization method for the density matrix. See Notes for more.
-            Must be one of:
-
-            - deterministic-thermal
-            - uniform-thermal
-            - thermal-thermal
-            - thermal-uniform
-
-        n_particles : int, default 1
-            TODO what does this mean
-        target_beta : float, default 0.0
-            Ignored if `defined_thermal_weights` is not `None`.
-        defined_thermal_weights : array_like, optional
-            Supply pre-defined thermal weights instead of using the
-            auto-generated weights. Useful for, e.g., supplying FCI weights.
-
-        Notes
-        -----
-        deterministic-thermal:
-            Rows initialized with the thermal Hartree-Fock
-            weights on the diagonal elements. The canonical
-            starting point for IP-DMQMC.
-
-        uniform-thermal:
-            Uniformly selects random diagonal determinants and
-            initalizes that row with a weight proportional to the
-            thermal weight from FCI Hamiltonian.
-
-        thermal-thermal:
-            Selects random rows with a probability proportional
-            to the thermal weight from the FCI Hamiltonian.
-            This is not the correct way to initalize IP-DMQMC.
-
-        thermal-uniform:
-            Selects random rows based on probabilities proportional
-            to the thermal weight of the FCI Hamiltonian diagonal
-            elements. Then occupies that determinant with 1 walker.
-        """
-        self._init_dm(initialization,
-                      n_particles,
-                      target_beta,
-                      defined_thermal_weights)
-
-    def _init_dm(self,
-                 init: str,
-                 particles: int,
-                 target: float,
-                 thermal_weights: ArrayLike | None,
-                 ):
-        """
-        CK Note: As noted in the docstring for DMQMC._init_dm,
-        I made a separate `IP_DMQMC` class that supports different
-        initializations for the density matrix, as the original
-        functions.py::initialize_dm docstring implied these methods
-        were suited for IP-DMQMC and it made conceptual sense
-        to separate DMQMC and IP-DMQMC into separate classes.
-        """
-        if thermal_weights is not None:
-            thermal_weights = thermal_weights
-        elif 'thermal' in init:
-            thermal_weights = np.exp(-target*np.diag(self.system.hamiltonian))
-            thermal_weights /= thermal_weights.sum()
-
-        if init == 'deterministic-thermal':
-            randomrows = np.copy(thermal_weights)
-        elif init == 'uniform-thermal':
-            randomrows = self._rng.choice(self.system.n_determinants,
-                                          size=particles)
-            randomrows = np.bincount(randomrows,
-                                     minlength=self.system.n_determinants
-                                     ).astype(np.float64)
-            randomrows *= thermal_weights
-        elif init == 'thermal-thermal':
-            randomrows = self._rng.choice(self.system.n_determinants,
-                                          size=particles,
-                                          p=thermal_weights)
-            randomrows = np.bincount(randomrows,
-                                     minlength=self.system.n_determinants
-                                     ).astype(np.float64)
-            randomrows *= thermal_weights
-        elif init == 'thermal-uniform':
-            randomrows = self._rng.choice(self.system.n_determinants,
-                                          size=particles,
-                                          p=thermal_weights)
-            randomrows = np.bincount(randomrows,
-                                     minlength=self.system.n_determinants
-                                     ).astype(np.float64)
-        else:
-            print(' Unknown initalization method:', init)
-            print(' Exiting...')
-            return exit()
-
-        f = np.diag(randomrows)
-        occrows = np.count_nonzero(f)
-        return f, occrows

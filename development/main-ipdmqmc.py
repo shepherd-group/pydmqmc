@@ -11,7 +11,7 @@ from scipy.optimize import newton
 
 @nb.njit
 def set_numba_seed(rng):
-    np.random.seed(rng+10000)
+    np.random.seed(rng)
 
 
 @nb.njit
@@ -34,6 +34,7 @@ def propagate(dt, p, H, S, nadd, cutoff, ilvl, flvl):
     for i in range(dets):
         for j in range(dets):
 
+            # different; otherwise based on asymbloch
             dp[i,j] -= p[i,j] * dt * (-H[i,i] + H[j,j] - S[i])
 
             p_ij = abs(p[i,j])
@@ -93,7 +94,7 @@ def store_row_data(p, H, S, df, b):
     df['nw'].append(np.copy(nw))
     return df
 
-
+# different initializations
 def initialize(H, initial, bars, eig, nel, tb, bitints, spawn_cutoff):
     ''' In IP-DMQMC we initialize to exp(-\\beta_T H^{(0)}), which is done by
     sampling exp(-\\beta_T H`), where H` = \sum_{|D>} \epsilon_i, then we
@@ -172,8 +173,8 @@ def report(b, S, tr, en, nw, oc):
 def main(clargs):
 
     rng, betaT, do_rbr, do_save, do_init, do_ilvl, do_flvl = [int(k) for k in clargs]
-    rng = int(rng*26) + betaT
-    rng += 1000
+    #rng = int(rng*26) + betaT
+    #rng += 1000
 
     np.random.seed(rng)
     set_numba_seed(rng)
@@ -186,9 +187,12 @@ def main(clargs):
         )
 
     H = np.copy(sys.H)
+
+    # ope, more stuff that's not in MatrixHamiltonian class
     bars = np.copy(sys.bitarrays)
     eigs = np.copy(sys.eig)
     nel = sys.nel
+    # can the below be accomplished with existing Integral class or utils funcs?
     bitints = [np.exp2(sys.orbs[ba==1]).sum() for ba in sys.bitarrays]
     bitints = np.array(bitints).astype(np.int64)
 
@@ -204,15 +208,20 @@ def main(clargs):
     rbr = 1 if row_by_row else None
     ilevel = True if do_ilvl else False
     flevel = True if do_flvl else False
+    print("rng:", rng, "rbr:", do_rbr, "save:", do_save, "n_add:", nadd, "ilvl:", do_ilvl, "flvl:", do_flvl)
 
     p = initialize(H, initial_particles, bars, eigs, nel, final_beta,
                    bitints, spawn_cutoff)
+    np.save("initial_dm.npy", np.diag(p))
     S = np.zeros(H.shape[0], dtype=np.float64)
     nw = np.sum(p, axis=rbr)
-    nw *= initial_particles/(nw.sum())
+    nw *= initial_particles/(nw.sum()) # scaling?
 
     S, tr, en, nw, oc = estimates(p, H, S, nw, ncycles, zeta, tau, rbr)
     df = store_row_data(p, H, S, df, 0.0)
+    print(f" {'Beta':>9}  {'Mean Shift':>18}  {'Trace':>18}  "
+          f"{'Energy?':>18}  {'NW? Sum':>18}  {'OC?':>6}  "
+          f"{'en/tr':>18}")
     report(0, S, tr, en, nw, oc)
 
     for irep in range(nreports):

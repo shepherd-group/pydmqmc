@@ -76,7 +76,7 @@ def test_DMQMC_setup_uniform_random(dmqmc):
                      0, 0, 0, 2, 0, 1, 0, 1, 0, 0])
 
     dmqmc.reset_rng(rng_seed=42)
-    dmqmc.setup("uniform-random", n_particles=10)
+    dmqmc.setup("random-uniform", n_particles=10)
     assert np.allclose(np.diag(dmqmc.density_matrix),
                        diag)
 
@@ -85,7 +85,7 @@ def test_DMQMC_setup_fixed(dmqmc):
     diag = [10, 30, 40, 25, 18, 54, 22, 34, 47, 36,
             45, 37, 23, 46, 41, 31, 27, 49, 17, 38]
 
-    dmqmc.setup("fixed", diag=diag)
+    dmqmc.setup("fixed", fixed_diagonal=diag)
     assert np.allclose(np.diag(dmqmc.density_matrix),
                        diag)
     assert dmqmc.density_matrix.size == 400
@@ -95,7 +95,7 @@ def test_DMQMC_setup_fixed_bad(dmqmc):
     diag = [10, 30, 40]
 
     with raises(RuntimeError):
-        dmqmc.setup("fixed", diag=diag)
+        dmqmc.setup("fixed", fixed_diagonal=diag)
 
 
 def test_DMQMC_setup_unknown(dmqmc):
@@ -127,7 +127,7 @@ def test_AsymmetricBlochDMQMC_basic(asym_dmqmc):
     Implicitly tests dummy matrix created for ilevel = None and ilevel = 0.
     """
     asym_dmqmc.reset_rng(42)
-    asym_dmqmc.setup("uniform-random", n_particles=int(1e5))
+    asym_dmqmc.setup("random-uniform", n_particles=int(1e5))
     asym_dmqmc.run(final_beta=25,
         dbeta=0.001,
         cycles_per_shift=1000,
@@ -142,7 +142,7 @@ def test_AsymmetricBlochDMQMC_basic(asym_dmqmc):
 
 def test_AsymmetricBlochDMQMC_rbr(asym_dmqmc):
     asym_dmqmc.reset_rng(42)
-    asym_dmqmc.setup("uniform-random", n_particles=int(1e5))
+    asym_dmqmc.setup("random-uniform", n_particles=int(1e5))
     asym_dmqmc.run(final_beta=25,
         dbeta=0.001,
         cycles_per_shift=1000,
@@ -179,7 +179,7 @@ def test_AsymmetricBlochDMQMC_ilevel_zero(asym_dmqmc):
 
 def test_AsymmetricBlochDMQMC_ilevel_nonzero(asym_dmqmc):
     asym_dmqmc.reset_rng(42)
-    asym_dmqmc.setup("uniform-random", n_particles=int(1e5))
+    asym_dmqmc.setup("random-uniform", n_particles=int(1e5))
     asym_dmqmc.run(final_beta=25,
         dbeta=0.001,
         cycles_per_shift=1000,
@@ -194,7 +194,7 @@ def test_AsymmetricBlochDMQMC_ilevel_nonzero(asym_dmqmc):
 
 def test_SymmetricBlochDMQMC_basic(sym_dmqmc):
     sym_dmqmc.reset_rng(42)
-    sym_dmqmc.setup("uniform-random", n_particles=int(1e5))
+    sym_dmqmc.setup("random-uniform", n_particles=int(1e5))
     sym_dmqmc.run(final_beta=25,
         dbeta=0.001,
         cycles_per_shift=1000,
@@ -209,7 +209,7 @@ def test_SymmetricBlochDMQMC_basic(sym_dmqmc):
 
 def test_SymmetricBlochDMQMC_rbr(sym_dmqmc):
     sym_dmqmc.reset_rng(42)
-    sym_dmqmc.setup("uniform-random", n_particles=int(1e5))
+    sym_dmqmc.setup("random-uniform", n_particles=int(1e5))
     sym_dmqmc.run(final_beta=25,
         dbeta=0.001,
         cycles_per_shift=1000,
@@ -247,7 +247,7 @@ def test_SymmetricBlochDMQMC_ilevel_zero(sym_dmqmc):
 
 def test_SymmetricBlochDMQMC_ilevel_nonzero(sym_dmqmc):
     sym_dmqmc.reset_rng(42)
-    sym_dmqmc.setup("uniform-random", n_particles=int(1e5))
+    sym_dmqmc.setup("random-uniform", n_particles=int(1e5))
     sym_dmqmc.run(final_beta=25,
                 dbeta=0.001,
                 cycles_per_shift=1000,
