@@ -12,7 +12,6 @@ from .system import System
 
 import numpy as np
 import json
-from sympy.utilities.iterables import multiset_permutations as gen_perm_set
 
 from numpy.typing import NDArray as Array
 from numpy.typing import ArrayLike
@@ -74,6 +73,7 @@ class Integral(System):
         super().__init__(input_file=input_file,
                          is_complex=is_complex)
 
+        # set attributes not in parent to a starting value
         self._uhf = False
         self._case_h0e = None
         self._case_h1e = None
@@ -83,27 +83,19 @@ class Integral(System):
         self._h1e = None
         self._h2e = None
         self._eig = None
-        self._norb = 0
         self._nvirt = 0
-        self._nel = 0
-        self._na = 0
-        self._nb = 0
         self._orbsym = None
-        self._ms = None  # does this need a getter?
         self._ms2 = 0
         self._isym = 0
 
         self._read_integral_file()
 
-        self._maxsym = int(2**np.ceil(np.log(np.max(self._orbsym)+1)
-                                      / np.log(2)))
-        self._pg_mask = self._maxsym - 1
+        super()._set_derived_quants()
 
         self._set_reference(reference)
         self._set_symmetry(symmetry)
         self._symmetry_check()
 
-        self._orbs = np.arange(self._norb)
         self._ref_det = np.zeros(self._norb, dtype=int)
         self._ref_det[self._ref] = 1
         self._ref_eng = 0.5*(np.diag(self._h1e)[self._ref]).sum()
@@ -142,34 +134,9 @@ class Integral(System):
         return self._h2e
 
     @property
-    def eigenvalues(self) -> Array:
-        """System's single-particle eigenvalues."""
-        return self._eig
-
-    @property
-    def n_orbitals(self) -> int:
-        """Number of spin orbitals."""
-        return self._norb
-
-    @property
     def n_virtual(self) -> int:
         """Number of virtual orbitals."""
         return self._nvirt
-
-    @property
-    def n_electrons(self) -> int:
-        """Total number of electrons."""
-        return self._nel
-
-    @property
-    def n_alpha(self) -> int:
-        """Number of alpha electrons."""
-        return self._na
-
-    @property
-    def n_beta(self) -> int:
-        """Number of beta electrons."""
-        return self._nb
 
     @property
     def spin_polarization(self) -> int:
@@ -177,24 +144,9 @@ class Integral(System):
         return self._ms2
 
     @property
-    def orbital_pg_symmetry(self) -> Array:
-        """Orbital point-group symmetries."""
-        return self._orbsym
-
-    @property
     def ground_state_pg(self) -> int:
         """Ground state point-group of the system."""
         return self._isym
-
-    @property
-    def max_symmetry(self) -> int:
-        """Maximum point-group symmetry contained by the system."""
-        return self._maxsym
-
-    @property
-    def pg_mask(self) -> int:
-        """Mask used for point-group operations."""
-        return self._pg_mask
 
     @property
     def symmetry(self) -> int:
@@ -207,11 +159,6 @@ class Integral(System):
         return self._ref_det
 
     @property
-    def orbitals(self) -> Array:
-        """All orbital indexes."""
-        return self._orbs
-
-    @property
     def prob_single(self) -> float:
         """Probability of generating a single excitation."""
         return self._psingle
@@ -220,11 +167,6 @@ class Integral(System):
     def prob_double(self) -> float:
         """Probability of generating a double excitation."""
         return self._pdouble
-
-    @property
-    def bitarrays(self) -> Array:
-        """Array of bitarrays in the Hilbert space."""
-        return self._bitarrays
 
     def _read_integral_file(self) -> None:
         """Read in an FCIDUMP file."""
@@ -265,9 +207,6 @@ class Integral(System):
                     self._nb = int((self._nel - self._ms2) / 2)
                     self._na = self._nel - self._nb
                     self._norb -= int(self._uhf * (self._norb/2))
-                    self._ms = np.array(
-                        [(i+1) % 2 - i % 2 for i in range(self._norb)]
-                        )
                     self._nvirt = self._norb - self._nel
                     self._alloc_arrays()
 
@@ -416,128 +355,6 @@ class Integral(System):
         self._psingle = nsingle/(nsingle + ndouble)
         self._pdouble = ndouble/(nsingle + ndouble)
 
-    def get_virtual_orbitals(self,
-                             occ: ArrayLike
-                             ) -> list[Array]:
-        """
-        Given an occupied orbital array, get information on virtual orbitals.
-
-        Parameters
-        ----------
-        occ : array_like
-            The occupied orbitals for the current determinant.
-
-        Returns
-        -------
-        unocc : Array
-            The unoccupied orbital indexes in the current determinant.
-        virt_ms : Array
-            The corresponding spins of `unocc`.
-        virt_sym : Array
-            The corresponding symmetries of `unocc`.
-        nvirt : Array
-            The number of unoccupied orbitals in each
-            spin-symmetry as indexed by spin and symmetry.
-
-        Warnings
-        --------
-        There is a always an empty array corresponding to a spin of
-        :math:`ms = 0`.
-        """
-        # TODO this could probably use input checking on np.sum(occ)
-        # versus the number of electrons in the system.
-        # Should we also check np.max(occ)?
-        unocc = self.orbitals[np.isin(self.orbitals, occ, invert=True)]
-        virt_ms = self._ms[unocc]
-        virt_sym = self.orbital_pg_symmetry[unocc]
-
-        nvirt = np.zeros((3, self.max_symmetry))
-        for ms, sym in zip(virt_ms, virt_sym):
-            nvirt[ms, sym] += 1
-
-        return unocc, virt_ms, virt_sym, nvirt
-
-    def generate_determinants(self) -> None:
-        """
-        Generate all determinants as bitarrays.
-
-        This function sets the `n_determinants` and `bitarrays` members.
-        All determinints spanned by the system within the point-group symmetry
-        will be generated.
-
-        A reference bitarry is first generated separately for each of
-        the spin channels. Next, all unqiue combinations of 1's & 0's are
-        generated for that reference. Finally, all the unique
-        concatenations of the alpha & beta bitarrays are iterated over,
-        checking that the point group symmetry of the concatenated bitarray
-        falls within the system's possible point groups.
-        If the concatenated bitarray has an allowed point group symmetry,
-        that determinant is stored.
-
-        Warnings
-        --------
-        This function will only have an effect the first time it is run.
-        If members `n_determinants` and `bitarrays` are not `None`, this
-        function will return without making any changes.
-
-        Notes
-        -----
-        A `bitarray` is shorthand for an array of 1's and 0's.
-        More traditionally referred to as "bitstrings,"
-        these are used to represent Slater determinants.
-        1's represent an occupied orbital and 0 an unoccupied orbital.
-
-        This function was originally called `generate_bit_arrays`
-        and supported the `use_symmetry_block` boolean,
-        which controls whether to use the symmetry reduced point
-        group Hamiltonian (`True`) or whether the entire Hamiltonian
-        containing all those point-group symmetries spanned by the system will
-        be generated (`False`). Since in practice this parameter was always
-        `True` and this function does not control Hamiltonian generation,
-        this parameter has been removed from the function call and hardcoded
-        to `True` within the function body.
-        """
-        if (self._ndets is not None) and (self._bitarrays is not None):
-            return
-
-        aba = np.zeros(int(self._norb/2), dtype=int)
-        aba[:self._na] = 1
-        alpha_bas = list(gen_perm_set(aba))[::-1]
-
-        bba = np.zeros(int(self._norb/2), dtype=int)
-        bba[:self._nb] = 1
-        beta_bas = list(gen_perm_set(bba))[::-1]
-
-        HS_est = len(beta_bas)*len(alpha_bas)
-        print('  Upper bound on hilbert space: {:<22}'.format(HS_est))
-
-        bas = []
-        for bba in beta_bas:
-            bind = 2*np.nonzero(bba)[0] + 1
-            boccsym = self._orbsym[bind]
-            bsym = utils.orb_sym(boccsym, self._pg_mask)
-
-            for aba in alpha_bas:
-                aind = 2*np.nonzero(aba)[0]
-                aoccsym = self._orbsym[aind]
-                asym = utils.orb_sym(aoccsym, self._pg_mask)
-
-                sym = utils.cross_prod_sym(bsym, asym, self._pg_mask)
-                ba = np.zeros(self._norb, dtype=int)
-                ba[np.arange(0, self._norb, 2)] = aba
-                ba[np.arange(1, self._norb, 2)] = bba
-
-                use_symmetry_block = True
-                if sym == self._sym:
-                    bas.append(ba)
-                elif not use_symmetry_block:
-                    bas.append(ba)
-
-        HS_est = len(bas)
-        print('  Actual size of the hilbert space: {:<22}\n'.format(HS_est))
-        self._ndets = HS_est
-        self._bitarrays = np.array(bas)
-
     def generate_hamiltonian(self) -> None:
         """
         Generate the Hamiltonian for the system.
@@ -588,43 +405,6 @@ class Integral(System):
         E *= int(abs(E) > tol)
         return E
 
-    def generate_excitation_matrix(self) -> None:
-        """
-        Generate the matrix of excitations.
-
-        Sets the `excitation_matrix` member. Each matrix index i, j represents
-        the transition between bitarrays i and j. This function will also
-        generate the system determinants if they have not already
-        been generated, thereby setting `n_determinants` and `bitarrays`.
-
-        Warnings
-        --------
-        This function will only have an effect the first time it is run.
-        If the `excitation_matrix` member is not `None`, this
-        function will return without making any changes.
-        """
-        if self._nex_mat is not None:
-            return
-
-        # Generate bitarrays if not already set.
-        self.generate_determinants()
-        self._nex_mat = np.zeros((self._ndets, self._ndets), dtype=np.int64)
-        for i, b1 in enumerate(self._bitarrays):
-            for j, b2 in enumerate(self._bitarrays[i+1:]):
-                j += i + 1
-                nex = utils.get_nex(b1, b2)
-                self._nex_mat[i, j] = nex
-                self._nex_mat[j, i] = nex
-
-    def get_bitarray_integers(self) -> Array:
-        """Integer representations of system bitarrays."""
-        # Generate bitarrays if not already set.
-        self.generate_determinants()
-
-        bitints = [np.exp2(self._orbs[ba == 1]).sum()
-                   for ba in self._bitarrays]
-        return np.array(bitints).astype(np.int64)
-
     def random_bitarray_symspace(self) -> Array:
         """
         Generate a random determinant from the full space of all determinants.
@@ -634,16 +414,16 @@ class Integral(System):
         Array
             The bitarray of the determinant
         """
-        occa = np.random.choice(int(self._nord/2), self._na, replace=False)
+        occa = np.random.choice(int(self._norb/2), self._na, replace=False)
         syma = utils.orb_sym(self._orbsym[2*occa], self._pg_mask)
-        occb = np.random.choice(int(self._nord/2), self._nb, replace=False)
+        occb = np.random.choice(int(self._norb/2), self._nb, replace=False)
         symb = utils.orb_sym(self._orbsym[2*occb+1], self._pg_mask)
 
         if not (utils.cross_prod_sym(symb, syma, self._pg_mask)
                 == self.symmetry):
-            return self.random_bitarray_symspace()
+            return self.random_bitarray_symspace()  # this is recursive??
 
-        ba = np.zeros(self._nord, dtype=int)
+        ba = np.zeros(self._norb, dtype=int)
         ba[2*occa] = 1
         ba[2*occb+1] = 1
 

@@ -17,13 +17,7 @@ class MatrixHamiltonian(System):
     input_file : str
         Filename for the Hamiltonian.
     is_complex : bool, default False
-        Whether or not the Hamiltonian is complex.(???)
-    shift : float, default 0.0
-        A shift to apply to the diagonal elements of the Hamiltonian.
-    use_ip : bool, default False
-        Whether or not to use the interaction picture. If specified,
-        the non-interacting Hamiltonian will be available through the
-        `noninteracting_hamiltonian` attribute.
+        Whether or not the Hamiltonian is complex.
 
     Warnings
     --------
@@ -34,15 +28,13 @@ class MatrixHamiltonian(System):
     def __init__(
             self,
             input_file: str,
-            is_complex: bool = False,
-            shift: float = 0.0,
-            use_ip: bool = False,
+            is_complex: bool = False
             ) -> None:
 
         super().__init__(input_file=input_file,
                          is_complex=is_complex)
 
-        self._read_matrix()  # sets self._raw_hamil
+        self._read_matrix()  # set self._H
         self._ndets = self._H.shape[0]
         self._ref_eng = self._H[0, 0]
 
