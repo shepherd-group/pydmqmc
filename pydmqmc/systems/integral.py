@@ -79,14 +79,14 @@ class Integral(System):
         self._case_h1e = None
         self._case_h2e = None
         self._case_eig = None
-        self._h0e = 0.0
+        self._h0e = None
         self._h1e = None
         self._h2e = None
         self._eig = None
-        self._nvirt = 0
+        self._nvirt = None
         self._orbsym = None
-        self._ms2 = 0
-        self._isym = 0
+        self._ms2 = None
+        self._isym = None
 
         self._read_integral_file()
 
@@ -132,6 +132,11 @@ class Integral(System):
     def h2e(self) -> Array:
         """The two-particle integrals."""
         return self._h2e
+
+    @property
+    def eigenvalues(self) -> Array:
+        """System's single-particle eigenvalues."""
+        return self._eig
 
     @property
     def n_virtual(self) -> int:
@@ -355,8 +360,8 @@ class Integral(System):
         self._psingle = nsingle/(nsingle + ndouble)
         self._pdouble = ndouble/(nsingle + ndouble)
 
-    def generate_determinants(self):
-        super().generate_determinants()
+    def generate_determinant_bitarrays(self):
+        super().generate_determinant_bitarrays()
         self._ndets = self._bitarrays.shape[0]
 
     def generate_hamiltonian(self) -> None:
@@ -377,7 +382,7 @@ class Integral(System):
             return
 
         # Generate bitarrays if not already set.
-        self.generate_determinants()
+        self.generate_determinant_bitarrays()
 
         hii = np.array([self._get_hij(b, b)
                         for b in self._bitarrays])

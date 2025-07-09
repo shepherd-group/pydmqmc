@@ -17,4 +17,4 @@ from .slater_condon import sc0, sc1, sc2
 
 from .permute import generate_ijab_symmetries_array
 
-from .integrators import euler
+from .integrators import euler, rk4

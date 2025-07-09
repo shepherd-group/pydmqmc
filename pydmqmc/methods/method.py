@@ -82,7 +82,10 @@ class Iterative(Method):
         Call signature is func, x, y, dy where func(x, y) = dx/dy.
         I should list supported methods.
         """
-        if method.lower() == "euler":
+        method = method.lower()
+        if method == "euler":
             return utils.euler
+        elif method == "rk4":
+            return utils.rk4
         else:
             raise RuntimeError(f"Update method {method} is not recognized.")

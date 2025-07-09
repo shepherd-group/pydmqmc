@@ -39,11 +39,10 @@ class System:
         self._nel = None
         self._na = None
         self._nb = None
-        self._eig = None
         self._orbsym = None
         self._H = None
         self._ndets = None
-        self._ref_eng = 0.0
+        self._ref_eng = None
 
         self._sym = None  # can we avoid this for MatrixHam?
 
@@ -67,20 +66,21 @@ class System:
 
     def _set_derived_quants(self):
         """
-        Sets attributes that can be derived from other attributes.
+        Set attributes that can be derived from other attributes.
 
-        This is intended to be used by child classes in order to enforce
-        consistency accross children.
+        This is intended to be used by child class __init__ in order to
+        enforce consistency accross children.
         """
-        self._maxsym = int(2**np.ceil(np.log(np.max(self._orbsym)+1)
-                           / np.log(2)))
-        self._pg_mask = self._maxsym - 1
+        if self._orbsym is not None:
+            self._maxsym = int(2**np.ceil(np.log(np.max(self._orbsym)+1)
+                               / np.log(2)))
+            self._pg_mask = self._maxsym - 1
 
-        self._orbs = np.arange(self._norb)
-
-        self._ms = np.array(
+        if self._norb is not None:
+            self._orbs = np.arange(self._norb)
+            self._ms = np.array(
                         [(i+1) % 2 - i % 2 for i in range(self._norb)]
-                        )
+                       )
 
     @property
     def input_file(self) -> str:
@@ -93,72 +93,72 @@ class System:
         return self._is_complex
 
     @property
-    def n_orbitals(self) -> int:
+    def n_orbitals(self) -> int | None:
         """Number of spin orbitals."""
         return self._norb
 
     @property
-    def n_electrons(self) -> int:
+    def n_electrons(self) -> int | None:
         """Total number of electrons."""
         return self._nel
 
     @property
-    def n_alpha(self) -> int:
+    def n_alpha(self) -> int | None:
         """Number of alpha electrons."""
         return self._na
 
     @property
-    def n_beta(self) -> int:
+    def n_beta(self) -> int | None:
         """Number of beta electrons."""
         return self._nb
 
     @property
-    def eigenvalues(self) -> Array:
-        """System's single-particle eigenvalues."""
-        return self._eig
-
-    @property
-    def orbital_pg_symmetry(self) -> Array:
+    def orbital_pg_symmetry(self) -> Array | None:
         """Orbital point-group symmetries."""
         return self._orbsym
 
     @property
-    def hamiltonian(self) -> None | Array:
+    def hamiltonian(self) -> Array | None:
         """The system's Hamiltonian."""
         return self._H
 
     @property
-    def n_determinants(self) -> None | Array:
+    def n_determinants(self) -> Array | None:
         """Size of the Hilbert space."""
         return self._ndets
 
     @property
-    def ref_energy(self) -> float:
+    def ref_energy(self) -> float | None:
         """Reference Hartree-Fock energy."""
         return self._ref_eng
 
     @property
-    def max_symmetry(self) -> int:
+    def max_symmetry(self) -> int | None:
         """Maximum point-group symmetry contained by the system."""
         return self._maxsym
 
     @property
-    def pg_mask(self) -> int:
+    def pg_mask(self) -> int | None:
         """Mask used for point-group operations."""
         return self._pg_mask
 
     @property
-    def orbitals(self) -> Array:
+    def orbitals(self) -> Array | None:
         """All orbital indexes."""
         return self._orbs
 
     @property
-    def bitarrays(self) -> Array:
+    def spin_polarization(self) -> Array | None:
+        """Spin polarization of the system."""
+        return self._ms
+
+    @property
+    def bitarrays(self) -> Array | None:
         """Array of bitarrays in the Hilbert space."""
         return self._bitarrays
 
     @property
-    def excitation_matrix(self) -> Array:
+    def excitation_matrix(self) -> Array | None:
         """An `n_determinants`-square matrix of excitations between i and j."""
         return self._nex_mat
 
@@ -175,7 +175,7 @@ class System:
             raise RuntimeError(
                 "The Hamiltonian is currently `None` and cannot be shifted.")
 
-    def generate_determinants(self) -> None:
+    def generate_determinant_bitarrays(self) -> None:
         """
         Generate all determinants as bitarrays.
 
@@ -215,8 +215,19 @@ class System:
         this parameter has been removed from the function call and hardcoded
         to `True` within the function body.
         """
-        if self._bitarrays is not None:
+        if self._bitarrays is not None:  # do nothing
             return
+
+        # Check for required components.
+        # TODO decide if sym is hard required
+        req_quants = [self._norb, self._na, self._nb,
+                      self._orbsym, self._pg_mask]
+        missing = [i is None for i in req_quants]
+        if True in missing:
+            raise RuntimeError("Method generate_determinant_bitarrays "
+                               "requires the following be defined: "
+                               "n_orbitals, n_alpha, n_beta, "
+                               "orbital_pg_symmetry.")
 
         aba = np.zeros(int(self._norb/2), dtype=int)
         aba[:self._na] = 1
@@ -253,7 +264,7 @@ class System:
     def get_bitarray_integers(self) -> Array:
         """Integer representations of system bitarrays."""
         # Generate bitarrays if not already set.
-        self.generate_determinants()
+        self.generate_determinant_bitarrays()
 
         bitints = [np.exp2(self._orbs[ba == 1]).sum()
                    for ba in self._bitarrays]
@@ -278,7 +289,7 @@ class System:
             return
 
         # Generate bitarrays if not already set.
-        self.generate_determinants()
+        self.generate_determinant_bitarrays()
         self._nex_mat = np.zeros((self._ndets, self._ndets), dtype=np.int64)
         for i, b1 in enumerate(self._bitarrays):
             for j, b2 in enumerate(self._bitarrays[i+1:]):
@@ -318,6 +329,16 @@ class System:
         # TODO this could probably use input checking on np.sum(occ)
         # versus the number of electrons in the system.
         # Should we also check np.max(occ)?
+
+        # Check for required components
+        req_quants = [self._orbs, self._orbsym, self._ms, self._maxsym]
+        missing = [i is None for i in req_quants]
+        if True in missing:
+            raise RuntimeError("Method get_virtual_orbitals "
+                               "requires the following be defined: "
+                               "orbitals, orbital_pg_symmetry, "
+                               "spin_polarization, max_symmetry.")
+
         unocc = self._orbs[np.isin(self._orbs, occ, invert=True)]
         virt_ms = self._ms[unocc]
         virt_sym = self._orbsym[unocc]

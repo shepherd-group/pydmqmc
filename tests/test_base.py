@@ -4,11 +4,6 @@ import pydmqmc.utils as utils
 from pydmqmc.systems import System
 from pydmqmc.methods import Method, Analytic, Iterative
 
-@fixture
-def dummy_system() -> System:
-    sys = System("/dummy/path")
-    return sys
-
 
 @fixture
 def dummy_iterative(dummy_system) -> Iterative:
@@ -16,65 +11,91 @@ def dummy_iterative(dummy_system) -> Iterative:
     return mtd
 
 
-def test_System(dummy_system):
-    assert dummy_system.input_file == "/dummy/path"
-    assert dummy_system.is_complex == False
-    assert dummy_system.ref_energy == 0.0
-    assert dummy_system.hamiltonian is None
-    assert dummy_system.n_determinants is None
+class TestSystem():
+
+    @fixture(autouse=True)
+    def _setup(self):
+        self._sys = System("/dummy/path")
+
+    def test_init(self):
+        assert self._sys.input_file == "/dummy/path"
+        assert self._sys.is_complex == False
+        assert self._sys.ref_energy is None
+        assert self._sys.hamiltonian is None
+        assert self._sys.n_determinants is None
+
+    def test_zero_hamiltonian(self):
+        with raises(RuntimeError):
+            self._sys.zero_hamiltonian()
+
+    def test_generate_determinant_bitarrays(self):
+        with raises(RuntimeError):
+            self._sys.generate_determinant_bitarrays()
+
+    def test_get_bitarray_integers(self):
+        """Calls generate_determinant_bitarrays."""
+        with raises(RuntimeError):
+            self._sys.get_bitarray_integers()
+
+    def test_generate_excitation_matrix(self):
+        """Calls generate_determinant_bitarrays."""
+        with raises(RuntimeError):
+            self._sys.generate_excitation_matrix()
+
+    def test_get_virtual_orbitals(self):
+        with raises(RuntimeError):
+            # Structure of occ parameter doesn't currenly matter
+            # because sanity checks have not yet been implemented
+            self._sys.get_virtual_orbitals([0, 1])
 
 
-def test_System_zero_hamiltonian(dummy_system):
-    with raises(RuntimeError):
-        dummy_system.zero_hamiltonian()
+class TestMethod():
+
+    @fixture(autouse=True)
+    def _setup(self):
+        self._sys = System("/dummy/path")
+        self._mtd = Method(self._sys)
+
+    def test_run(self):
+        """Test that errors flag correctly."""
+        with raises(NotImplementedError):
+            self._mtd.run()
 
 
-def test_Method(dummy_system):
-    mtd = Method(dummy_system)
+class TestAnalytic():
 
-    assert mtd.system is dummy_system
+    @fixture(autouse=True)
+    def _setup(self):
+        self._sys = System("/dummy/path")
+        self._mtd = Analytic(self._sys)
 
+    def test_run(self):
+        """Test that errors flag correctly."""
 
-def test_Method_run(dummy_system):
-    """Test that errors flag correctly."""
-    mtd = Method(dummy_system)
-
-    with raises(NotImplementedError):
-        mtd.run()
-
-
-def test_Analytic(dummy_system):
-    """Test we initialized the parent correctly."""
-    mtd = Analytic(dummy_system)
-
-    assert mtd.system is dummy_system
+        with raises(NotImplementedError):
+            self._mtd.run()
 
 
-def test_Analytic_run(dummy_system):
-    """Test that errors flag correctly."""
-    mtd = Analytic(dummy_system)
+class TestIterative():
 
-    with raises(NotImplementedError):
-        mtd.run()
+    @fixture(autouse=True)
+    def _setup(self):
+        self._sys = System("/dummy/path")
+        self._mtd = Iterative(self._sys)
 
+    def test_run(self):
+        """Test that errors flag correctly."""
+        with raises(NotImplementedError):
+            self._mtd.run()
 
-def test_Iterative(dummy_iterative, dummy_system):
-    """Test we initialized the parent correctly."""
-    assert dummy_iterative.system is dummy_system
+    def test_setup(self):
+        """Test that errors flag correctly."""
+        with raises(NotImplementedError):
+            self._mtd.setup()
 
+    def test_parse_method(self):
+        f_euler = self._mtd.parse_method("euler")
+        assert f_euler is utils.euler
 
-def test_Iterative_run(dummy_iterative):
-    """Test that errors flag correctly."""
-    with raises(NotImplementedError):
-        dummy_iterative.run()
-
-
-def test_Iterative_setup(dummy_iterative):
-    """Test that errors flag correctly."""
-    with raises(NotImplementedError):
-        dummy_iterative.setup()
-
-
-def test_Iterative_parse_method(dummy_iterative):
-    f_euler = dummy_iterative.parse_method("euler")
-    assert f_euler is utils.euler
+        f_rk4 = self._mtd.parse_method("rk4")
+        assert f_rk4 is utils.rk4

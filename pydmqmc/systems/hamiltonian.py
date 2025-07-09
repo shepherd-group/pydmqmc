@@ -2,10 +2,10 @@
 from .system import System
 
 import numpy as np
-
+from numpy.typing import ArrayLike
 
 class MatrixHamiltonian(System):
-    """
+    r"""
     System defined by a Hamiltonian matrix written to file.
 
     Use this class for systems defined by a triangular Hamiltonian matrix
@@ -18,6 +18,18 @@ class MatrixHamiltonian(System):
         Filename for the Hamiltonian.
     is_complex : bool, default False
         Whether or not the Hamiltonian is complex.
+    n_orbitals : int, optional
+        Number of orbitals in the system. Required if using the
+        `generate_determinant_bitarrays` method.
+    n_electrons, n_alpha, n_beta : int, optional
+        Number of total, alpha, and beta electrons. All three or
+        any two may be supplied, as 
+        :math:`\textt{n_electrons} = \textt{n_alpha} + \textt{n_beta}`.
+        The `generate_determinant_bitarrays` method requires `n_alpha`
+        and `n_beta`; `n_electrons` is not required but can be used to
+        infer `n_alpha` or `n_beta`.
+    orbital_pg_symmetry : array_like
+        TODO Orbital point group symmetries ?
 
     Warnings
     --------
@@ -28,7 +40,12 @@ class MatrixHamiltonian(System):
     def __init__(
             self,
             input_file: str,
-            is_complex: bool = False
+            is_complex: bool = False,
+            n_orbitals: int | None = None,
+            n_electrons: int | None = None,
+            n_alpha: int | None = None,
+            n_beta: int | None = None,
+            orbital_pg_symmetry: ArrayLike | None = None
             ) -> None:
 
         super().__init__(input_file=input_file,
@@ -37,6 +54,31 @@ class MatrixHamiltonian(System):
         self._read_matrix()  # set self._H
         self._ndets = self._H.shape[0]
         self._ref_eng = self._H[0, 0]
+
+        self._norb = n_orbitals
+        if n_electrons and n_alpha and n_beta:
+            if n_alpha + n_beta != n_electrons:
+                raise RuntimeError("Supplied total number of electrons "
+                                   f"{n_electrons} is greater than the sum "
+                                   f"of supplied alpha ({n_alpha}) and beta "
+                                   f"({n_beta}) electrons.")
+            self._nel = n_electrons
+            self._na = n_alpha
+            self._nb = n_beta
+        elif n_electrons is not None and n_alpha is not None:
+            self._nel = n_electrons
+            self._na = n_alpha
+            self._nb = n_electrons - n_alpha
+        elif n_electrons is not None and n_beta is not None:
+            self._nel = n_electrons
+            self._na = n_electrons - n_beta
+            self._nb = n_beta
+        elif n_alpha is not None and n_beta is not None:
+            self._nel = n_alpha + n_beta
+            self._na = n_alpha
+            self._nb = n_beta
+
+        super()._set_derived_quants()
 
     def _read_matrix(self) -> None:
         """Load matrix from a HANDE file into a NumPy array."""

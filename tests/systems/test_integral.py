@@ -121,11 +121,11 @@ class TestIntegral():
 
         assert np.allclose(self._sys.eigenvalues, eig)
 
-    def test_generate_determinants(self):
+    def test_generate_determinant_bitarrays(self):
         bitarray = np.array([[1, 1, 0, 0],
                             [0, 0, 1, 1]])
 
-        self._sys.generate_determinants()
+        self._sys.generate_determinant_bitarrays()
 
         assert self._sys.n_determinants == 2
         assert np.allclose(self._sys.bitarrays, bitarray)
