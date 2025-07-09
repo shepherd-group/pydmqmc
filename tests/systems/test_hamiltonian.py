@@ -8,13 +8,6 @@ from pydmqmc.systems import MatrixHamiltonian
 
 
 @fixture(scope="module")
-def input_file(request) -> str:
-    file = join(dirname(request.path),
-                "..", "inputs", "hamiltonians", "EQUILIBRIUM-H4-STO3G.hamil")
-    return file
-
-
-@fixture(scope="module")
 def known_diag() -> Array:
     values = [
        -2.11534977839243    , -1.13379264192082    ,
@@ -31,33 +24,40 @@ def known_diag() -> Array:
     return np.array(values)
 
 
-def test_MatrixHamiltonian_load_complex(input_file):
+class TestMatrixHamiltonian():
 
-    with raises(NotImplementedError):
-        MatrixHamiltonian(input_file, is_complex=True)
+    @fixture(autouse=True)
+    def _setup_system(self, request):
+        file = join(dirname(request.path),
+                    "..", "inputs", "hamiltonians",
+                    "EQUILIBRIUM-H4-STO3G.hamil")
+        self._input = file
+        self._sys = MatrixHamiltonian(file)
 
+    def test_load_complex(self):
 
-def test_MatrixHamiltonian_load(input_file, known_diag):
-    """Tests __init__()"""
+        with raises(NotImplementedError):
+            MatrixHamiltonian(self._input, is_complex=True)
 
-    sys = MatrixHamiltonian(input_file)
-    H = sys.hamiltonian
+    def test_load(self, known_diag):
+        """Tests __init__()"""
 
-    # Check the Hamiltonian.
-    assert H.shape == (20,20)
-    assert np.allclose(np.diag(H), known_diag)
+        H = self._sys.hamiltonian
 
-    # Check derived quantities about the Hamiltonian.
-    assert sys.n_determinants == 20
-    assert sys.ref_energy == known_diag[0]
+        # Check the Hamiltonian.
+        assert H.shape == (20,20)
+        assert np.allclose(np.diag(H), known_diag)
 
-def test_MatrixHamiltonian_zero_hamiltonian(input_file, known_diag):
-    """Tests zero_hamiltonian inherited from System."""
+        # Check derived quantities about the Hamiltonian.
+        assert self._sys.n_determinants == 20
+        assert self._sys.ref_energy == known_diag[0]
 
-    sys = MatrixHamiltonian(input_file)
-    sys.zero_hamiltonian()
-    H = sys.hamiltonian
+    def test_zero_hamiltonian(self, known_diag):
+        """Tests zero_hamiltonian inherited from System."""
 
-    ref = known_diag - sys.ref_energy
+        self._sys.zero_hamiltonian()
+        H = self._sys.hamiltonian
 
-    assert np.allclose(np.diag(H), ref)
+        ref = known_diag - self._sys.ref_energy
+
+        assert np.allclose(np.diag(H), ref)

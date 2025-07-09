@@ -41,6 +41,9 @@ class System:
         self._nb = None
         self._eig = None
         self._orbsym = None
+        self._H = None
+        self._ndets = None
+        self._ref_eng = 0.0
 
         self._sym = None  # can we avoid this for MatrixHam?
 
@@ -55,10 +58,6 @@ class System:
         # that's currently in the Integral class, then we can also migrate
         # psingle and pdouble attributes & associated calculation
         # to this class.
-
-        self._H = None
-        self._ndets = None
-        self._ref_eng = 0.0
 
         # These can be set using the methods defined in this base class.
         self._bitarrays = None
@@ -124,21 +123,6 @@ class System:
         return self._orbsym
 
     @property
-    def max_symmetry(self) -> int:
-        """Maximum point-group symmetry contained by the system."""
-        return self._maxsym
-
-    @property
-    def pg_mask(self) -> int:
-        """Mask used for point-group operations."""
-        return self._pg_mask
-
-    @property
-    def orbitals(self) -> Array:
-        """All orbital indexes."""
-        return self._orbs
-
-    @property
     def hamiltonian(self) -> None | Array:
         """The system's Hamiltonian."""
         return self._H
@@ -152,6 +136,21 @@ class System:
     def ref_energy(self) -> float:
         """Reference Hartree-Fock energy."""
         return self._ref_eng
+
+    @property
+    def max_symmetry(self) -> int:
+        """Maximum point-group symmetry contained by the system."""
+        return self._maxsym
+
+    @property
+    def pg_mask(self) -> int:
+        """Mask used for point-group operations."""
+        return self._pg_mask
+
+    @property
+    def orbitals(self) -> Array:
+        """All orbital indexes."""
+        return self._orbs
 
     @property
     def bitarrays(self) -> Array:
@@ -227,9 +226,6 @@ class System:
         bba[:self._nb] = 1
         beta_bas = list(gen_perm_set(bba))[::-1]
 
-        HS_est = len(beta_bas)*len(alpha_bas)
-        print('  Upper bound on hilbert space: {:<22}'.format(HS_est))
-
         bas = []
         for bba in beta_bas:
             bind = 2*np.nonzero(bba)[0] + 1
@@ -252,8 +248,6 @@ class System:
                 elif not use_symmetry_block:
                     bas.append(ba)
 
-        HS_est = len(bas)
-        self._ndets = HS_est  # TODO MatrixHamiltonian sets this differently
         self._bitarrays = np.array(bas)
 
     def get_bitarray_integers(self) -> Array:

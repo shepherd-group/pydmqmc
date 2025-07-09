@@ -355,6 +355,10 @@ class Integral(System):
         self._psingle = nsingle/(nsingle + ndouble)
         self._pdouble = ndouble/(nsingle + ndouble)
 
+    def generate_determinants(self):
+        super().generate_determinants()
+        self._ndets = self._bitarrays.shape[0]
+
     def generate_hamiltonian(self) -> None:
         """
         Generate the Hamiltonian for the system.

@@ -3,14 +3,14 @@ import numpy as np
 from pydmqmc.systems import Integral
 from pydmqmc.methods import AsymmetricBlochDMQMC, SymmetricBlochDMQMC
 
-sys = Integral("tests/inputs/integrals/STRICT-STO3G-STR-H4.FCIDUMP")
+sys = Integral("tests/inputs/integrals/H2-STO-3G-0.74Ang.fcidump")
 mtd = SymmetricBlochDMQMC(sys, rng_seed=42)
 
 #dm_diag = np.load("development/initial_dm.npy")
 
 #mtd.setup("fixed", diag=dm_diag)
 
-mtd.setup("uniform-random", n_particles=int(1e5))
+mtd.setup("random-uniform", n_particles=int(1e5))
 # print("Ref:", dm_diag)
 # print("Act:", np.diag(mtd.density_matrix))
 
