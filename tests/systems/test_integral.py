@@ -22,7 +22,7 @@ def eig() -> Array:
 class TestIntegral():
 
     @fixture(autouse=True)
-    def _setup_system(self, request) -> Integral:
+    def _setup(self, request) -> Integral:
         file = join(dirname(request.path),
                     "..", "inputs", "integrals", 
                     "H2-STO-3G-0.74Ang.fcidump")

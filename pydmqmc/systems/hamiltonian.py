@@ -20,7 +20,8 @@ class MatrixHamiltonian(System):
         Whether or not the Hamiltonian is complex.
     n_orbitals : int, optional
         Number of orbitals in the system. Required if using the
-        `generate_determinant_bitarrays` method.
+        `generate_determinant_bitarrays` or `get_virtual_orbitals`
+        methods.
     n_electrons, n_alpha, n_beta : int, optional
         Number of total, alpha, and beta electrons. All three or
         any two may be supplied, as 
@@ -29,7 +30,16 @@ class MatrixHamiltonian(System):
         and `n_beta`; `n_electrons` is not required but can be used to
         infer `n_alpha` or `n_beta`.
     orbital_pg_symmetry : array_like
-        TODO Orbital point group symmetries ?
+        Set of orbital point group symmetries. Required if using the
+        `generate_determinant_bitarrays` or `get_virtual_orbitals`
+        methods.
+
+    Note
+    ----
+    The `get_bitarray_integers` and `generate_excitation_matrix` methods
+    both depend on `generate_determinant_bitarrays` and will call this method
+    if it has not previously been called. These methods are therefore
+    subject to the same parameter requirements as noted above.
 
     Warnings
     --------
@@ -77,6 +87,8 @@ class MatrixHamiltonian(System):
             self._nel = n_alpha + n_beta
             self._na = n_alpha
             self._nb = n_beta
+
+        self._orbsym = orbital_pg_symmetry
 
         super()._set_derived_quants()
 
