@@ -43,6 +43,7 @@ class System:
         self._H = None
         self._ndets = None
         self._ref_eng = None
+        self._eig = None
 
         self._sym = None  # can we avoid this for MatrixHam?
 
@@ -133,6 +134,11 @@ class System:
         return self._ref_eng
 
     @property
+    def eigenvalues(self) -> Array | None:
+        """System's single-particle eigenvalues."""
+        return self._eig
+
+    @property
     def max_symmetry(self) -> int | None:
         """Maximum point-group symmetry contained by the system."""
         return self._maxsym
@@ -148,8 +154,8 @@ class System:
         return self._orbs
 
     @property
-    def spin_polarization(self) -> Array | None:
-        """Spin polarization of the system."""
+    def spin_polarizations(self) -> Array | None:
+        """All possible spin polarization of the system(?)."""
         return self._ms
 
     @property
@@ -337,7 +343,7 @@ class System:
             raise RuntimeError("Method get_virtual_orbitals "
                                "requires the following be defined: "
                                "orbitals, orbital_pg_symmetry, "
-                               "spin_polarization, max_symmetry.")
+                               "spin_polarizations, max_symmetry.")
 
         unocc = self._orbs[np.isin(self._orbs, occ, invert=True)]
         virt_ms = self._ms[unocc]

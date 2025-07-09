@@ -82,7 +82,6 @@ class Integral(System):
         self._h0e = None
         self._h1e = None
         self._h2e = None
-        self._eig = None
         self._nvirt = None
         self._orbsym = None
         self._ms2 = None
@@ -132,11 +131,6 @@ class Integral(System):
     def h2e(self) -> Array:
         """The two-particle integrals."""
         return self._h2e
-
-    @property
-    def eigenvalues(self) -> Array:
-        """System's single-particle eigenvalues."""
-        return self._eig
 
     @property
     def n_virtual(self) -> int:

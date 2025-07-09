@@ -20,9 +20,21 @@ class TestSystem():
     def test_init(self):
         assert self._sys.input_file == "/dummy/path"
         assert self._sys.is_complex == False
-        assert self._sys.ref_energy is None
+        assert self._sys.n_orbitals is None
+        assert self._sys.n_electrons is None
+        assert self._sys.n_alpha is None
+        assert self._sys.n_beta is None
+        assert self._sys.orbital_pg_symmetry is None
         assert self._sys.hamiltonian is None
         assert self._sys.n_determinants is None
+        assert self._sys.ref_energy is None
+        assert self._sys.eigenvalues is None
+        assert self._sys.max_symmetry is None
+        assert self._sys.pg_mask is None
+        assert self._sys.orbitals is None
+        assert self._sys.spin_polarizations is None
+        assert self._sys.bitarrays is None
+        assert self._sys.excitation_matrix is None
 
     def test_zero_hamiltonian(self):
         with raises(RuntimeError):

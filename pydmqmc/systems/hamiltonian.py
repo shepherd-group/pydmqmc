@@ -55,7 +55,8 @@ class MatrixHamiltonian(System):
             n_electrons: int | None = None,
             n_alpha: int | None = None,
             n_beta: int | None = None,
-            orbital_pg_symmetry: ArrayLike | None = None
+            orbital_pg_symmetry: ArrayLike | None = None,
+            eigenvalues: ArrayLike | None = None,
             ) -> None:
 
         super().__init__(input_file=input_file,
@@ -88,7 +89,15 @@ class MatrixHamiltonian(System):
             self._na = n_alpha
             self._nb = n_beta
 
-        self._orbsym = orbital_pg_symmetry
+        if isinstance(orbital_pg_symmetry, np.ndarray):
+            self._orbsym = orbital_pg_symmetry
+        else:
+            self._orbsym = np.array(orbital_pg_symmetry)
+
+        if isinstance(eigenvalues, np.ndarray):
+            self._eig = eigenvalues
+        else:
+            self._eig = np.array(eigenvalues)
 
         super()._set_derived_quants()
 
