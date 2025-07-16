@@ -80,7 +80,7 @@ class System:
         if self._norb is not None:
             self._orbs = np.arange(self._norb)
             self._ms = np.array(
-                        [(i+1) % 2 - i % 2 for i in range(self._norb)]
+                        [(i+1) % 2 - i % 2 for i in self._orbs]
                        )
 
     @property

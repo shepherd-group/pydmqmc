@@ -1,5 +1,5 @@
 import numpy as np
-from pytest import fixture, raises
+from pytest import fixture, raises, warns, mark
 from os.path import dirname, join
 
 from numpy.typing import NDArray as Array
@@ -93,6 +93,15 @@ class TestExtendedMatrixHamiltonian():
         with raises(NotImplementedError):
             MatrixHamiltonian(self._input, is_complex=True)
 
+    def test_norbitals(self):
+        """Setting n_orbitals sets orbitals and spin_polarizations."""
+        sys = MatrixHamiltonian(self._input,
+                                n_orbitals=4)
+
+        assert sys.n_orbitals == 4
+        assert np.allclose(sys.orbitals, np.arange(4))
+        assert np.allclose(sys.spin_polarizations, [1, -1, 1, -1])
+
     def test_bad_nelectron_nalpha_nbeta(self):
         with raises(RuntimeError):
             MatrixHamiltonian(self._input,
@@ -137,4 +146,42 @@ class TestExtendedMatrixHamiltonian():
         assert sys.n_alpha == 3
         assert sys.n_beta == 7
 
-# TODO test setting orbital_pg_sym and function of super() functions
+    def test_nelectron(self):
+        with warns(UserWarning):
+            sys = MatrixHamiltonian(self._input,
+                                    n_electrons=10)
+
+        assert sys.n_electrons == 10
+
+    def test_nalpha(self):
+        with warns(UserWarning):
+            sys = MatrixHamiltonian(self._input,
+                                    n_alpha=3)
+
+        assert sys.n_alpha == 3
+
+    def test_nbeta(self):
+        with warns(UserWarning):
+            sys = MatrixHamiltonian(self._input,
+                                    n_beta=7)
+
+        assert sys.n_beta == 7
+
+    @mark.parametrize("orb_arg", [[1,3,5], (1,3,5), np.array([1,3,5])])
+    def test_orbital_pg_sym(self, orb_arg):
+        """Setting orbital_pg_sym sets max_symmetry and pg_mask."""
+        sys = MatrixHamiltonian(self._input,
+                                orbital_pg_symmetry=orb_arg)
+
+        assert isinstance(sys.orbital_pg_symmetry, np.ndarray)
+        assert np.allclose(sys.orbital_pg_symmetry, [1,3,5])
+        assert sys.max_symmetry == 8
+        assert sys.pg_mask == 7
+
+    @mark.parametrize("eig_arg", [[1,3,5], (1,3,5), np.array([1,3,5])])
+    def test_eigenvalues(self, eig_arg):
+        sys = MatrixHamiltonian(self._input,
+                                eigenvalues=eig_arg)
+
+        assert isinstance(sys.eigenvalues, np.ndarray)
+        assert np.allclose(sys.eigenvalues, [1,3,5])

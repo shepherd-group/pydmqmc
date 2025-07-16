@@ -3,6 +3,7 @@ from .system import System
 
 import numpy as np
 from numpy.typing import ArrayLike
+import warnings
 
 class MatrixHamiltonian(System):
     r"""
@@ -67,6 +68,7 @@ class MatrixHamiltonian(System):
         self._ref_eng = self._H[0, 0]
 
         self._norb = n_orbitals
+
         if n_electrons and n_alpha and n_beta:
             if n_alpha + n_beta != n_electrons:
                 raise RuntimeError("Supplied total number of electrons "
@@ -88,16 +90,32 @@ class MatrixHamiltonian(System):
             self._nel = n_alpha + n_beta
             self._na = n_alpha
             self._nb = n_beta
+        # check for insufficient info
+        elif n_electrons is not None and n_alpha is None and n_beta is None:
+            warnings.warn("Unable to set n_alpha and n_beta with current "
+                          "information.")
+            self._nel = n_electrons
+        elif n_alpha is not None and n_electrons is None and n_beta is None:
+            warnings.warn("Unable to set n_electrons and n_beta with current "
+                          "information.")
+            self._na = n_alpha
+        elif n_beta is not None and n_electrons is None and n_alpha is None:
+            warnings.warn("Unable to set n_electrons and n_alpha with current "
+                          "information.")
+            self._nb = n_beta
 
-        if isinstance(orbital_pg_symmetry, np.ndarray):
-            self._orbsym = orbital_pg_symmetry
-        else:
-            self._orbsym = np.array(orbital_pg_symmetry)
+        # super.__init__() sets self._orbsym and self._eig to None
+        if orbital_pg_symmetry is not None:
+            if isinstance(orbital_pg_symmetry, np.ndarray):
+                self._orbsym = orbital_pg_symmetry
+            else:
+                self._orbsym = np.array(orbital_pg_symmetry)
 
-        if isinstance(eigenvalues, np.ndarray):
-            self._eig = eigenvalues
-        else:
-            self._eig = np.array(eigenvalues)
+        if eigenvalues is not None:
+            if isinstance(eigenvalues, np.ndarray):
+                self._eig = eigenvalues
+            else:
+                self._eig = np.array(eigenvalues)
 
         super()._set_derived_quants()
 
