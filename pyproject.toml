@@ -21,6 +21,7 @@ dependencies = [
     "numba",
     "pandas",
     "pytest",
+    "pytest-lazy-fixture",  # requires pip
     "scipy",
     "sphinx",
     "sphinx_rtd_theme",
