@@ -234,7 +234,7 @@ class DensityMatrixQMC(Iterative):
             self.system.generate_excitation_matrix()
             n_ex = self.system.excitation_matrix
             # Please remove this warning after the methods have been verified
-            warnings.warn(f"Initiator level > 0 has not been "
+            warnings.warn("Initiator level > 0 has not been "
                           "robustly verified. Please check for correctness "
                           "in all DMQMC child methods and remove this "
                           "warning.")
@@ -243,7 +243,7 @@ class DensityMatrixQMC(Iterative):
             # This allows classes w/ undefied generate_excitation_matrix()
             # to still work with ilevel 0. It also keeps Numba happy for
             # ilevel = None
-            n_ex = np.ones((self.system.n_determinants, 
+            n_ex = np.ones((self.system.n_determinants,
                             self.system.n_determinants), dtype=np.int64) \
                  - np.eye(self.system.n_determinants)
 

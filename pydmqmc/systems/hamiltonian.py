@@ -2,8 +2,10 @@
 from .system import System
 
 import numpy as np
-from numpy.typing import ArrayLike
+
 import warnings
+from numpy.typing import ArrayLike
+
 
 class MatrixHamiltonian(System):
     r"""
@@ -25,7 +27,7 @@ class MatrixHamiltonian(System):
         methods.
     n_electrons, n_alpha, n_beta : int, optional
         Number of total, alpha, and beta electrons. All three or
-        any two may be supplied, as 
+        any two may be supplied, as
         :math:`\textt{n_electrons} = \textt{n_alpha} + \textt{n_beta}`.
         The `generate_determinant_bitarrays` method requires `n_alpha`
         and `n_beta`; `n_electrons` is not required but can be used to

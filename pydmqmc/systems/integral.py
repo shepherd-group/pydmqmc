@@ -354,7 +354,8 @@ class Integral(System):
         self._psingle = nsingle/(nsingle + ndouble)
         self._pdouble = ndouble/(nsingle + ndouble)
 
-    def generate_determinant_bitarrays(self):
+    def generate_determinant_bitarrays(self):  # noqa: D102
+        # docstring is inhereted from parent
         super().generate_determinant_bitarrays()
         self._ndets = self._bitarrays.shape[0]
 

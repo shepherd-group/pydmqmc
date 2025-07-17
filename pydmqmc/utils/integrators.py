@@ -1,6 +1,17 @@
-from numpy.typing import NDArray as Array
+"""
+Generic ODE integrators for use in DMQMC and derivatives.
 
-def euler(func, y, dt, *args, **kwargs):
+Each function in this module must have the same call signature.
+"""
+
+from collections.abc import Callable
+
+
+def euler(func: Callable,
+          y: float,
+          dt: float,
+          *args,
+          **kwargs):
     """
     Update `y` using Euler's method.
 
@@ -11,7 +22,12 @@ def euler(func, y, dt, *args, **kwargs):
     dx_dt = func(y, *args, **kwargs)
     return y + dt * dx_dt
 
-def rk4(func, y, dt, *args, **kwargs):
+
+def rk4(func: Callable,
+        y: float,
+        dt: float,
+        *args,
+        **kwargs):
     """
     Update `y` using the fourth-order Runge-Kutta method.
 
