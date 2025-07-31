@@ -7,8 +7,8 @@ import numpy as np
 from numba import njit
 from scipy.optimize import newton
 
+import warnings
 from numpy.typing import ArrayLike, NDArray as Array
-
 
 
 class InteractionPictureDMQMC(DensityMatrixQMC):
@@ -39,7 +39,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
               defined_thermal_weights: ArrayLike | None = None,
               fixed_diagonal: ArrayLike | None = None
               ) -> None:
-        """
+        r"""
         Set parameters for each of the realizations.
 
         Parameters
@@ -62,13 +62,13 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         n_particles : int, default 1
             TODO what does this mean
         spawn_cutoff : float, default None
-            Used with "random-grand-canoncial" `initialization` method.
+            Used with "random-grand-canonical" `initialization` method.
             If using this method, the `run()` method will inherit this value
             for consistency. In `run()`, this parameter will only
             allow psip spawns if the change in a density matrix
             site :math:`|\partial p_{ik}| > \mathtt{spawn\_cutoff}`.
             If the `initialization` method is anything other than
-            "random-grand-canoncial," this parameter is ignored.
+            "random-grand-canonical," this parameter is ignored.
         defined_thermal_weights : array_like, optional
             Supply pre-defined thermal weights instead of using the
             auto-generated weights. Useful for, e.g., supplying FCI weights.
@@ -99,17 +99,18 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         """
         # Set values for use in run()
         self._final_beta = final_beta
-        if initialization == "random-grand-canoncial":
+        if initialization == "random-grand-canonical":
             self._spawn_cutoff = spawn_cutoff
         else:
             self._spawn_cutoff = None
 
         # Initialize density matrix
-        self._init_dm(initialization,
-                      final_beta,
-                      n_particles,
-                      defined_thermal_weights,
-                      fixed_diagonal)
+        self._density_matrix = self._init_dm(initialization,
+                                             final_beta,
+                                             n_particles,
+                                             defined_thermal_weights,
+                                             fixed_diagonal)
+        self._S = np.zeros(self.system.n_determinants, dtype=np.float64)
 
     def _init_dm(self,
                  init: str,
@@ -154,14 +155,13 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
                                    "must be equal to the number of "
                                    "determinants in the system.")
             randomrows = diag
-        elif init == "random-grand-canoncial":
-            self._grand_canonical(particles)
+        elif init == "random-grand-canonical":
+            randomrows = self._grand_canonical(particles)
         else:
             raise RuntimeError(f'Unknown initalization method {init}')
 
         f = np.diag(randomrows)
-        occrows = np.count_nonzero(f)
-        return f, occrows
+        return f
     
     def _grand_canonical(self, init_part):
         r"""
@@ -178,27 +178,44 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         def __dnav_function(mu_df, ei_df, tb_df, nel_df):
             return nel_df - __fermi_function(mu_df, ei_df, tb_df).sum()
 
-        # TODO apply appropriate checks on these attributes
+        # apply appropriate checks on these attributes
         eig = self.system.eigenvalues
         nel = self.system.n_electrons
+        if eig is None or nel is None:
+            raise RuntimeError("System must specify eigenvalues and "
+                               "n_electrons in order to use the "
+                               "random-grand-canonical initialization "
+                               "method.")
+
         mu0 = eig[np.argsort(eig)][nel-1:nel+1].sum()/2.0
         mu = newton(__dnav_function, mu0, args=(eig, self._final_beta, nel), tol=1E-14)
         fi = __fermi_function(mu, eig, self._final_beta)
         print(f' \\beta_T = {self._final_beta:>18.12f}')
         print(f' \\mu = {mu:>18.12f}')
 
-        # NOTE This isn't guarenteed to add up to nel.
-        # Is it better to pull n_alpha and n_beta from self.system
-        # or is this a required assumption?
-        nalpha = int(nel/2)
-        nbeta = int(nel/2)
-        
+        if self.system.n_alpha is not None and self.system.n_beta is not None:
+            nalpha = self.system.n_alpha
+            nbeta = self.system.n_beta
+        else:
+            warnings.warn("System does not define both n_alpha and n_beta. "
+                          "Assuming each are half of n_electrons "
+                          "(with remainder randomly assigned).")
+            nalpha = nel//2
+            nbeta = nel//2
+            if nel%2:  # randomly assign the remaider
+                if self._rng.uniform() >= 0.5:
+                    nalpha += 1
+                else:
+                    nbeta += 1
+            assert nalpha + nbeta == nel
+
         # If needed, Hamiltonian is generated during super.__init__()
         hii = np.copy(np.diag(self.system.hamiltonian))
         eshift = hii[0] - eig[np.argsort(eig)][:nel].sum()
         bitints = self.system.get_bitarray_integers()
 
-        rho0 = self._gci(self.system.bitarrays, 
+        rho0 = self._gci(self._rng,
+                         self.system.bitarrays, 
                          init_part,
                          self.system.n_orbitals,
                          fi,
@@ -211,11 +228,12 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
                          eshift,
                          self._spawn_cutoff)
 
-        return np.diag(rho0)
+        return rho0
 
     @staticmethod
     @njit
-    def _gci(bars_gci: Array,
+    def _gci(rng,
+             bars_gci: Array,
              initial_gci: int,
              norb_gci,
              fi_gci,
@@ -236,7 +254,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             nsel, nsela, nselb, bitint = 0, 0, 0, 0
 
             for iorb in range(norb_gci):
-                if np.random.random() < fi_gci[iorb]:
+                if rng.random() < fi_gci[iorb]:
                     occ = 1
                     ba[iorb] = occ
                     nsel += occ
@@ -255,14 +273,14 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
                 energy = hii_gci[bitints_gci == bitint][0]
                 energy -= ei_gci[ba == 1].sum()
                 ps = np.exp(-tb_gci*(energy - eshift_gci))/cutoff_gci
-                ps += np.random.random()
+                ps += rng.random()
                 ps = np.trunc(ps)
                 ps *= cutoff_gci
 
                 rho0_gci[bitints_gci == bitint] += ps
                 nspawned += int(ps)
 
-        return np.trunc(rho0_gci + np.random.random(rho0_gci.shape[0]))
+        return np.trunc(rho0_gci + rng.random(rho0_gci.shape[0]))
 
     def run(self,
             dbeta,
@@ -273,7 +291,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             n_add = None,
             ilevel = None,
             update_method = "euler"):
-        """
+        r"""
         Run an IP-DMQMC realization.
 
         For consistency, uses the value of `final_beta` set with
@@ -298,7 +316,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         spawn_cutoff : float, default 0.01
             Only accumulate psips if the change in a density matrix
             site :math:`|\partial p_{ik}| > \mathtt{spawn\_cutoff}`.
-            If the "random-grand-canoncial" method was used for
+            If the "random-grand-canonical" method was used for
             `initialization` during `setup()`, this parameter is ignored and
             the value of `spawn_cutoff` set during `setup()` is used instead.
         n_add : float, default None

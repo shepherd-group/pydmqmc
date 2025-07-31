@@ -425,6 +425,7 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
     '''
     df = { 'Beta':[], 'Shift':[], 'Tr(Hp)':[], 'Tr(p)':[],
            'Nw':[], '<E>':[], 'N_rows':[]}
+    rng = np.random.default_rng(seed=42)
 
     if defined_thermal_weights is not None:
         thermal_weights = defined_thermal_weights
@@ -437,18 +438,18 @@ def initialize_dm(init, Nattempts, target, Heval, HS, rowlist=None,
     elif init == 'deterministic-uniform':
         randomrows = np.ones(HS)
     elif init == 'uniform-thermal':
-        randomrows = np.random.choice(HS, size=Nattempts)
+        randomrows = rng.choice(HS, size=Nattempts)
         randomrows = np.bincount(randomrows, minlength=HS).astype(np.float64)
         randomrows *= thermal_weights
     elif init == 'uniform-uniform':
-        randomrows = np.random.choice(HS, size=Nattempts)
+        randomrows = rng.choice(HS, size=Nattempts)
         randomrows = np.bincount(randomrows, minlength=HS).astype(np.float64)
     elif init == 'thermal-thermal':
-        randomrows = np.random.choice(HS, size=Nattempts, p=thermal_weights)
+        randomrows = rng.choice(HS, size=Nattempts, p=thermal_weights)
         randomrows = np.bincount(randomrows, minlength=HS).astype(np.float64)
         randomrows *= thermal_weights
     elif init == 'thermal-uniform':
-        randomrows = np.random.choice(HS, size=Nattempts, p=thermal_weights)
+        randomrows = rng.choice(HS, size=Nattempts, p=thermal_weights)
         randomrows = np.bincount(randomrows, minlength=HS).astype(np.float64)
     elif init == 'specific-uniform':
         f = np.zeros(HS)

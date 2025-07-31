@@ -52,7 +52,7 @@ class TestDMQMC():
         assert np.allclose(self._mtd.density_matrix, 
                         np.eye(self._mtd.system.n_determinants))
 
-    def test_setup_uniform_random(self):
+    def test_setup_random_uniform(self):
         diag = np.array([0, 3, 0, 0, 1, 0, 0, 0, 2, 0, 
                         0, 0, 0, 2, 0, 1, 0, 1, 0, 0])
 

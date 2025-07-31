@@ -4,7 +4,6 @@ import sys
 import pickle
 import numba as nb
 import numpy as np
-import pandas as pd
 from integrals_readin import integral_system as readin 
 from scipy.optimize import newton
 
@@ -14,7 +13,7 @@ def set_numba_seed(rng):
     np.random.seed(rng)
 
 
-@nb.njit
+#@nb.njit
 def propagate(dt, p, H, S, nadd, cutoff, ilvl, flvl):
     ''' Run `IP-DMQMC` using the equation:
 
@@ -29,7 +28,7 @@ def propagate(dt, p, H, S, nadd, cutoff, ilvl, flvl):
     only accumulate those spawns |dp_ik| > cutoff.
     '''
     dets = p.shape[0]
-    dp = np.zeros(p.shape, dtype=nb.float64) + p
+    dp = np.zeros(p.shape, dtype=np.float64) + p
 
     for i in range(dets):
         for j in range(dets):
@@ -52,7 +51,7 @@ def propagate(dt, p, H, S, nadd, cutoff, ilvl, flvl):
 
                     if abs(pr) < cutoff:
                         pr /= cutoff
-                        pr += np.sign(pr) * np.random.random()
+                        pr += np.sign(pr) * rng.random()
                         pr = np.trunc(pr)
                         pr *= cutoff
 
@@ -60,7 +59,7 @@ def propagate(dt, p, H, S, nadd, cutoff, ilvl, flvl):
 
             if abs(dp[i,j]) < 1.0:
                 sign = np.sign(dp[i,j])
-                pr = dp[i,j] + sign * np.random.random()
+                pr = dp[i,j] + sign * rng.random()
                 dp[i,j] = np.trunc(pr)
 
     return dp
@@ -112,19 +111,19 @@ def initialize(H, initial, bars, eig, nel, tb, bitints, spawn_cutoff):
     print(f' \\beta_T = {tb:>18.12f}')
     print(f' \\mu = {mu:>18.12f}')
 
-    @nb.njit
+    #@nb.njit
     def __gci(bars_gci, initial_gci, norb_gci, fi_gci, nalpha_gci, nbeta_gci,
               bitints_gci, hii_gci, ei_gci, tb_gci, eshift_gci, cutoff_gci):
         nspawned = 0
         nel_gci = nalpha_gci + nbeta_gci
-        rho0_gci = np.zeros(bars_gci.shape[0], dtype=nb.float64)
+        rho0_gci = np.zeros(bars_gci.shape[0], dtype=np.float64)
 
         while nspawned < initial_gci:
-            ba = np.zeros(norb_gci, dtype=nb.int64)
+            ba = np.zeros(norb_gci, dtype=np.int64)
             nsel, nsela, nselb, bitint = 0, 0, 0, 0
 
             for iorb in range(norb_gci):
-                if np.random.random() < fi_gci[iorb]:
+                if rng.random() < fi_gci[iorb]:
                     occ = 1
                     ba[iorb] = occ
                     nsel += occ
@@ -143,14 +142,14 @@ def initialize(H, initial, bars, eig, nel, tb, bitints, spawn_cutoff):
                 energy = hii_gci[bitints_gci == bitint][0]
                 energy -= ei_gci[ba == 1].sum()
                 ps = np.exp(-tb_gci*(energy - eshift_gci))/cutoff_gci
-                ps += np.random.random()
+                ps += rng.random()
                 ps = np.trunc(ps)
                 ps *= cutoff_gci
 
                 rho0_gci[bitints_gci == bitint] += ps
                 nspawned += int(ps)
 
-        return np.trunc(rho0_gci + np.random.random(rho0_gci.shape[0]))
+        return np.trunc(rho0_gci + rng.random(rho0_gci.shape[0]))
 
     nalpha = int(nel/2)
     nbeta = int(nel/2)
@@ -172,17 +171,19 @@ def report(b, S, tr, en, nw, oc):
 
 def main(clargs):
 
-    rng, betaT, do_rbr, do_save, do_init, do_ilvl, do_flvl = [int(k) for k in clargs]
+    seed, betaT, do_rbr, do_save, do_init, do_ilvl, do_flvl = [int(k) for k in clargs]
     #rng = int(rng*26) + betaT
     #rng += 1000
-
-    np.random.seed(rng)
-    set_numba_seed(rng)
+    #betaT = 25.0
+    # np.random.seed(seed)
+    # set_numba_seed(seed)
+    global rng
+    rng = np.random.default_rng(seed)
 
     df = {'beta': [], 'shift': [], 'trace': [], 'pH': [], 'nw': []}
 
     sys = readin(
-            int_file = 'STRICT-EIGENVALUES-STO3G-STR-H6.FCIDUMP',
+            int_file = '../tests/inputs/integrals/STRICT-STO3G-STR-H4.FCIDUMP',
             hamiltonian = True,
         )
 
@@ -195,6 +196,7 @@ def main(clargs):
     # can the below be accomplished with existing Integral class or utils funcs?
     bitints = [np.exp2(sys.orbs[ba==1]).sum() for ba in sys.bitarrays]
     bitints = np.array(bitints).astype(np.int64)
+    #print(bars, eigs, nel, bitints)
 
     nadd = 3.0 if do_init == 1 else 0.0
     spawn_cutoff = 0.01
@@ -208,7 +210,7 @@ def main(clargs):
     rbr = 1 if row_by_row else None
     ilevel = True if do_ilvl else False
     flevel = True if do_flvl else False
-    print("rng:", rng, "rbr:", do_rbr, "save:", do_save, "n_add:", nadd, "ilvl:", do_ilvl, "flvl:", do_flvl)
+    print("rng:", seed, "rbr:", do_rbr, "save:", do_save, "n_add:", nadd, "ilvl:", do_ilvl, "flvl:", do_flvl)
 
     p = initialize(H, initial_particles, bars, eigs, nel, final_beta,
                    bitints, spawn_cutoff)
@@ -241,7 +243,7 @@ def main(clargs):
         silvl = '1' if ilevel == True else 0
         sflvl = '1' if flevel == True else 0
         pklf = f'stretched-H6-row-data-ipdmqmc-betaT{final_beta}-'
-        pklf += f'ilvl{silvl}-flvl{sflvl}-initiator{sini}-rbr{srbr}-rng{rng}.pickle'
+        pklf += f'ilvl{silvl}-flvl{sflvl}-initiator{sini}-rbr{srbr}-rng{seed}.pickle'
         with open(pklf, 'wb') as handle:
             pickle.dump(df, handle, protocol=4)
 
