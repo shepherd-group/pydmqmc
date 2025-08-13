@@ -30,6 +30,18 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             rng_seed: None | int | ArrayLike = None
             ) -> None:
         super().__init__(system, rng_seed)
+        self._final_beta = None
+        self._spawn_cutoff = None
+
+    @property
+    def final_beta(self) -> float | None:
+        """Target inverse temperature."""
+        return self._final_beta
+
+    @property
+    def spawn_cutoff(self) -> float | None:
+        """Cutoff for psip spawning."""
+        return self._spawn_cutoff
 
     def setup(self,
               final_beta: float,  # will also be used by self.run()
