@@ -1,14 +1,15 @@
-from ..methods import Method, DensityMatrixQMC
-
 import numpy as np
 
-def trace(method: Method):
-    if not isinstance(method, DensityMatrixQMC):
-        raise RuntimeError("The 'trace' analysis function can only "
-                           "be used with methods that utilize "
-                           "density matrices.")
-    if method.density_matrix is None:
-        raise RuntimeError("The associated method doesn't have a "
-                           "density matrix! Did you invoke the "
-                           "'run' method?")
-    return np.trace(method.density_matrix)
+from numpy.typing import NDArray as Array
+
+
+def trace(matrix: Array):
+    return np.trace(matrix)
+
+def energy(matrix: Array, hamiltonian: Array):
+    return np.trace(hamiltonian @ matrix)
+
+def von_neumann(matrix: Array):
+    return -(matrix @ np.log(matrix)).trace()
+
+# divide these by trace to get expectation

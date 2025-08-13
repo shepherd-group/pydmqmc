@@ -8,9 +8,11 @@ class ReportRegistry():
     def __init__(self):
         self._registry = {
             'trace': trace,
+            'energy': energy,
+            'von Neumann':von_neumann,
             }
         self._requirements = {
-            'trace': ('density_matrix',),
+            'energy': ('hamiltonian',),
             }
 
     @property
@@ -54,23 +56,20 @@ class ReportRegistry():
 
         Examples
         --------
-        Assuming the existance of a user defined function called
-        `my_func`, we can enroll it into the global registry
-        under the name `"my_analysis"` as below. To use `"my_analysis"`
-        with a Method object, attributes called `"hamiltonian"`
-        and `"density_matrix"` are required. Even though the Method
-        object will have the `density_matrix` and its associated
-        System will have the `hamiltonian`, we don't need to
-        specify this in the requirements. Both objects will
-        automatically be searched for these requirements when needed.
+        Assuming the existance of a user defined function called `my_func` that
+        operates on a matrix, we can enroll it into the global registry
+        under the name `"my_analysis"` as below. 
+        >>> def energy(matrix: NDArray, hamiltonian: NDArray):
+        ...     return np.norm(hamiltonian @ matrix)
         >>> my_reg.enroll("my_analysis",
         ...               my_func,
-        ...               ["hamiltonian", "density_matrix"])
+        ...               ["hamiltonian"])
         """
         if name in self._registry:
             raise RuntimeError(f"A function called '{name}' is "
                                "already enrolled in this registry!")
         self._registry[name] = function
+
         if requires:
             self._requirements[name] = tuple(requires)  # make immutable
         else:

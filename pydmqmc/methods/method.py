@@ -2,6 +2,7 @@
 
 from .. import systems
 from .. import utils
+from .. import report_registry
 
 from collections.abc import Callable
 
@@ -65,22 +66,41 @@ class Iterative(Method):
 
     def __init__(self, system: systems.System):
         super().__init__(system)
+        self._report_data = None
 
-    def setup(self) -> None:
-        """TODO: Write setup docstring here."""
-        raise NotImplementedError(
-            f'The setup method for {self.__class__.__name__} is not '
-            'currently implemented; please check your method or send patches!'
-        )
+    def setup(self, report_values) -> None:
+        """
+        Base method for initializing iterative calculations.
 
-        return
+        This base method creates a data structure for reporting 
+        user-supplied values every iteration. Any other setup
+        activities must be defined by the child class.
+
+        Parameters
+        ----------
+        report_values : list of strings
+            List of values to periodically report while performing
+            the calculation. Each item must be recognized by the
+            `report_registry`. The iteration variable
+            will automatically be included.
+        """
+        self._report_data = {}
+
+        for item in report_values:
+
+            if item not in report_registry:
+                raise RuntimeError(f"Value {item} is not present in "
+                                   "pydmqmc.report_registry. Did you "
+                                   "forget to enroll it?")
+
+            self._report_data[item] = []
 
     def parse_method(self, method: str = "euler") -> Callable:
         """
         Parse the supplied string to return the corresponding function.
 
         Call signature is func, x, y, dy where func(x, y) = dx/dy.
-        I should list supported methods.
+        TODO: list supported methods.
         """
         method = method.lower()
         if method == "euler":

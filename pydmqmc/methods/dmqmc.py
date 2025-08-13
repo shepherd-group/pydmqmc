@@ -69,15 +69,13 @@ class DensityMatrixQMC(Iterative):
               initialization: str = "deterministic",
               n_particles: int = 1,
               fixed_diagonal: ArrayLike | None = None,
+              report_values: list[str] = ["trace", "energy"]
               ) -> None:
         """
         Specify conditions for the DMQMC realization.
 
-        These conditions include the initial density matrix and update method.
-
-        CK Note: as it currently exists, this function could be folded into
-        __init__ if a user should be forced to instantiate a new object
-        when changing integration methods and/or the initial density matrix.
+        This setup includes the initial density matrix and a data structure
+        for reporting user-supplied values every iteration.
 
         Parameters
         ----------
@@ -96,6 +94,11 @@ class DensityMatrixQMC(Iterative):
             Directly defined the diagonal of the density matrix when used
             with the "fixed" initialization method. The length of `diag`
             must be the same as the number of determinants in the system.
+        report_values : list, optional
+            List of values to periodically report while performing
+            the calculation. Each item must be recognized by the
+            `report_registry`. The iteration variable
+            :math:`beta` will automatically be included.
 
         Notes
         -----
@@ -114,10 +117,17 @@ class DensityMatrixQMC(Iterative):
             Takes the optional parameter `fixed_diagonal` which is used as the
             diagonal of the density matrix.
         """
-        self._density_matrix = self._init_dm(initialization,
-                                             n_particles,
-                                             fixed_diagonal)
+        if self._density_matrix is not None:
+            self._density_matrix = self._init_dm(initialization,
+                                                n_particles,
+                                                fixed_diagonal)
+        else:
+            raise RuntimeError("A density_matrix has already been defined! "
+                               "To prevent erasing data, please create a "
+                               "new DensityMatrixQMC object.")
         self._S = np.zeros(self.system.n_determinants, dtype=np.float64)
+        super().setup(report_values)
+        self._report_data["beta"] = []
 
     def _init_dm(self,
                  init: str,
@@ -260,6 +270,7 @@ class DensityMatrixQMC(Iterative):
                                    shift_dampening, dbeta, rbr)
 
         # print initial report
+        # TODO: replace with actual mechanism
         print(f"{'Beta':>9}  {'Trace':>18}  "
               f"{'Energy':>18}  {'En/Tr':>18}")
         en = (p @ self.system.hamiltonian).trace()
@@ -290,6 +301,7 @@ class DensityMatrixQMC(Iterative):
                                        shift_dampening, dbeta, rbr)
 
             # do periodic reporting here
+            # TODO: replace with actual mechanism
             en = (p @ self.system.hamiltonian).trace()
             print(f"{(shift+1)*cycles_per_shift*dbeta:>9.3f}  "
                   f"{p.trace():>18.12e}  "
