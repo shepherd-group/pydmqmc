@@ -117,17 +117,14 @@ class DensityMatrixQMC(Iterative):
             Takes the optional parameter `fixed_diagonal` which is used as the
             diagonal of the density matrix.
         """
-        if self._density_matrix is not None:
-            self._density_matrix = self._init_dm(initialization,
-                                                n_particles,
-                                                fixed_diagonal)
-        else:
-            raise RuntimeError("A density_matrix has already been defined! "
-                               "To prevent erasing data, please create a "
-                               "new DensityMatrixQMC object.")
-        self._S = np.zeros(self.system.n_determinants, dtype=np.float64)
         super().setup(report_values)
-        self._report_data["beta"] = []
+        self._report_values.append("beta")
+
+        self._density_matrix = self._init_dm(initialization,
+                                            n_particles,
+                                            fixed_diagonal)
+
+        self._S = np.zeros(self.system.n_determinants, dtype=np.float64)
 
     def _init_dm(self,
                  init: str,
@@ -225,12 +222,16 @@ class DensityMatrixQMC(Iterative):
         .. [1] N. S. Blunt et al., "Density-matrix quantum Monte Carlo method,"
                Physical Review B, 89, 24, 2014
         """
+        # Perform sanity checks
         if self._density_matrix is None:
             raise RuntimeError("You must first run the setup() method!")
 
         if ilevel is not None and not isinstance(ilevel, int):
             raise TypeError("Parameter ilevel must be type int; "
                             f"supplied value is type {type(ilevel)}.")
+
+        # Run super()'s run method to ensure data safety.
+        super().run()
 
         # While it makes sense for a parameter to be None when a feature
         # is disabled, Numba-compiled `propagate` methods in child classes

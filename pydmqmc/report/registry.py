@@ -1,7 +1,6 @@
 from .report_functions import *
-from ..methods import Method
 
-from collections.abc import Iterable, Callable, MutableMapping
+from collections.abc import Iterable, Callable
 from functools import partial
 
 class ReportRegistry():
@@ -78,7 +77,7 @@ class ReportRegistry():
 
     def check_requirements(self,
                            name: str,
-                           method: Method) -> bool:
+                           method: 'Method') -> bool:
         """
         Check for a function's requirements in a given Method.
 

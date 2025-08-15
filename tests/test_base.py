@@ -69,8 +69,12 @@ class TestMethod():
         self._mtd = Method(self._sys)
 
     def test_run(self):
-        """Test that errors flag correctly."""
-        with raises(NotImplementedError):
+        self._mtd.run()
+        assert self._mtd.ran_calculation
+
+    def test_run_twice(self):
+        self._mtd.run()
+        with raises(RuntimeError):
             self._mtd.run()
 
 
@@ -82,10 +86,8 @@ class TestAnalytic():
         self._mtd = Analytic(self._sys)
 
     def test_run(self):
-        """Test that errors flag correctly."""
-
-        with raises(NotImplementedError):
-            self._mtd.run()
+        self._mtd.run()
+        assert self._mtd.ran_calculation
 
 
 class TestIterative():
@@ -95,15 +97,15 @@ class TestIterative():
         self._sys = System("/dummy/path")
         self._mtd = Iterative(self._sys)
 
-    def test_run(self):
-        """Test that errors flag correctly."""
-        with raises(NotImplementedError):
-            self._mtd.run()
-
     def test_setup(self):
-        """Test that errors flag correctly."""
-        with raises(NotImplementedError):
-            self._mtd.setup()
+        self._mtd.setup(["trace"])
+        assert self._mtd.report_values == ["trace"]
+
+    def test_setup_after_run(self):
+        self._mtd.setup(["trace"])
+        self._mtd.run()
+        with raises(RuntimeError):
+            self._mtd.setup(["trace"])
 
     def test_parse_method(self):
         f_euler = self._mtd.parse_method("euler")

@@ -2,7 +2,7 @@
 
 from .. import systems
 from .. import utils
-from .. import report_registry
+from ..report.registry import report_registry
 
 from collections.abc import Callable
 
@@ -22,21 +22,31 @@ class Method:
             system: systems.System,
             ) -> None:
         self._system = system
-        return
+        self._ran_calculation = False
 
     @property
     def system(self) -> systems.System:
         """The System object to which this method is applied."""
         return self._system
 
-    def run(self) -> None:
-        """TODO: Write run docstring here."""
-        raise NotImplementedError(
-            f'The run method for {self.__class__.__name__} is not '
-            'currently implemented; please check your method or send patches!'
-        )
+    @property
+    def ran_calculation(self) -> bool:
+        """Whether or not the calculation has been run."""
+        return self._ran_calculation
 
-        return
+    def run(self) -> None:
+        """
+        Base method for initializing iterative calculations.
+
+        This base method creates a data structure for reporting 
+        user-supplied values every iteration. Any other setup
+        activities must be defined by the child class.
+        """
+        if self._ran_calculation:
+            raise RuntimeError("A calculation has already been run for this "
+                               "Method object. To prevent data loss, please "
+                               "create a new Method object.")
+        self._ran_calculation = True
 
 
 class Analytic(Method):
@@ -66,7 +76,12 @@ class Iterative(Method):
 
     def __init__(self, system: systems.System):
         super().__init__(system)
-        self._report_data = None
+        self._report_values = None
+
+    @property
+    def report_values(self) -> list[str] | None:
+        """The list of values to be reported throughout the calculation."""
+        return self._report_values
 
     def setup(self, report_values) -> None:
         """
@@ -84,7 +99,12 @@ class Iterative(Method):
             `report_registry`. The iteration variable
             will automatically be included.
         """
-        self._report_data = {}
+        if self._ran_calculation:
+            raise RuntimeError("A calculation has already been run for this "
+                               "Method object. To prevent data loss, please "
+                               "create a new Method object.")
+
+        self._report_values = []
 
         for item in report_values:
 
@@ -93,7 +113,7 @@ class Iterative(Method):
                                    "pydmqmc.report_registry. Did you "
                                    "forget to enroll it?")
 
-            self._report_data[item] = []
+            self._report_values.append(item)
 
     def parse_method(self, method: str = "euler") -> Callable:
         """

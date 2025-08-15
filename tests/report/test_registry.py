@@ -8,7 +8,7 @@ from pydmqmc.report.report_functions import trace
 
 @fixture
 def default_enrolled():
-    return ["trace"]
+    return ["trace", "energy", "von Neumann"]
 
 class TestReportRegistry():
 
@@ -33,7 +33,7 @@ class TestReportRegistry():
         assert list(report_registry.keys()) == default_enrolled
 
     def test_check_requirements(self, _setup):
-        assert report_registry.check_requirements("trace", self._mtd)
+        assert report_registry.check_requirements("energy", self._mtd)
 
     def test_enroll_func(self, _setup):
         def test_func(method):
