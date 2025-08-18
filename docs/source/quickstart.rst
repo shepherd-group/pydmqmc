@@ -3,25 +3,25 @@
 Quickstart Guide
 ================
 
-Each pydmqmc simulation has three components: the :doc:`System<systems>`,
-the :doc:`simulation Method<methods>`, and
+Each pydmqmc simulation has three components: the :class:`~pydmqmc.systems.System`,
+the simulation :class:`~pydmqmc.methods.Method`, and
 outputs derived from the simulation. These components are encapsulated
-in three different submodules: :doc:`Systems API<api_systems>`, 
-the :doc:`Methods API<api_methods>`,
+in three different submodules: :doc:`Systems API<api/systems>`, 
+the :doc:`Methods API<api/methods>`,
 and **not yet implemented**.
 You'll need to instantiate an object from each submodule in order to execute
 a full pydmqmc simulation. See the additional pages within this documentation
 to better understand your options.
 
-All :doc:`System<systems>` classes require an input file. The contents 
+All :class:`~pydmqmc.systems.System` classes require an input file. The contents 
 of this file are used to define the System's Hamiltonian according to the
 class used to load the file. For example, if you wish to use integrals in
 `FCIDUMP format <https://hande.readthedocs.io/en/stable/manual/integrals.html#fcidump-format>`_,
-use the :ref:`Integral<api-system-integral>` class.
+use the :class:`~pydmqmc.systems.Integral` class.
 
-The :doc:`Methods<methods>` classes require a System object at initialization.
-The various methods fall into two categories: :doc:`iterative<iterative>`
-and :doc:`analytic<analytic>`. All Method classes have a `.run()` method
+The :class:`~pydmqmc.methods.Method` classes require a System object at initialization.
+The various methods fall into two categories: :class:`~pydmqmc.methods.Iterative`
+and :class:`~pydmqmc.methods.Analytic`. All Method classes have a `.run()` method
 that executes the simulation (or analytic calculation as the case may be). 
 The iterative Methods, such as density-matrix quantum Monte Carlo (DMQMC)
 also have a `.setup()` method.
@@ -40,7 +40,7 @@ An example simulation with all three parts is below:
     mtd = SymmetricBlochDMQMC(sys, rng_seed=42)
 
     # Setup and run the simulation
-    mtd.setup("uniform-random", n_particles=int(1e5))
+    mtd.setup("random-uniform", n_particles=int(1e5))
     mtd.run(final_beta=25,
             dbeta=0.001,
             cycles_per_shift=1000,
@@ -48,3 +48,5 @@ An example simulation with all three parts is below:
             spawn_cutoff=0.01,
             shift_by_rows=False
             )
+
+    mtd.save_data("test_run")

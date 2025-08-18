@@ -7,4 +7,4 @@ Methods Submodule
     :maxdepth: 2
     :caption: Method Types:
 
-    api_dmqmc
+    dmqmc

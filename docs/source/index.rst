@@ -20,4 +20,4 @@ documentation for details.
     systems
     methods
     dev_guide
-    api
+    api/api
