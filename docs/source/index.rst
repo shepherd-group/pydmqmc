@@ -19,5 +19,5 @@ documentation for details.
     quickstart
     systems
     methods
-    dev_guide
+    dev/overview
     api/api
