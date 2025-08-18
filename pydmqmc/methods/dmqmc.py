@@ -2,6 +2,8 @@
 
 from .method import Iterative
 from ..systems import System
+from ..report.registry import report_registry
+from ..utils import save_array, save_report
 
 import numpy as np
 from numba import njit
@@ -118,7 +120,8 @@ class DensityMatrixQMC(Iterative):
             diagonal of the density matrix.
         """
         super().setup(report_values)
-        self._report_values.append("beta")
+        # Put iterator value at the front of the list
+        #self._report_values = ["beta"] + self._report_values
 
         self._density_matrix = self._init_dm(initialization,
                                             n_particles,
@@ -170,6 +173,7 @@ class DensityMatrixQMC(Iterative):
             n_add: float | None = None,
             ilevel: int | None = None,
             update_method: str = "euler",
+            quiet: bool = False
             ):
         r"""
         Run a DMQMC realization.
@@ -210,6 +214,8 @@ class DensityMatrixQMC(Iterative):
         update_method : str, default "euler"
             One of the supported update methods from (TODO link to)
             Iterative.parse_method()
+        quiet : boolean, default False
+            Silence printing the iteration report as the simulation runs.
 
         Notes
         -----
@@ -262,55 +268,67 @@ class DensityMatrixQMC(Iterative):
         update_func = super().parse_method(update_method)
         rbr = 1 if shift_by_rows else None
 
-        p = self._density_matrix
+        self._density_matrix = self._density_matrix
 
         # set initial shift
         # np will not be altered in this instance
-        npsip = np.sum(p, axis=rbr)
-        npsip = self._update_shift(p, npsip, cycles_per_shift,
+        npsip = np.sum(self._density_matrix, axis=rbr)
+        npsip = self._update_shift(self._density_matrix, npsip, cycles_per_shift,
                                    shift_dampening, dbeta, rbr)
 
-        # print initial report
-        # TODO: replace with actual mechanism
-        print(f"{'Beta':>9}  {'Trace':>18}  "
-              f"{'Energy':>18}  {'En/Tr':>18}")
-        en = (p @ self.system.hamiltonian).trace()
-        print(f"{0:>9.3f}  {p.trace():>18.12e}  "
-              f"{en:>18.12e}  {en/p.trace():>18.12f}")
+        # Do initial reporting
+        if not quiet:
+            header = f"{'beta':>14}"
+            for value in self._report_values:
+                header += f" {value:>14}"
+            print(header)
+        self._do_report(0.0, quiet)
 
         for shift in range(n_shifts):
 
             for cycle in range(cycles_per_shift):
 
-                p = update_func(self._propagate,  # func for dx/dy
-                                p,      # y
-                                dbeta,  # stepsize dt
-                                spawn_cutoff, n_add,  # args for func
-                                ilevel, n_ex)  # args for func
+                self._density_matrix = update_func(self._propagate,  # f(dx/dy)
+                                                   self._density_matrix,  # y
+                                                   dbeta,  # stepsize dt
+                                                   spawn_cutoff, n_add,  # args
+                                                   ilevel, n_ex)  # args
 
                 # Only store |p_ij| > 1.0, otherwise
                 # round below this threshold in a non-biased manner
                 # (stochastic rounding)
-                replace = np.trunc(p +
-                                   np.sign(p)*self._rng.random(p.shape))
-                np.where(np.abs(p) < 1.0,
+                replace = np.trunc(self._density_matrix +
+                                   np.sign(self._density_matrix) *
+                                   self._rng.random(self._density_matrix.shape))
+                np.where(np.abs(self._density_matrix) < 1.0,
                          replace,
-                         p)
+                         self._density_matrix)
 
             # update shift every report period
-            npsip = self._update_shift(p, npsip, cycles_per_shift,
+            npsip = self._update_shift(self._density_matrix,
+                                       npsip, cycles_per_shift,
                                        shift_dampening, dbeta, rbr)
 
-            # do periodic reporting here
-            # TODO: replace with actual mechanism
-            en = (p @ self.system.hamiltonian).trace()
-            print(f"{(shift+1)*cycles_per_shift*dbeta:>9.3f}  "
-                  f"{p.trace():>18.12e}  "
-                  f"{en:>18.12e}"
-                  f"{en/p.trace():>18.12f}")
+            # do periodic reporting
+            self._do_report((shift+1)*cycles_per_shift*dbeta, quiet)
 
-        # save final results
-        self._density_matrix = p
+    def _do_report(self, current_beta: float, quiet: bool = False) -> None:
+        """
+        Put values for this current iteration into the self._data list.
+        """
+        current_data = {"beta": current_beta}
+        rep_str = f"{current_beta:>14e}"
+        for value in self._report_values:
+            data = report_registry[value](self._density_matrix,
+                                          **self._report_reqs[value])
+            
+            current_data[value] = data
+            rep_str += f" {data:>14e}"
+
+        if not quiet:
+            print(rep_str)
+
+        self._report_data.append(current_data) 
 
     def _update_shift(self,
                       p: Array,
@@ -349,6 +367,57 @@ class DensityMatrixQMC(Iterative):
             "method defined. Please use either SymmetricBlochDMQMC or "
             "AsymmetricBlochDMQMC, or a custom child class."
         )
+
+    def save_data(self,
+                  basename: str,
+                  matrix_filetype: str = "csv",
+                  report_filetype: str = "csv",
+                  pickle_protocol: int | None = None) -> None:
+        """
+        Save the final density matrix and iteration report to file.
+
+        The `basename` and `filetype` parameters will be used to construct
+        filenames for all of the data written to file. For example, if
+        `basename` is "test_run" and the `matrix_` and `report_filetype`
+        are both "csv", the density matrix will be saved to
+        "test_run_density_matrix.csv" and the iteration report will be saved to
+        "test_run_report.csv".
+
+        Parameters
+        ----------
+        basename : str
+            Base name used to construct the filenames for the density
+            matrix and iteration report
+        matrix_filetype : str, default "csv"
+            File type (aka extension) with which to save the density matrix.
+            Supported types are:
+
+            - "csv" : comma-separated value file
+            - "npy" : NumPy binary file
+            - "pkl" : Python pickle file
+            - "txt" : text file (space-delimited)
+
+        report_filetype : str, default "csv"
+            File type (aka extension) with which to save the report.
+            Supported types are:
+
+            - "csv" : comma-separated value file
+            - "txt" : text file (space-delimited)
+            - "pkl" : pickle file
+
+        pickle_protocol : unt, optional
+        Protocol version to use if either `filetype` is "pkl".
+        If none, uses `pickle`'s default.
+        """
+        save_array(self._density_matrix,
+                   basename + "_density_matrix",
+                   matrix_filetype,
+                   pickle_protocol)
+        save_report(self._report_data,
+                    basename + "_report",
+                    "beta",
+                    report_filetype,
+                    pickle_protocol)
 
 
 class AsymmetricBlochDMQMC(DensityMatrixQMC):

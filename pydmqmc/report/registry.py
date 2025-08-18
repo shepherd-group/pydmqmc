@@ -10,6 +10,7 @@ class ReportRegistry():
             'energy': energy,
             'von Neumann':von_neumann,
             }
+        # abbreviated list of requirements
         self._requirements = {
             'energy': ('hamiltonian',),
             }
@@ -30,10 +31,17 @@ class ReportRegistry():
 
     def __getitem__(self, name):
         """A shortcut for accessing the associated function."""
-        return self._registry[name]
+        return self._registry[name]  # actually return a partial with the requirements in place?
 
     def keys(self):
         return self._registry.keys()
+
+    def list_requirements(self, name):
+        try:
+            req = self._requirements[name]
+        except KeyError:
+            req = None
+        return req
 
     def enroll(self,
                name: str,
@@ -52,13 +60,17 @@ class ReportRegistry():
         requires : string, list of strings or None
             List of prerequisites required by the analysis function.
             These should be attributes of a Method or System object.
+            Can be formatted as, e.g., `"method.system.hamiltonian"` or just
+            `"hamiltonian"`. In the latter case, the Method and its System 
+            will be searched for an attribute called `hamiltonian`.
 
         Examples
         --------
         Assuming the existance of a user defined function called `my_func` that
-        operates on a matrix, we can enroll it into the global registry
-        under the name `"my_analysis"` as below. 
-        >>> def energy(matrix: NDArray, hamiltonian: NDArray):
+        operates on a matrix in conjunction with a System's hamiltonian,
+        we can enroll it into the global registry
+        under the name `"my_analysis"` as below:
+        >>> def my_func(matrix: NDArray, hamiltonian: NDArray):
         ...     return np.norm(hamiltonian @ matrix)
         >>> my_reg.enroll("my_analysis",
         ...               my_func,
@@ -71,11 +83,8 @@ class ReportRegistry():
 
         if requires:
             self._requirements[name] = tuple(requires)  # make immutable
-        else:
-            # If requires is an empty list or string, also set to None
-            self._requirements[name] = None
 
-    def check_requirements(self,
+    def get_requirements(self,
                            name: str,
                            method: 'Method') -> bool:
         """
@@ -103,21 +112,51 @@ class ReportRegistry():
             raise RuntimeError(f"Function '{name}' has not been "
                                "enrolled in this registry!")
 
-        for req in self._requirements[name]:
-            test_str = "method." + req
-            try:
-                exec(test_str)
-            except AttributeError:
-                # This requirement could also be part of the
-                # system class, so check there too
-                test_str2 = "method.system." + req
-                try:
-                    exec(test_str2)
-                except AttributeError:
-                    return False
+        if name not in self._requirements:
+            return {}
 
-        # None of the requirements resulted in errors
-        return True
+        req_dict = {}
+        for req in self._requirements[name]:
+            error_msg = f"Requirements for {req} not currently " \
+                         "satisfied. This Method and its System " \
+                         "must be able to satisfy the following:" \
+                         f" {self.list_requirements(req)}"
+
+            # The requirement may be the full attribute "path"
+            try:
+                req_data = eval(str(req))
+                if req_data is None:
+                    # requirement present but currently None
+                    raise RuntimeError(error_msg)
+                req_dict[req] = req_data  # add to return dict
+
+            except NameError:
+                # Check under the Method object
+                test_str = "method." + req
+                try:
+                    req_data = eval(test_str)
+                    if req_data is None:
+                        # requirement present but currently None
+                        raise RuntimeError(error_msg)
+                    req_dict[req] = req_data  # add to return dict
+
+                except AttributeError:
+                    # Check under the System class
+                    test_str2 = "method.system." + req
+                    try:
+                        req_data = eval(test_str2)
+                        if req_data is None:
+                            # requirement present but currently None
+                            raise RuntimeError(error_msg)
+                        req_dict[req] = req_data  # add to return dict
+                    except AttributeError:
+                        raise ValueError(f"The requirement {req} is not "
+                                        "present in either the provided "
+                                        "Method or its associated System.")
+
+        # None of the requirements resulted in errors;
+        # all could be found and weren't None
+        return req_dict
 
 # Create the main registry of report functions
 report_registry = ReportRegistry()

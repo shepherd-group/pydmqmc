@@ -98,8 +98,14 @@ class TestIterative():
         self._mtd = Iterative(self._sys)
 
     def test_setup(self):
-        self._mtd.setup(["trace"])
-        assert self._mtd.report_values == ["trace"]
+        report_lst = ["trace"]
+        self._mtd.setup(report_lst)
+        assert self._mtd.report_values == report_lst
+        assert self._mtd.report_requirements["trace"] == {}
+
+    def test_setup_bad_report_values(self):
+        with raises(AttributeError):
+            self._mtd.setup(["junk"])
 
     def test_setup_after_run(self):
         self._mtd.setup(["trace"])

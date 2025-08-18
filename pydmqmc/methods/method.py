@@ -77,11 +77,23 @@ class Iterative(Method):
     def __init__(self, system: systems.System):
         super().__init__(system)
         self._report_values = None
+        self._report_reqs = None
+        self._report_data = None
 
     @property
     def report_values(self) -> list[str] | None:
         """The list of values to be reported throughout the calculation."""
         return self._report_values
+
+    @property
+    def report_requirements(self) -> dict | None:
+        """Dictionary of fulfilled requirements for each report value."""
+        return self._report_reqs
+
+    @property
+    def report(self) -> list[dict] | None:
+        """List of dictionaries with report values."""
+        return self._report_data
 
     def setup(self, report_values) -> None:
         """
@@ -105,15 +117,20 @@ class Iterative(Method):
                                "create a new Method object.")
 
         self._report_values = []
+        self._report_reqs = {}
 
         for item in report_values:
 
             if item not in report_registry:
-                raise RuntimeError(f"Value {item} is not present in "
-                                   "pydmqmc.report_registry. Did you "
-                                   "forget to enroll it?")
+                raise AttributeError(f"Value {item} is not present in "
+                                     "pydmqmc.report_registry. Did you "
+                                     "forget to enroll it?")
 
             self._report_values.append(item)
+            self._report_reqs[item] = report_registry.get_requirements(item,
+                                                                       self)
+
+        self._report_data = []
 
     def parse_method(self, method: str = "euler") -> Callable:
         """
