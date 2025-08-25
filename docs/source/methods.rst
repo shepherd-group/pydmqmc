@@ -1,6 +1,6 @@
 .. _ref-methods:
 
-Methods Reference
+Available Methods
 =================
 
 .. toctree::

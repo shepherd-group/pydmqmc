@@ -1,6 +1,6 @@
 .. _ref-systems:
 
-Systems Reference
+Available Systems
 =================
 
 The systems that are available for use are as follows:

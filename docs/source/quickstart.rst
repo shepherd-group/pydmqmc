@@ -62,6 +62,8 @@ contains information from each iteration of the
     1.0,45926.587906175104,-61008.49488132428
     2.0,27454.474366465434,-42865.7113992343
 
+The quantities included in this table can be adjusted; see :ref:`iteration-report` for more.
+
 The second file, ``test_run_density_matrix.csv``, contains the final density matrix.
 
 Both files can have their format adjusted; 
