@@ -38,9 +38,9 @@ class Method:
         """
         Base method for initializing iterative calculations.
 
-        This base method creates a data structure for reporting 
-        user-supplied values every iteration. Any other setup
-        activities must be defined by the child class.
+        This base method handles a flag to ensure ``run`` is
+        only called once. Any other calculations
+        must be defined by the child class.
         """
         if self._ran_calculation:
             raise RuntimeError("A calculation has already been run for this "
