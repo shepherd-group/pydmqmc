@@ -20,4 +20,8 @@ be used as a standalone class but is detailed below.
 Base Class
 ----------
 
+.. warning::
+    This class is not designed for standalone use.
+    Instead, it should be inherited by other classes.
+
 .. autoclass:: pydmqmc.methods.DensityMatrixQMC

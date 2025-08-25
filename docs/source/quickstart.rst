@@ -20,12 +20,13 @@ use the :class:`~pydmqmc.systems.Integral` class.
 
 The :class:`~pydmqmc.methods.Method` classes require a System object at initialization.
 The various methods fall into two categories: :class:`~pydmqmc.methods.Iterative`
-and :class:`~pydmqmc.methods.Analytic`. All Method classes have a `.run()` method
+and :class:`~pydmqmc.methods.Analytic`. All Method classes have a 
+:meth:`~pydmqmc.methods.Method.run()` method
 that executes the simulation (or analytic calculation as the case may be). 
 The iterative Methods, such as density-matrix quantum Monte Carlo (DMQMC)
-also have a `.setup()` method.
+also have a :meth:`~pydmqmc.methods.Iterative.setup` method.
 As the name suggests, this class method is used to create the initial state
-that the Method's `.run()` method will iterate on.
+that the Method's :meth:`~pydmqmc.methods.Method.run()` method will iterate on.
 
 An example simulation with all three parts is below:
 
@@ -49,3 +50,19 @@ An example simulation with all three parts is below:
             )
 
     mtd.save_data("test_run")
+
+This will result in two files being saved to disk. The file ``test_run_report.csv``
+contains information from each iteration of the 
+:class:`~pydmqmc.methods.SymmetricBlochDMQMC` simulation; for example:
+
+.. csv-table::
+
+    beta,trace,energy
+    0.0,100000.0,-103794.00723214602
+    1.0,45926.587906175104,-61008.49488132428
+    2.0,27454.474366465434,-42865.7113992343
+
+The second file, ``test_run_density_matrix.csv``, contains the final density matrix.
+
+Both files can have their format adjusted; 
+see :meth:`~pydmqmc.methods.SymmetricBlochDMQMC.save_data` for more.

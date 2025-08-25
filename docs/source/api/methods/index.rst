@@ -3,7 +3,7 @@
 Methods Submodule
 =================
 
-Methods come in two types: :ref:`Analytic <api-analytic>` and
+:ref:`Methods <ref-methods>` come in two types: :ref:`Analytic <api-analytic>` and
 :ref:`Iterative <api-iterative>`. Families of methods are listed
 alphabetically under their respective types. The base classes are listed at the
 end of this document.
