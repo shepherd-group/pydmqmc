@@ -23,24 +23,24 @@ class MatrixHamiltonian(System):
         Whether or not the Hamiltonian is complex.
     n_orbitals : int, optional
         Number of orbitals in the system. Required if using the
-        `generate_determinant_bitarrays` or `get_virtual_orbitals`
+        ``generate_determinant_bitarrays`` or ``get_virtual_orbitals``
         methods.
     n_electrons, n_alpha, n_beta : int, optional
         Number of total, alpha, and beta electrons. All three or
         any two may be supplied, as
-        :math:`\textt{n_electrons} = \textt{n_alpha} + \textt{n_beta}`.
-        The `generate_determinant_bitarrays` method requires `n_alpha`
-        and `n_beta`; `n_electrons` is not required but can be used to
-        infer `n_alpha` or `n_beta`.
+        :math:`\texttt{n_electrons} = \texttt{n_alpha} + \texttt{n_beta}`.
+        The ``generate_determinant_bitarrays`` method requires ``n_alpha``
+        and ``n_beta``; ``n_electrons`` is not required but can be used to
+        infer ``n_alpha`` or ``n_beta``.
     orbital_pg_symmetry : array_like
         Set of orbital point group symmetries. Required if using the
-        `generate_determinant_bitarrays` or `get_virtual_orbitals`
+        ``generate_determinant_bitarrays`` or ``get_virtual_orbitals``
         methods.
 
     Note
     ----
-    The `get_bitarray_integers` and `generate_excitation_matrix` methods
-    both depend on `generate_determinant_bitarrays` and will call this method
+    The ``get_bitarray_integers`` and ``generate_excitation_matrix`` methods
+    both depend on ``generate_determinant_bitarrays`` and will call this method
     if it has not previously been called. These methods are therefore
     subject to the same parameter requirements as noted above.
 

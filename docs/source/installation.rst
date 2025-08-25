@@ -5,6 +5,9 @@ Installation
 
 At this time, pydmqmc is only buildable from source.
 
+Building from Source
+--------------------
+
 First, clone the repository: ::
 
     $ git clone https://github.com/shepherd-group/pydmqmc.git

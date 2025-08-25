@@ -3,12 +3,11 @@
 Quickstart Guide
 ================
 
-Each pydmqmc simulation has three components: the :class:`~pydmqmc.systems.System`,
-the simulation :class:`~pydmqmc.methods.Method`, and
-outputs derived from the simulation. These components are encapsulated
-in three different submodules: :doc:`Systems API<api/systems>`, 
-the :doc:`Methods API<api/methods>`,
-and **not yet implemented**.
+Each pydmqmc simulation has two components: the :ref:`System <ref-systems>`
+being simulated and the simulation :ref:`Method <ref-methods>`.
+These components are encapsulated
+in two different submodules: :doc:`Systems API<api/systems/system>`, 
+the :doc:`Methods API<api/methods/index>`.
 You'll need to instantiate an object from each submodule in order to execute
 a full pydmqmc simulation. See the additional pages within this documentation
 to better understand your options.

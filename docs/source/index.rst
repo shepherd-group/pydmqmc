@@ -17,7 +17,7 @@ documentation for details.
 
     installation
     quickstart
-    systems
+    systems/systems
     methods
     dev/overview
-    api/api
+    api/index
