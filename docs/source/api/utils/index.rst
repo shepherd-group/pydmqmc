@@ -7,7 +7,7 @@ This submodule contains utility functions used throughout pydmqmc.
 While accessible to users, these functions are generally less polished
 than the rest of pydmqmc.
 
-.. contents::
+.. contents:: Utilities
     :local:
     :depth: 2
 

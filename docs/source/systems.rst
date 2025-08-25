@@ -3,9 +3,9 @@
 Available Systems
 =================
 
-The systems that are available for use are as follows:
+The systems that are available for use are described below
 
-.. contents::
+.. contents:: Systems
     :local:
 
 System Defined by a Hamiltonian Matrix Only

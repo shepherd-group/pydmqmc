@@ -20,7 +20,7 @@ it's advisable to build with the ``--editable`` or ``-e`` flag: ::
     $ pip install -e .
 
 Building the Documentation
---------------------------
+**************************
 
 The pydmqmc documentation can be built using `Sphinx <www.sphinx-doc.org>`_.
 To build the documentation locally: ::
