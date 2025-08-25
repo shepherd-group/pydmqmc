@@ -27,6 +27,8 @@ autodoc_default_options = {
     "show-inheritance": True
 }
 
+autosummary_generate = True
+
 numpydoc_show_class_members = True
 numpydoc_show_inherited_class_members = True
 numpydoc_attributes_as_param_list = False
