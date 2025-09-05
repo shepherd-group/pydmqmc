@@ -8,6 +8,9 @@ The systems that are available for use are described below
 .. contents:: Systems
     :local:
 
+
+.. _hamiltonian-systems:
+
 System Defined by a Hamiltonian Matrix Only
 -------------------------------------------
 
@@ -25,13 +28,15 @@ following methods:
 * :meth:`~pydmqmc.systems.System.generate_determinant_bitarrays`
 * :meth:`~pydmqmc.systems.System.generate_excitation_matrix`
 * :meth:`~pydmqmc.systems.System.get_bitarray_integers`
-* :meth:`~pydmqmc.systems.System.get_virtual_oribtals`
+* :meth:`~pydmqmc.systems.System.get_virtual_orbitals`
 
 Some :ref:`Methods <ref-methods>` may use these class methods under the hood
 and will throw an error if they are not supplied.
 See the API reference for :class:`~pydmqmc.systems.MatrixHamiltonian`
 to know which optional parameters each of the above methods requires.
 
+
+.. _integral-systems:
 
 Integral-Defined System
 -----------------------

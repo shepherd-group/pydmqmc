@@ -3,30 +3,138 @@
 Quickstart Guide
 ================
 
-Each pydmqmc simulation has two components: the :ref:`System <ref-systems>`
-being simulated and the simulation :ref:`Method <ref-methods>`.
-These components are encapsulated
-in two different submodules: :doc:`Systems API<api/systems/system>`, 
-the :doc:`Methods API<api/methods/index>`.
-You'll need to instantiate an object from each submodule in order to execute
-a full pydmqmc simulation. See the additional pages within this documentation
-to better understand your options.
+This guide will get you started using the pydmqmc library to write your own scripts.
+If you already feel comfortable with object oriented programming in Python,
+you can jump to :ref:`use-in-scripts`. Otherwise, this guide will introduce you to
+the design philosophy that pydmqmc is built around.
 
-All :class:`~pydmqmc.systems.System` classes require an input file. The contents 
-of this file are used to define the System's Hamiltonian according to the
-class used to load the file. For example, if you wish to use integrals in
-`FCIDUMP format <https://hande.readthedocs.io/en/stable/manual/integrals.html#fcidump-format>`_,
-use the :class:`~pydmqmc.systems.Integral` class.
 
-The :class:`~pydmqmc.methods.Method` classes require a System object at initialization.
-The various methods fall into two categories: :class:`~pydmqmc.methods.Iterative`
-and :class:`~pydmqmc.methods.Analytic`. All Method classes have a 
-:meth:`~pydmqmc.methods.Method.run()` method
-that executes the simulation (or analytic calculation as the case may be). 
-The iterative Methods, such as density-matrix quantum Monte Carlo (DMQMC)
-also have a :meth:`~pydmqmc.methods.Iterative.setup` method.
-As the name suggests, this class method is used to create the initial state
-that the Method's :meth:`~pydmqmc.methods.Method.run()` method will iterate on.
+The Structure of pydmqmc
+------------------------
+
+The pydmqmc module contains several "submodules" or "sublibraries"
+each dedicated to a different aspect of a simulation or calculation.
+The two most important are the :ref:`System <ref-systems>` submodule,
+which is used to define the system being studied, and the 
+:ref:`Method <ref-methods>` submodule, which defines the calculation
+to be executed. You will need elements of both submodules to complete
+a pydmqmc calculation. Details about which systems and methods are supported
+are detailed in the respective documentation for each submodule.
+In particular, note that Methods come in two flavors: Analytic and Iterative.
+
+There is also a :ref:`utility <api-utils>` submodule that contains
+functions used by the Systems and Methods submodules. These are available
+for your own use if you desire, but direct invocation of these functions
+is not necessary for most pydmqmc applications.
+
+
+Primer on Object Oriented Programming
+-------------------------------------
+
+The pydmqmc library relies heavily on object oriented programming,
+a programming paradigm where code is organized into **objects.**
+These abstract objects have data associated with them (called **attributes**)
+as well as functions that operate on that data (called **methods**).
+In this way, object oriented programming leads to software that is
+focused on data (where it is stored, how it can be interacted with, etc).
+
+Objects have an associated **type** that defines its attributes and methods.
+Some types are inherent to Python, such as integers and lists. Others may
+be provided by libraries such as pydmqmc in the form of **classes**.
+The :ref:`Systems<ref-systems>` and :ref:`Methods<ref-methods>`
+submodules provide many such classes; for example,
+we can import the :class:`~pydmqmc.systems.Integral` class from the
+Systems submodule for use in our scripts:
+
+.. code-block:: python
+
+    from pydmqmc.systems import Integral
+
+Classes define the *rules* for an object (what data it should contain and how
+that data can be interacted with), but usually contain no actual data themselves.
+Instead, **instances** of classes are the objects we actually manipulate in our programs.
+To create an instance of (or **instantiate**) an object, we must **initialize** it. In Python,
+objects are initialized by using their class name followed by parentheses.
+A class may require certain parameters to be defined in order for an object to be created.
+As with Python functions, some parameters may be optional.
+The :class:`~pydmqmc.systems.Integral` class has one required parameter --- the input file
+that contains the necessary data (see :ref:`integral-systems` for more information
+on what file type is expected):
+
+.. code-block:: python
+
+    # Instantiate an Integral object using its one required parameter
+    my_system = Integral("tests/inputs/integrals/STRICT-STO3G-STR-H4.FCIDUMP")
+
+    # Native Python types like dictionaries and floating point numbers 
+    # can be instantiated in the same way!
+    x = float(4)
+    empty_dict = dict()
+
+Our :class:`~pydmqmc.systems.Integral` object, called ``my_system``, has several attributes
+associated with it. These are accessible with "dot notation" as shown below:
+
+.. code-block:: python
+
+    print(my_system.n_electrons)
+
+We can use the same notation to invoke the :class:`~pydmqmc.systems.Integral` methods,
+such as the method for generating a Hamiltonian matrix. The only difference is the
+inclusion of parentheses:
+
+.. code-block:: python
+
+    my_system.generate_hamiltonian()
+
+A full list of attributes and methods (collectively called **members**) 
+is visible in the API reference for :class:`~pydmqmc.systems.Integral`.
+Note that only the **public** members will be shown; classes may also have
+**private** members that are visible only within the source code. Such members
+are not accessible outside of the class itself and are designated with a leading underscore.
+
+One last note about object oriented programming: classes can be used to define new, slightly
+different classes via **inheritance.** The benefit of inheritance is that it allows code from
+one class to be reused in another class. You'll see mentions of inheritance all throughout the
+:ref:`api-reference`. There, you will also encounter the concept of **base classes**: classes
+that aren't intended to be used as standalone objects but instead only exist for the purposes
+of class inheritance. Base classes ensure that all **child classes** have a common set of
+attributes and methods.
+
+The pydmqmc library makes extensive use of classes and object oriented programming in order
+to fulfill its :ref:`dev-philosophy`. In particular, you'll make heavy use of methods
+in your scripts, as shown in the next section.
+
+.. _use-in-scripts:
+
+Using pydmqmc in Scripts
+------------------------
+
+Let's put together a script that runs a density-matrix quantum Monte Carlo (DMQMC)
+simulation for a system defined by an `FCIDUMP`_ file. Specifically, let's
+evolve our DMQMC simulation using the symmetric Bloch equation.
+
+.. _FCIDUMP: https://hande.readthedocs.io/en/stable/manual/integrals.html#fcidump-format
+
+From the documentation on available :ref:`Systems<ref-systems>`, we can see that
+the :class:`~pydmqmc.systems.Integral` class is the best fit for our needs.
+All Systems require an input file and the :class:`~pydmqmc.systems.Integral` class
+supports the `FCIDUMP`_ file format.
+
+Likewise, the :ref:`Methods<ref-methods>` documentation reveals there is a
+:class:`~pydmqmc.methods.SymmetricBlochDMQMC` class that can perform a DMQMC
+simulation using the symmetric Bloch equation. This class is of the Iterative type.
+
+All Method classes require a System object at initialization and have a
+:meth:`~pydmqmc.methods.SymmetricBlochDMQMC.run`
+method for executing the calculation. Iterative calculations like
+:class:`~pydmqmc.methods.SymmetricBlochDMQMC` also have a
+:meth:`~pydmqmc.methods.SymmetricBlochDMQMC.setup` method
+that is used to set up the calculation's initial state. In the case of
+:class:`~pydmqmc.methods.SymmetricBlochDMQMC`, :meth:`~pydmqmc.methods.SymmetricBlochDMQMC.setup`
+does things like construct the initial density matrix.
+
+Once a calculation is finished, the Method's :meth:`~pydmqmc.methods.SymmetricBlochDMQMC.save_data`
+method can be used to save any resulting data products to disk. Multiple file formats are supported.
 
 An example simulation with all three parts is below:
 
@@ -51,7 +159,9 @@ An example simulation with all three parts is below:
 
     mtd.save_data("test_run")
 
-This will result in two files being saved to disk. The file ``test_run_report.csv``
+This will result in two files being saved to disk. 
+The file ``test_run_density_matrix.csv`` contains the final density matrix.
+The second file, ``test_run_report.csv``,
 contains information from each iteration of the 
 :class:`~pydmqmc.methods.SymmetricBlochDMQMC` simulation; for example:
 
@@ -64,7 +174,27 @@ contains information from each iteration of the
 
 The quantities included in this table can be adjusted; see :ref:`iteration-report` for more.
 
-The second file, ``test_run_density_matrix.csv``, contains the final density matrix.
 
-Both files can have their format adjusted; 
-see :meth:`~pydmqmc.methods.SymmetricBlochDMQMC.save_data` for more.
+Navigating the Source Code
+--------------------------
+
+All information about what classes and their methods require as parameters is available
+in the :ref:`api-reference`. That said, sometimes it is useful to look at the source code
+to "see the math in action," particularly when learning methods like DMQMC for the first time.
+
+Because of pydmqmc's reliance on class inheritance for its :ref:`dev-philosophy`,
+its commitment to a flexible choice of integration methods, and
+:ref:`use of Numba<dev-numba>` for better performance, the core elements of an Iterative method
+like :class:`~pydmqmc.methods.SymmetricBlochDMQMC` are somewhat obfuscated.
+
+Within the source code, search for the class's definition. This will look like:
+
+.. code-block:: python
+
+    class SymmetricBlochDMQMC(DensityMatrixQMC):
+
+Within this class definition, look for a method called ``_propagate_core``.
+This will contain the code for actually performing an iterative update.
+
+Finding the math at the heart of Analytic methods is easier: simply look for the
+``run`` method under the class definition.
