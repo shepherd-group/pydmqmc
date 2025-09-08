@@ -2,6 +2,7 @@
 
 from .method import Analytic
 from .. import systems
+from ..utils import save_array
 
 from numpy.linalg import eigh
 
@@ -28,8 +29,8 @@ class FullConfigurationInteraction(Analytic):
             print("Generating Hamiltonian.")
             self.system.generate_hamiltonian()
 
-        self._energies = None
-        self._wavefunctions = None
+        self._energies = None  # 1D array
+        self._wavefunctions = None  # 2D array
 
         return
 
@@ -47,3 +48,46 @@ class FullConfigurationInteraction(Analytic):
         """TODO: Write start docstring here."""
         self._energies, self._wavefunctions = eigh(self.system.hamiltonian)
         return
+
+    def save_data(self,
+                  basename: str,
+                  energy_filetype: str = "csv",
+                  wavefunction_filetype: str = "csv",
+                  pickle_protocol: int | None = None) -> None:
+        """
+        Save the final energies and wavefunctions to file.
+
+        The `basename` and `filetype` parameters will be used to construct
+        filenames for all of the data written to file. For example, if
+        `basename` is "test_run" and the `energy_` and `wavefunction_filetype`
+        are both "csv", the energies will be saved to
+        "test_run_energies.csv" and the wavefunctions will be saved to
+        "test_run_wavefunctions.csv".
+
+        Parameters
+        ----------
+        basename : str
+            Base name used to construct the filenames for the energies
+            and wavefunctions
+        energy_filetype, wavefunction_filetype : str, default "csv"
+            File type (aka extension) with which to save the energies.
+            Supported types are:
+
+            - "csv" : comma-separated value file
+            - "npy" : NumPy binary file
+            - "pkl" : Python pickle file
+            - "txt" : text file (space-delimited)
+
+        pickle_protocol : unt, optional
+            Protocol version to use if either `filetype` is "pkl".
+            If none, uses `pickle`'s default.
+        """
+        save_array(self._energies,
+            basename + "_energies",
+            energy_filetype,
+            pickle_protocol)
+        
+        save_array(self._wavefunctions,
+            basename + "_wavefunctions",
+            wavefunction_filetype,
+            pickle_protocol)

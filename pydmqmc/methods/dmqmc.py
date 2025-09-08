@@ -406,8 +406,8 @@ class DensityMatrixQMC(Iterative):
             - "pkl" : pickle file
 
         pickle_protocol : unt, optional
-        Protocol version to use if either `filetype` is "pkl".
-        If none, uses `pickle`'s default.
+            Protocol version to use if either `filetype` is "pkl".
+            If none, uses `pickle`'s default.
         """
         save_array(self._density_matrix,
                    basename + "_density_matrix",

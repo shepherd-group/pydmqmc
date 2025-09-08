@@ -28,6 +28,8 @@ for your own use if you desire, but direct invocation of these functions
 is not necessary for most pydmqmc applications.
 
 
+.. _oop-primer:
+
 Primer on Object Oriented Programming
 -------------------------------------
 
@@ -173,6 +175,113 @@ contains information from each iteration of the
     2.0,27454.474366465434,-42865.7113992343
 
 The quantities included in this table can be adjusted; see :ref:`iteration-report` for more.
+
+Can I Reuse System Objects?
+***************************
+
+Let's say you have two very similar systems you want to apply the same method to.
+Can you use the same system object in your script and just update one or more of
+it's attributes, like its input file?
+
+The short answer is **no**. Each System object represents a unique physical system;
+changing even one property would mean it is now a new physical system. Therefore,
+pydmqmc requires that you make a new object to represent this new system.
+
+For example, the proper way to create systems with multiple input files would be the following:
+
+.. code-block:: python
+
+    from pydmqmc.systems import MatrixHamiltonian
+
+    sys_eq = MatrixHamiltonian("tests/inputs/hamiltonians/EQUILIBRIUM-H6-STO3G.hamil")
+    sys_stretch = MatrixHamiltonian("tests/inputs/hamiltonians/STRETCHED-H6-STO3G.hamil")
+
+Can I Reuse Method Objects with Different Systems?
+**************************************************
+
+Every Method object must have a System associated with it, as seen in the example script above.
+There is no way to update which System is associated with a given Method object; instead,
+**a unique Method object must be created for each unique System.** This keeps data management
+straightforward for the Method object.
+
+Extending the example above, where we want to run the same method on many similar systems,
+you would need to write your script like this:
+
+.. code-block:: python
+
+    from pydmqmc.methods import FullConfigurationInteraction
+
+    fci_eq = FullConfigurationInteraction(sys_eq)
+    fci_stretch = FullConfigurationInteraction(sys_stretch)
+
+    fci_eq.run()
+    fci_stretch.run()
+
+    fci_eq.save_data("FCI_EQUILIBRIUM-H6-STO3G")
+    fci_stretch.save_data("FCI_STRETCHED-H6-STO3G")
+
+Alternatively, you can use a for-loop:
+
+.. code-block:: python
+
+    from pydmqmc.methods import FullConfigurationInteraction
+    from os.path import basename, splitext
+
+    for system in [sys_eq, sys_stretch]:
+
+        # From a path like tests/inputs/hamiltonians/EQUILIBRIUM-H6-STO3G.hamil,
+        # extract just the EQUILIBRIUM-H6-STO3G part.
+        input_basename = splitext(basename(system.input_file))[0]
+
+        mtd = FullConfigurationInteraction(system)
+        mtd.run()
+        mtd.save_data("FCI" + input_basename)
+
+Can I Reuse Method Objects for Multiple Monte Carlo Realizations?
+*****************************************************************
+
+Since Monte Carlo methods like DMQMC are stochastic, it may be desirable
+to run these methods multiple times with different random seeds and
+later analyze the variation between runs. **Unique Method objects
+will be needed for each calculation.**
+
+To prevent data loss, each Method object can only have its
+:meth:`~pydmqmc.methods.Method.run` method called once.
+This is true even though some methods like those descended from
+:class:`~pydmqmc.methods.DensityMatrixQMC` let you reset the seed.
+Additionally, the :meth:`~pydmqmc.methods.Iterative.setup` method for
+:class:`~pydmqmc.methods.Iterative`-descended classes can be called
+any number of times *before* :meth:`~pydmqmc.methods.Iterative.run`
+is called.
+
+To run multiple realizations of something like DMQMC,
+you'll need multiple objects:
+
+.. code-block:: python
+
+    from pydmqmc.systems import Integral
+    from pydmqmc.methods import SymmetricBlochDMQMC
+
+    # Instantiate necessary objects
+    sys = Integral("tests/inputs/integrals/STRICT-STO3G-STR-H4.FCIDUMP")
+    sys.generate_hamiltonian()  # Not strictly necessary as is called during method init
+
+    for seed in range(40, 50):
+
+        # Create a unique method object
+        mtd = SymmetricBlochDMQMC(sys, rng_seed=seed)
+
+        # Setup and run the simulation
+        mtd.setup("random-uniform", n_particles=int(1e5))
+        mtd.run(final_beta=25,
+                dbeta=0.001,
+                cycles_per_shift=1000,
+                shift_dampening=0.05,
+                spawn_cutoff=0.01,
+                shift_by_rows=False
+                )
+
+        mtd.save_data(f"seed_{seed}")
 
 
 Navigating the Source Code
