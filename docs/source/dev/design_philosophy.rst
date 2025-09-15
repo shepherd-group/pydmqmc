@@ -6,11 +6,8 @@ Design Philosophy
 If you want to extend the functionality of pydmqmc, perhaps by adding support for
 new :ref:`Systems <ref-systems>` or :ref:`Methods <ref-methods>`, there are a few
 key design choices that you should keep in mind. These elements of pydmqmc's
-design philosophy are explained below.
-
-For each element of pydmqmc's design philosophy, the main takeaways are summarized
-in the first paragraph. The rest of the section is then spent explaining why that
-design element is in place as well as discussing how it is implemented in the code.
+design philosophy are summarized in the following section and explained in
+more detail below.
 Implementation discussions are kept at a high level; for concrete details on how
 to implement your own classes see the :ref:`dev-new-systems` and :ref:`dev-new-methods`
 documentation.
@@ -18,9 +15,17 @@ documentation.
 Note that pydmqmc uses the object oriented programming design paradigm. If you are
 unfamiliar with object oriented programming, check out the :ref:`oop-primer`.
 
-.. contents:: Design Principles
-    :local:
+This page covers conceptual design choices but aspiring developers should also read the
+:ref:`dev-code-style` for suggestions on writing their actual code.
 
+Overview: Design Principles of pydmqmc
+--------------------------------------
+
+    1. :ref:`abstraction`: significant functionality should be implemented once and then reused.
+    2. :ref:`interoperability`: any System should be useable with any Method (if enough information is present).
+    3. :ref:`templating`: base classes show what quantities Systems and Methods should have defined.
+    4. :ref:`static-systems`: systems cannot have their defining traits modified after creation.
+    5. :ref:`calculate-once`: once a Method's calculation has been completed, the data can't be modified.
 
 .. _abstraction:
 
