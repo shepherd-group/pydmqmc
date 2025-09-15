@@ -14,15 +14,15 @@ The Structure of pydmqmc
 
 The pydmqmc module contains several "submodules" or "sublibraries"
 each dedicated to a different aspect of a simulation or calculation.
-The two most important are the :ref:`System <ref-systems>` submodule,
+The two most important are the :ref:`System submodule<ref-systems>`,
 which is used to define the system being studied, and the 
-:ref:`Method <ref-methods>` submodule, which defines the calculation
+:ref:`Method submodule<ref-methods>`, which defines the calculation
 to be executed. You will need elements of both submodules to complete
 a pydmqmc calculation. Details about which systems and methods are supported
 are detailed in the respective documentation for each submodule.
 In particular, note that Methods come in two flavors: Analytic and Iterative.
 
-There is also a :ref:`utility <api-utils>` submodule that contains
+There is also a :ref:`utility submodule<api-utils>` that contains
 functions used by the Systems and Methods submodules. These are available
 for your own use if you desire, but direct invocation of these functions
 is not necessary for most pydmqmc applications.
