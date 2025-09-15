@@ -5,6 +5,8 @@ Installation
 
 At this time, pydmqmc is only buildable from source.
 
+.. _build-source:
+
 Building from Source
 --------------------
 
@@ -18,6 +20,8 @@ Then, build the Python package. Since this project is in early development,
 it's advisable to build with the ``--editable`` or ``-e`` flag: ::
 
     $ pip install -e .
+
+.. _build-docs:
 
 Building the Documentation
 **************************

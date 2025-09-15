@@ -32,10 +32,12 @@ class MatrixHamiltonian(System):
         The ``generate_determinant_bitarrays`` method requires ``n_alpha``
         and ``n_beta``; ``n_electrons`` is not required but can be used to
         infer ``n_alpha`` or ``n_beta``.
-    orbital_pg_symmetry : array_like
+    orbital_pg_symmetry : array_like, optional
         Set of orbital point group symmetries. Required if using the
         ``generate_determinant_bitarrays`` or ``get_virtual_orbitals``
         methods.
+    eigenvalues : array_like, optional
+        Set of eigenvalues for the system.
 
     Note
     ----
