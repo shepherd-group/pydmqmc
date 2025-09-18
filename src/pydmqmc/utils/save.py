@@ -7,10 +7,12 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 
-def save_array(data: ArrayLike,
-               basename: str,
-               filetype: str = "csv",
-               pickle_protocol: int | None = None) -> None:
+def save_array(
+    data: ArrayLike,
+    basename: str,
+    filetype: str = "csv",
+    pickle_protocol: int | None = None,
+) -> None:
     """
     Save an array as a chosen file type.
 
@@ -33,30 +35,31 @@ def save_array(data: ArrayLike,
         Protocol version to use with pickle. If none, uses `pickle`'s default.
     """
     if data is None:
-        raise RuntimeError("Provided data is None! Did you "
-                           "remember to run the simulation?")
+        raise RuntimeError(
+            "Provided data is None! Did you remember to run the simulation?"
+        )
 
     if filetype == "txt":
-        np.savetxt(basename+".txt", data)
+        np.savetxt(basename + ".txt", data)
     elif filetype == "csv":
-        np.savetxt(basename+".csv", data, delimiter=',')
+        np.savetxt(basename + ".csv", data, delimiter=",")
     elif filetype == "npy":
-        np.save(basename+".npy", data)
+        np.save(basename + ".npy", data)
     elif filetype == "pkl":
         filename = basename + ".pkl"
         with open(filename, "wb") as f:
             pickle.dump(data, f, protocol=pickle_protocol)
     else:
-        raise RuntimeError(f"File type {filetype} "
-                            "is not recognized!")
+        raise RuntimeError(f"File type {filetype} is not recognized!")
 
 
-def save_report(list_of_dicts: list[dict],
-                basename: str,
-                index_col: str | None = None,
-                filetype: str = "csv",
-                pickle_protocol: int | None = None,
-                ) -> None:
+def save_report(
+    list_of_dicts: list[dict],
+    basename: str,
+    index_col: str | None = None,
+    filetype: str = "csv",
+    pickle_protocol: int | None = None,
+) -> None:
     """
     Save a dictionary of data as a chosen file type.
 
@@ -81,13 +84,13 @@ def save_report(list_of_dicts: list[dict],
     pickle_protocol : unt, optional
         Protocol version to use with pickle. If none, uses `pickle`'s default.
     """
-
     if list_of_dicts is None:
-        raise RuntimeError("Provided data is None! Did you "
-                           "remember to run the simulation?")
+        raise RuntimeError(
+            "Provided data is None! Did you remember to run the simulation?"
+        )
 
     if filetype == "txt" or filetype == "csv":
-        filename = basename + '.' + filetype
+        filename = basename + "." + filetype
 
         # Create a list of field names from the dictionaries in
         # list_of_dicts but with index_col first
@@ -95,7 +98,7 @@ def save_report(list_of_dicts: list[dict],
         fields.remove(index_col)
         fields = [index_col] + fields
 
-        with open(filename, 'w', newline='') as f:
+        with open(filename, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fields)
 
             writer.writeheader()
@@ -106,5 +109,4 @@ def save_report(list_of_dicts: list[dict],
         with open(filename, "wb") as f:
             pickle.dump(list_of_dicts, f, protocol=pickle_protocol)
     else:
-        raise RuntimeError(f"File type {filetype} "
-                            "is not recognized!")
+        raise RuntimeError(f"File type {filetype} is not recognized!")

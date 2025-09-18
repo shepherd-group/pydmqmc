@@ -29,11 +29,7 @@ class DensityMatrixQMC(Iterative):
         See :func:`numpy.random.default_rng`
     """
 
-    def __init__(
-            self,
-            system: System,
-            rng_seed: None | int | ArrayLike = None
-            ) -> None:
+    def __init__(self, system: System, rng_seed: None | int | ArrayLike = None) -> None:
         super().__init__(system)
 
         # Prepare the system, if needed.
@@ -53,9 +49,7 @@ class DensityMatrixQMC(Iterative):
         """Density matrix."""
         return self._density_matrix
 
-    def reset_rng(self,
-                  rng_seed: None | int | ArrayLike = None
-                  ) -> None:
+    def reset_rng(self, rng_seed: None | int | ArrayLike = None) -> None:
         """
         Create a new psuedo-random number generator with the given seed.
 
@@ -67,12 +61,13 @@ class DensityMatrixQMC(Iterative):
         """
         self._rng = np.random.default_rng(rng_seed)
 
-    def setup(self,
-              initialization: str = "deterministic",
-              n_particles: int = 1,
-              fixed_diagonal: ArrayLike | None = None,
-              report_values: list[str] = ["trace", "energy"]
-              ) -> None:
+    def setup(
+        self,
+        initialization: str = "deterministic",
+        n_particles: int = 1,
+        fixed_diagonal: ArrayLike | None = None,
+        report_values: list[str] = ["trace", "energy"],
+    ) -> None:
         """
         Specify conditions for the DMQMC realization.
 
@@ -120,20 +115,14 @@ class DensityMatrixQMC(Iterative):
             diagonal of the density matrix.
         """
         super().setup(report_values)
-        # Put iterator value at the front of the list
-        #self._report_values = ["beta"] + self._report_values
 
-        self._density_matrix = self._init_dm(initialization,
-                                            n_particles,
-                                            fixed_diagonal)
+        self._density_matrix = self._init_dm(
+            initialization, n_particles, fixed_diagonal
+        )
 
         self._S = np.zeros(self.system.n_determinants, dtype=np.float64)
 
-    def _init_dm(self,
-                 init: str,
-                 particles: int,
-                 diag: ArrayLike | None
-                 ) -> Array:
+    def _init_dm(self, init: str, particles: int, diag: ArrayLike | None) -> Array:
         """
         CK Note: copied from functions.py::initialize_dm.
 
@@ -142,39 +131,41 @@ class DensityMatrixQMC(Iterative):
         seemed to be designed for IP-DMQMC. Separating DMQMC and IP-DMQMC
         into different classes seemed like a conceptually useful thing to do.
         """
-        if init == 'deterministic':
+        if init == "deterministic":
             randomrows = np.ones(self.system.n_determinants)
 
-        elif init == 'random-uniform':
-            randomrows = self._rng.choice(self.system.n_determinants,
-                                          size=particles)
-            randomrows = np.bincount(randomrows,
-                                     minlength=self.system.n_determinants
-                                     ).astype(np.float64)
-        elif init == 'fixed':
+        elif init == "random-uniform":
+            randomrows = self._rng.choice(self.system.n_determinants, size=particles)
+            randomrows = np.bincount(
+                randomrows, minlength=self.system.n_determinants
+            ).astype(np.float64)
+        elif init == "fixed":
             if len(diag) != self.system.n_determinants:
-                raise RuntimeError(f"The length of 'diag' ({len(diag)}) "
-                                   "must be equal to the number of "
-                                   "determinants in the system.")
+                raise RuntimeError(
+                    f"The length of 'diag' ({len(diag)}) "
+                    "must be equal to the number of "
+                    "determinants in the system."
+                )
             randomrows = diag
         else:
-            raise RuntimeError(f'Unknown initalization method {init}')
+            raise RuntimeError(f"Unknown initalization method {init}")
 
         f = np.diag(randomrows)
         return f
 
-    def run(self,
-            final_beta: float,
-            dbeta: float,
-            cycles_per_shift: int,
-            shift_dampening: float,
-            shift_by_rows: bool = False,
-            spawn_cutoff: float = 0.01,
-            n_add: float | None = None,
-            ilevel: int | None = None,
-            update_method: str = "euler",
-            quiet: bool = False
-            ):
+    def run(
+        self,
+        final_beta: float,
+        dbeta: float,
+        cycles_per_shift: int,
+        shift_dampening: float,
+        shift_by_rows: bool = False,
+        spawn_cutoff: float = 0.01,
+        n_add: float | None = None,
+        ilevel: int | None = None,
+        update_method: str = "euler",
+        quiet: bool = False,
+    ):
         r"""
         Run a DMQMC realization.
 
@@ -233,8 +224,10 @@ class DensityMatrixQMC(Iterative):
             raise RuntimeError("You must first run the setup() method!")
 
         if ilevel is not None and not isinstance(ilevel, int):
-            raise TypeError("Parameter ilevel must be type int; "
-                            f"supplied value is type {type(ilevel)}.")
+            raise TypeError(
+                "Parameter ilevel must be type int; "
+                f"supplied value is type {type(ilevel)}."
+            )
 
         # Run super()'s run method to ensure data safety.
         super().run()
@@ -251,20 +244,22 @@ class DensityMatrixQMC(Iterative):
             self.system.generate_excitation_matrix()
             n_ex = self.system.excitation_matrix
             # Please remove this warning after the methods have been verified
-            warnings.warn("Initiator level > 0 has not been "
-                          "robustly verified. Please check for correctness "
-                          "in all DMQMC child methods and remove this "
-                          "warning.")
+            warnings.warn(
+                "Initiator level > 0 has not been "
+                "robustly verified. Please check for correctness "
+                "in all DMQMC child methods and remove this "
+                "warning."
+            )
         else:
             # Make a dummy matrix with 0's on the diagonal
             # This allows classes w/ undefied generate_excitation_matrix()
             # to still work with ilevel 0. It also keeps Numba happy for
             # ilevel = None
-            n_ex = np.ones((self.system.n_determinants,
-                            self.system.n_determinants), dtype=np.int64) \
-                 - np.eye(self.system.n_determinants)
+            n_ex = np.ones(
+                (self.system.n_determinants, self.system.n_determinants), dtype=np.int64
+            ) - np.eye(self.system.n_determinants)
 
-        n_shifts = int(final_beta/(dbeta*cycles_per_shift))
+        n_shifts = int(final_beta / (dbeta * cycles_per_shift))
         update_func = super().parse_method(update_method)
         rbr = 1 if shift_by_rows else None
 
@@ -273,8 +268,9 @@ class DensityMatrixQMC(Iterative):
         # set initial shift
         # np will not be altered in this instance
         npsip = np.sum(self._density_matrix, axis=rbr)
-        npsip = self._update_shift(self._density_matrix, npsip, cycles_per_shift,
-                                   shift_dampening, dbeta, rbr)
+        npsip = self._update_shift(
+            self._density_matrix, npsip, cycles_per_shift, shift_dampening, dbeta, rbr
+        )
 
         # Do initial reporting
         if not quiet:
@@ -285,65 +281,75 @@ class DensityMatrixQMC(Iterative):
         self._do_report(0.0, quiet)
 
         for shift in range(n_shifts):
-
             for cycle in range(cycles_per_shift):
-
-                self._density_matrix = update_func(self._propagate,  # f(dx/dy)
-                                                   self._density_matrix,  # y
-                                                   dbeta,  # stepsize dt
-                                                   spawn_cutoff, n_add,  # args
-                                                   ilevel, n_ex)  # args
+                self._density_matrix = update_func(
+                    self._propagate,  # f(dx/dy)
+                    self._density_matrix,  # y
+                    dbeta,  # stepsize dt
+                    spawn_cutoff,
+                    n_add,  # args
+                    ilevel,
+                    n_ex,
+                )  # args
 
                 # Only store |p_ij| > 1.0, otherwise
                 # round below this threshold in a non-biased manner
                 # (stochastic rounding)
-                replace = np.trunc(self._density_matrix +
-                                   np.sign(self._density_matrix) *
-                                   self._rng.random(self._density_matrix.shape))
-                np.where(np.abs(self._density_matrix) < 1.0,
-                         replace,
-                         self._density_matrix)
+                replace = np.trunc(
+                    self._density_matrix
+                    + np.sign(self._density_matrix)
+                    * self._rng.random(self._density_matrix.shape)
+                )
+                np.where(
+                    np.abs(self._density_matrix) < 1.0, replace, self._density_matrix
+                )
 
             # update shift every report period
-            npsip = self._update_shift(self._density_matrix,
-                                       npsip, cycles_per_shift,
-                                       shift_dampening, dbeta, rbr)
+            npsip = self._update_shift(
+                self._density_matrix,
+                npsip,
+                cycles_per_shift,
+                shift_dampening,
+                dbeta,
+                rbr,
+            )
 
             # do periodic reporting
-            self._do_report((shift+1)*cycles_per_shift*dbeta, quiet)
+            self._do_report((shift + 1) * cycles_per_shift * dbeta, quiet)
 
     def _do_report(self, current_beta: float, quiet: bool = False) -> None:
-        """
-        Put values for this current iteration into the self._data list.
-        """
+        """Put values for this current iteration into the self._data list."""
         current_data = {"beta": current_beta}
         rep_str = f"{current_beta:>14e}"
         for value in self._report_values:
-            data = report_registry[value](self._density_matrix,
-                                          **self._report_reqs[value])
-            
+            data = report_registry[value](
+                self._density_matrix, **self._report_reqs[value]
+            )
+
             current_data[value] = data
             rep_str += f" {data:>14e}"
 
         if not quiet:
             print(rep_str)
 
-        self._report_data.append(current_data) 
+        self._report_data.append(current_data)
 
-    def _update_shift(self,
-                      p: Array,
-                      np_old: Array,
-                      A: int,
-                      zeta: float,
-                      dbeta: float,
-                      rbr: int | None):
+    def _update_shift(
+        self,
+        p: Array,
+        np_old: Array,
+        A: int,
+        zeta: float,
+        dbeta: float,
+        rbr: int | None,
+    ):
         npsip = np.abs(p).sum(axis=rbr)
         if rbr:
             for i in range(p.shape[0]):
                 if npsip[i] != 0.0 and np_old[i] != 0.0:
-                    self._S[i] -= (zeta/(A*dbeta))*np.log(npsip[i]/np_old[i])
+                    self._S[i] -= (zeta / (A * dbeta)) * np.log(npsip[i] / np_old[i])
         else:
-            self._S -= (zeta/(A*dbeta))*np.log(npsip/np_old)
+            self._S -= (zeta / (A * dbeta)) * np.log(npsip / np_old)
 
         return npsip
 
@@ -354,12 +360,9 @@ class DensityMatrixQMC(Iterative):
         Numba-compiled functions do not have access to class attributes.
         Call signature is dictated by the "integrator" functions.
         """
-        return self._propagate_core(p,
-                                    self.system.hamiltonian,
-                                    self._S,
-                                    self._rng,
-                                    *args,
-                                    **kwargs)
+        return self._propagate_core(
+            p, self.system.hamiltonian, self._S, self._rng, *args, **kwargs
+        )
 
     def _propagate_core(self, p, *args, **kwargs):
         raise NotImplementedError(
@@ -368,11 +371,13 @@ class DensityMatrixQMC(Iterative):
             "AsymmetricBlochDMQMC, or a custom child class."
         )
 
-    def save_data(self,
-                  basename: str,
-                  matrix_filetype: str = "csv",
-                  report_filetype: str = "csv",
-                  pickle_protocol: int | None = None) -> None:
+    def save_data(
+        self,
+        basename: str,
+        matrix_filetype: str = "csv",
+        report_filetype: str = "csv",
+        pickle_protocol: int | None = None,
+    ) -> None:
         """
         Save the final density matrix and iteration report to file.
 
@@ -409,15 +414,19 @@ class DensityMatrixQMC(Iterative):
             Protocol version to use if either `filetype` is "pkl".
             If none, uses `pickle`'s default.
         """
-        save_array(self._density_matrix,
-                   basename + "_density_matrix",
-                   matrix_filetype,
-                   pickle_protocol)
-        save_report(self._report_data,
-                    basename + "_report",
-                    "beta",
-                    report_filetype,
-                    pickle_protocol)
+        save_array(
+            self._density_matrix,
+            basename + "_density_matrix",
+            matrix_filetype,
+            pickle_protocol,
+        )
+        save_report(
+            self._report_data,
+            basename + "_report",
+            "beta",
+            report_filetype,
+            pickle_protocol,
+        )
 
 
 class AsymmetricBlochDMQMC(DensityMatrixQMC):
@@ -435,38 +444,33 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
         See :func:`numpy.random.default_rng`
     """
 
-    def __init__(
-            self,
-            system: System,
-            rng_seed: None | int | ArrayLike = None
-            ) -> None:
+    def __init__(self, system: System, rng_seed: None | int | ArrayLike = None) -> None:
         super().__init__(system, rng_seed)
 
     @staticmethod
     @njit
-    def _propagate_core(p: Array,
-                        H: Array,
-                        S: Array,
-                        rng,
-                        cutoff: float,
-                        nadd: float,
-                        ilvl: int,
-                        nex: Array):
+    def _propagate_core(
+        p: Array,
+        H: Array,
+        S: Array,
+        rng,
+        cutoff: float,
+        nadd: float,
+        ilvl: int,
+        nex: Array,
+    ):
         dets = p.shape[0]
         dp = np.zeros_like(p, dtype=np.float64)
 
         for i in range(dets):
             for j in range(dets):
-
                 Stot = H[0, 0] + S[i]
-                dp[i, j] = p[i, j] * \
-                    (Stot - H[j, j])  # -(H_jj - S)
+                dp[i, j] = p[i, j] * (Stot - H[j, j])  # -(H_jj - S)
 
                 p_ij = abs(p[i, j])
 
                 # Iterate over sites that may spawn here at p_ij
                 for k in range(dets):
-
                     if k == j:
                         continue
 
@@ -506,40 +510,34 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
         See :func:`numpy.random.default_rng`
     """
 
-    def __init__(
-            self,
-            system: System,
-            rng_seed: None | int | ArrayLike = None
-            ) -> None:
+    def __init__(self, system: System, rng_seed: None | int | ArrayLike = None) -> None:
         super().__init__(system, rng_seed)
 
     @staticmethod
     @njit
-    def _propagate_core(p: Array,
-                        H: Array,
-                        S: Array,
-                        rng,
-                        cutoff: float,
-                        nadd: float,
-                        ilvl: int,
-                        nex: Array):
+    def _propagate_core(
+        p: Array,
+        H: Array,
+        S: Array,
+        rng,
+        cutoff: float,
+        nadd: float,
+        ilvl: int,
+        nex: Array,
+    ):
         dets = p.shape[0]
         dp = np.zeros_like(p, dtype=np.float64)
 
         for i in range(dets):
             for j in range(dets):
-
                 Stot = H[0, 0] + S[i]
-                dp[i, j] = p[i, j]/2 * \
-                    (Stot - H[i, i])
-                dp[i, j] += p[i, j]/2 * \
-                    (Stot - H[j, j])
+                dp[i, j] = p[i, j] / 2 * (Stot - H[i, i])
+                dp[i, j] += p[i, j] / 2 * (Stot - H[j, j])
 
                 p_ij = abs(p[i, j])
 
                 # Iterate over sites that may spawn here at p_ij
                 for k in range(dets):
-
                     if k != j:
                         # While the docs write the rules as p_ij spawning at
                         # p_ik, we are actually checking if p_ik will

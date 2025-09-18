@@ -62,16 +62,15 @@ class Integral(System):
         on Chemistry, 1996
     """
 
-    def __init__(self,
-                 input_file: str,
-                 is_complex: bool = False,
-                 reference: ArrayLike | None = None,
-                 symmetry: int | None = None,
-                 orbital_eigenvalues: bool = False,
-                 ) -> None:
-
-        super().__init__(input_file=input_file,
-                         is_complex=is_complex)
+    def __init__(
+        self,
+        input_file: str,
+        is_complex: bool = False,
+        reference: ArrayLike | None = None,
+        symmetry: int | None = None,
+        orbital_eigenvalues: bool = False,
+    ) -> None:
+        super().__init__(input_file=input_file, is_complex=is_complex)
 
         # set attributes not in parent to a starting value
         self._uhf = False
@@ -97,8 +96,8 @@ class Integral(System):
 
         self._ref_det = np.zeros(self._norb, dtype=int)
         self._ref_det[self._ref] = 1
-        self._ref_eng = 0.5*(np.diag(self._h1e)[self._ref]).sum()
-        self._ref_eng += 0.5*self._eig[self._ref].sum() + self._h0e
+        self._ref_eng = 0.5 * (np.diag(self._h1e)[self._ref]).sum()
+        self._ref_eng += 0.5 * self._eig[self._ref].sum() + self._h0e
         self._calculate_psingle_pdouble()
 
         if orbital_eigenvalues:  # can only be run once
@@ -169,22 +168,22 @@ class Integral(System):
 
     def _read_integral_file(self) -> None:
         """Read in an FCIDUMP file."""
-        with open(self.input_file, 'r') as open_int_file:
+        with open(self.input_file, "r") as open_int_file:
             footer = False
             for line in open_int_file:
-                line = line.replace('\n', '')
+                line = line.replace("\n", "")
                 if not footer:
                     line = line.upper()
-                    if line[-1] != ',':
-                        line = line + ','
-                    if 'UHF' in line and 'TRUE' in line:
+                    if line[-1] != ",":
+                        line = line + ","
+                    if "UHF" in line and "TRUE" in line:
                         self._uhf = True
 
                 if footer:
                     ls = line.split()
                     eri = float(ls[0])
 
-                    i, a, j, b = [int(d)-1 for d in ls[1:]]
+                    i, a, j, b = [int(d) - 1 for d in ls[1:]]
                     self._integral_case(i, j, a, b)
 
                     if self._case_h2e:
@@ -196,57 +195,46 @@ class Integral(System):
                             self._h1e[i, a] = eri
 
                     elif self._case_eig:
-                        self._eig[2*i:2*i+2] = eri
+                        self._eig[2 * i : 2 * i + 2] = eri
 
                     elif self._case_h0e:
                         self._h0e = eri
 
-                elif '/' in line or 'END' in line:
+                elif "/" in line or "END" in line:
                     footer = True
                     self._nb = int((self._nel - self._ms2) / 2)
                     self._na = self._nel - self._nb
-                    self._norb -= int(self._uhf * (self._norb/2))
+                    self._norb -= int(self._uhf * (self._norb / 2))
                     self._nvirt = self._norb - self._nel
                     self._alloc_arrays()
 
-                elif 'ORBSYM' in line:
-                    self._orbsym = line.split('=')[-1].split(',')[:-1]
+                elif "ORBSYM" in line:
+                    self._orbsym = line.split("=")[-1].split(",")[:-1]
                     self._orbsym = np.array(self._orbsym).astype(int) - 1
                     self._orbsym = np.repeat(self._orbsym, 2 - self._uhf)
 
                 else:
-                    ls = line.split(',')
+                    ls = line.split(",")
                     for ld in ls:
-                        if 'NORB' in ld:
-                            self._norb = int(2*self._ld_strip(ld))
-                        if 'NELEC' in ld:
+                        if "NORB" in ld:
+                            self._norb = int(2 * self._ld_strip(ld))
+                        if "NELEC" in ld:
                             self._nel = self._ld_strip(ld)
-                        if 'MS2' in ld:
+                        if "MS2" in ld:
                             self._ms2 = self._ld_strip(ld)
-                        if 'ISYM' in ld:
+                        if "ISYM" in ld:
                             self._isym = self._ld_strip(ld) - 1
 
-    def _integral_case(self,
-                       i: int,
-                       j: int,
-                       a: int,
-                       b: int
-                       ) -> None:
+    def _integral_case(self, i: int, j: int, a: int, b: int) -> None:
         self._case_h2e = np.sign(b) != -1
         self._case_h1e = np.sign(a) != -1 and not self._case_h2e
         self._case_eig = np.sign(i) != -1 and not self._case_h1e
         self._case_h0e = np.sign(i) == -1
 
-    def _permute_ijab(self,
-                      i: int,
-                      j: int,
-                      a: int,
-                      b: int
-                      ) -> Array:
+    def _permute_ijab(self, i: int, j: int, a: int, b: int) -> Array:
         return utils.generate_ijab_symmetries_array(
-                i, j, a, b,
-                eight_fold=(not self._is_complex),
-                rhf=(not self._uhf))
+            i, j, a, b, eight_fold=(not self._is_complex), rhf=(not self._uhf)
+        )
 
     def _alloc_arrays(self) -> None:
         """
@@ -259,13 +247,13 @@ class Integral(System):
         self._eig = np.zeros(self._norb)
 
     def _ld_strip(self, line_data: str) -> int:
-        return int(line_data.split('=')[-1])
+        return int(line_data.split("=")[-1])
 
     def _set_reference(self, reference: None | Array) -> None:
         if reference is not None:
             self._ref = np.array(reference)
         elif np.sum(self._eig) != 0.0:
-            self._ref = np.argsort(self._eig)[:self._nel]
+            self._ref = np.argsort(self._eig)[: self._nel]
         else:
             self._ref = np.arange(self._nel)
 
@@ -273,10 +261,10 @@ class Integral(System):
         if symmetry is not None:
             self._sym = symmetry
             if self._sym not in self._orbsym:
-                error_msg = ' The provided symmetry is not within \n'
-                error_msg += ' the symmetries spanned by the system! \n'
-                error_msg += ' provided symmetry: %s \n' % self._sym
-                error_msg += ' Symmetries spanned by system: %s' % self._orbsym
+                error_msg = " The provided symmetry is not within \n"
+                error_msg += " the symmetries spanned by the system! \n"
+                error_msg += " provided symmetry: %s \n" % self._sym
+                error_msg += " Symmetries spanned by system: %s" % self._orbsym
                 raise ValueError(error_msg)
         else:
             self._sym = self._isym
@@ -289,9 +277,8 @@ class Integral(System):
         sym_chk = utils.cross_prod_sym(bsym_chk, asym_chk, self._pg_mask)
         if sym_chk != self._sym:
             raise ValueError(
-                "Reference determinant is not "
-                "within the the symmetry of the system!"
-                )
+                "Reference determinant is not within the the symmetry of the system!"
+            )
 
     def _generate_orbital_eigenvalues(self) -> None:
         r"""
@@ -338,21 +325,21 @@ class Integral(System):
 
         ndouble = 0
         for i, (ims, isym) in enumerate(zip(occ_ms, occ_sym)):
-            for jms, jsym in zip(occ_ms[i+1:], occ_sym[i+1:]):
+            for jms, jsym in zip(occ_ms[i + 1 :], occ_sym[i + 1 :]):
                 for syma in np.arange(self._maxsym):
                     symb = utils.cross_prod_sym(isym, jsym, self._pg_mask)
                     symb = utils.cross_prod_sym(syma, symb, self._pg_mask)
                     if syma == symb and ims == jms:
-                        ndouble += nvirt[ims, syma]*(nvirt[jms, symb]-1)/2
+                        ndouble += nvirt[ims, syma] * (nvirt[jms, symb] - 1) / 2
                     elif syma == symb:
-                        ndouble += nvirt[ims, syma]*nvirt[jms, symb]
+                        ndouble += nvirt[ims, syma] * nvirt[jms, symb]
                     elif syma < symb:
-                        ndouble += nvirt[ims, syma]*nvirt[jms, symb]
+                        ndouble += nvirt[ims, syma] * nvirt[jms, symb]
                         if ims != jms:
-                            ndouble += nvirt[jms, syma]*nvirt[ims, symb]
+                            ndouble += nvirt[jms, syma] * nvirt[ims, symb]
 
-        self._psingle = nsingle/(nsingle + ndouble)
-        self._pdouble = ndouble/(nsingle + ndouble)
+        self._psingle = nsingle / (nsingle + ndouble)
+        self._pdouble = ndouble / (nsingle + ndouble)
 
     def generate_determinant_bitarrays(self):  # noqa: D102
         # docstring is inhereted from parent
@@ -379,22 +366,18 @@ class Integral(System):
         # Generate bitarrays if not already set.
         self.generate_determinant_bitarrays()
 
-        hii = np.array([self._get_hij(b, b)
-                        for b in self._bitarrays])
+        hii = np.array([self._get_hij(b, b) for b in self._bitarrays])
         esortind = np.argsort(hii)
         hii = hii[esortind]
         self._bitarrays = self._bitarrays[esortind]
         self._H = np.diag(hii)
         for i, b1 in enumerate(self._bitarrays):
-            for j, b2 in enumerate(self._bitarrays[i+1:]):
+            for j, b2 in enumerate(self._bitarrays[i + 1 :]):
                 j += i + 1
                 hij = self._get_hij(b1, b2)
                 self._H[i, j], self._H[j, i] = hij, hij
 
-    def _get_hij(self,
-                 b1: Array,
-                 b2: Array,
-                 tol: float = 1E-16) -> float:
+    def _get_hij(self, b1: Array, b2: Array, tol: float = 1e-16) -> float:
         nex, abrs, perms = utils.get_ex_info(b1, b2, self.n_electrons)
         if nex == 0:
             E = utils.sc0(b1, self)
@@ -418,18 +401,17 @@ class Integral(System):
         Array
             The bitarray of the determinant
         """
-        occa = np.random.choice(int(self._norb/2), self._na, replace=False)
-        syma = utils.orb_sym(self._orbsym[2*occa], self._pg_mask)
-        occb = np.random.choice(int(self._norb/2), self._nb, replace=False)
-        symb = utils.orb_sym(self._orbsym[2*occb+1], self._pg_mask)
+        occa = np.random.choice(int(self._norb / 2), self._na, replace=False)
+        syma = utils.orb_sym(self._orbsym[2 * occa], self._pg_mask)
+        occb = np.random.choice(int(self._norb / 2), self._nb, replace=False)
+        symb = utils.orb_sym(self._orbsym[2 * occb + 1], self._pg_mask)
 
-        if not (utils.cross_prod_sym(symb, syma, self._pg_mask)
-                == self.symmetry):
+        if not (utils.cross_prod_sym(symb, syma, self._pg_mask) == self.symmetry):
             return self.random_bitarray_symspace()  # this is recursive??
 
         ba = np.zeros(self._norb, dtype=int)
-        ba[2*occa] = 1
-        ba[2*occb+1] = 1
+        ba[2 * occa] = 1
+        ba[2 * occb + 1] = 1
 
         return ba
 
@@ -457,7 +439,7 @@ class Integral(System):
                         break
                 allowed = (ims == virt_ms) & (isym == virt_sym)
                 a = np.random.choice(unocc[allowed])
-                pgen = self._psingle/(nsources*nvirt[ims, isym])
+                pgen = self._psingle / (nsources * nvirt[ims, isym])
                 ba2, perms = utils.get_single_perm(ba, i, a, self._nel)
                 hij = utils.sc1(ba, i, a, perms, self)
             else:
@@ -466,18 +448,17 @@ class Integral(System):
             allowed_excit = False
             i, j = np.random.choice(occ, 2, replace=False)
             ijsym = utils.utils.conj_sym(
-                        utils.cross_prod_sym(self._orbsym[i],
-                                             self._orbsym[j],
-                                             self._pg_mask),
-                        self)
+                utils.cross_prod_sym(self._orbsym[i], self._orbsym[j], self._pg_mask),
+                self,
+            )
             ijms = self._ms[i] + self._ms[j]
-            pgen_ij = 2.0/(self._nel*(self._nel-1))
+            pgen_ij = 2.0 / (self._nel * (self._nel - 1))
 
             if ijms == -2:
                 for syma in range(self._maxsym):
                     symb = utils.conj_sym(
-                        utils.cross_prod_sym(syma, ijsym, self._pg_mask),
-                        self)
+                        utils.cross_prod_sym(syma, ijsym, self._pg_mask), self
+                    )
                     bool1 = nvirt[-1, syma] > 0
                     bool2 = nvirt[-1, symb] > 1
                     bool3 = nvirt[-1, symb] == 1 and syma != symb
@@ -489,8 +470,8 @@ class Integral(System):
             elif ijms == 0:
                 for syma in range(self._maxsym):
                     symb = utils.conj_sym(
-                        utils.cross_prod_sym(syma, ijsym, self._pg_mask),
-                        self)
+                        utils.cross_prod_sym(syma, ijsym, self._pg_mask), self
+                    )
                     bool1 = nvirt[-1, syma] > 0 and nvirt[1, symb] > 0
                     bool2 = nvirt[1, syma] > 0 and nvirt[-1, symb] > 0
                     if bool1 or bool2:
@@ -501,8 +482,8 @@ class Integral(System):
             elif ijms == 2:
                 for syma in range(self._maxsym):
                     symb = utils.conj_sym(
-                        utils.cross_prod_sym(syma, ijsym, self._pg_mask),
-                        self)
+                        utils.cross_prod_sym(syma, ijsym, self._pg_mask), self
+                    )
                     bool1 = nvirt[1, syma] > 0
                     bool2 = nvirt[1, symb] > 1
                     bool3 = nvirt[1, symb] == 1 and syma != symb
@@ -518,10 +499,9 @@ class Integral(System):
                     a = np.random.choice(unocc[unocc % fac == shift])
                     imsb = ijms - self._ms[a]
                     isymb = utils.conj_sym(
-                        utils.cross_prod_sym(ijsym,
-                                             self._orbsym[a],
-                                             self._pg_mask),
-                        self)
+                        utils.cross_prod_sym(ijsym, self._orbsym[a], self._pg_mask),
+                        self,
+                    )
                     bool1 = nvirt[imsb, isymb] > 1
                     bool2 = nvirt[imsb, isymb] == 1
                     bool3 = isymb != self._orbsym[a] or ijms == 0
@@ -536,53 +516,53 @@ class Integral(System):
                 imsa = self._ms[a]
                 imsb = self._ms[b]
                 if ijms == -2:
-                    n_aij = int(self._norb/2) - self._nb
+                    n_aij = int(self._norb / 2) - self._nb
                     for syma in range(self._maxsym):
                         symb = utils.conj_sym(
-                            utils.cross_prod_sym(syma, ijsym, self._pg_mask),
-                            self)
+                            utils.cross_prod_sym(syma, ijsym, self._pg_mask), self
+                        )
                         bool1 = nvirt[-1, symb] == 0
                         bool2 = syma == symb and nvirt[-1, symb] == 1
                         if bool1 or bool2:
                             n_aij -= nvirt[-1, syma]
                     if self._orbsym[a] == self._orbsym[b]:
-                        p_aijb = 1/(nvirt[imsa, self._orbsym[a]]-1)
-                        p_bija = 1/(nvirt[imsb, self._orbsym[b]]-1)
+                        p_aijb = 1 / (nvirt[imsa, self._orbsym[a]] - 1)
+                        p_bija = 1 / (nvirt[imsb, self._orbsym[b]] - 1)
                     else:
-                        p_aijb = 1/(nvirt[imsa, self._orbsym[a]])
-                        p_bija = 1/(nvirt[imsb, self._orbsym[b]])
+                        p_aijb = 1 / (nvirt[imsa, self._orbsym[a]])
+                        p_bija = 1 / (nvirt[imsb, self._orbsym[b]])
                 elif ijms == 0:
                     n_aij = self._norb - self._nel
                     for syma in range(self._maxsym):
                         symb = utils.conj_sym(
-                            utils.cross_prod_sym(syma, ijsym, self._pg_mask),
-                            self)
+                            utils.cross_prod_sym(syma, ijsym, self._pg_mask), self
+                        )
                         bool1 = nvirt[-1, symb] == 0
                         bool2 = nvirt[1, symb] == 0
                         if bool1:
                             n_aij -= nvirt[1, syma]
                         if bool2:
                             n_aij -= nvirt[-1, syma]
-                    p_aijb = 1/(nvirt[imsa, self._orbsym[a]])
-                    p_bija = 1/(nvirt[imsb, self._orbsym[b]])
+                    p_aijb = 1 / (nvirt[imsa, self._orbsym[a]])
+                    p_bija = 1 / (nvirt[imsb, self._orbsym[b]])
                 elif ijms == 2:
-                    n_aij = int(self._norb/2) - self._na
+                    n_aij = int(self._norb / 2) - self._na
                     for syma in range(self._maxsym):
                         symb = utils.conj_sym(
-                            utils.cross_prod_sym(syma, ijsym, self._pg_mask),
-                            self)
+                            utils.cross_prod_sym(syma, ijsym, self._pg_mask), self
+                        )
                         bool1 = nvirt[1, symb] == 0
                         bool2 = syma == symb and nvirt[1, symb] == 1
                         if bool1 or bool2:
                             n_aij -= nvirt[1, syma]
                     if self._orbsym[a] == self._orbsym[b]:
-                        p_aijb = 1/(nvirt[imsa, self._orbsym[a]]-1)
-                        p_bija = 1/(nvirt[imsb, self._orbsym[b]]-1)
+                        p_aijb = 1 / (nvirt[imsa, self._orbsym[a]] - 1)
+                        p_bija = 1 / (nvirt[imsb, self._orbsym[b]] - 1)
                     else:
-                        p_aijb = 1/(nvirt[imsa, self._orbsym[a]])
-                        p_bija = 1/(nvirt[imsb, self._orbsym[b]])
+                        p_aijb = 1 / (nvirt[imsa, self._orbsym[a]])
+                        p_bija = 1 / (nvirt[imsb, self._orbsym[b]])
 
-                pgen = self._pdouble*pgen_ij*(1/n_aij)*(p_bija+p_aijb)
+                pgen = self._pdouble * pgen_ij * (1 / n_aij) * (p_bija + p_aijb)
                 ba2, perms = utils.get_double_perm(ba, i, j, a, b, self._nel)
                 hij = utils.sc2(i, j, a, b, perms, self)
             else:
@@ -592,46 +572,44 @@ class Integral(System):
 
     def print_report(self) -> None:
         """Print information about the system."""
-        print(' ---- System information ----')
+        print(" ---- System information ----")
         print(
             json.dumps(
                 {
-                    'int_file'  : self._input_file,
-                    'UHF'       : self._uhf,
-                    'Norb'      : self._norb,
-                    'Nvirt'     : self._nvirt,
-                    'Nel'       : self._nel,
-                    'Na'        : self._na,
-                    'Nb'        : self._nb,
-                    'MS2'       : self._ms2,
-                    'ISYM'      : self._isym,
-                    'maxsym'    : self._maxsym,
-                    'symmetry'  : self._sym,
-                    'pg_mask'   : self._pg_mask,
-                    'Href'      : self._ref_eng,
-                    'reference' : '%s' % self._ref,
-                    'ref_det'   : '%s' % self._ref_det,
-                    'p_single'  : self._psingle,
-                    'p_double'  : self._pdouble,
+                    "int_file": self._input_file,
+                    "UHF": self._uhf,
+                    "Norb": self._norb,
+                    "Nvirt": self._nvirt,
+                    "Nel": self._nel,
+                    "Na": self._na,
+                    "Nb": self._nb,
+                    "MS2": self._ms2,
+                    "ISYM": self._isym,
+                    "maxsym": self._maxsym,
+                    "symmetry": self._sym,
+                    "pg_mask": self._pg_mask,
+                    "Href": self._ref_eng,
+                    "reference": "%s" % self._ref,
+                    "ref_det": "%s" % self._ref_det,
+                    "p_single": self._psingle,
+                    "p_double": self._pdouble,
                 },
-                indent=4, ensure_ascii=True)
+                indent=4,
+                ensure_ascii=True,
+            )
         )
         print()
-        print('  '+'#'*6+' Basis set table start. '+'#'*6)
-        print(' '+'-'*50)
-        print(' {:>8} {:>10} {:>6} {:>22}'.format(
-            'index', 'Symmetry', 'ms', '<i|f|i>'))
-        print(' '+'-'*50)
-        outstr = ' {:>8} {:>10} {:>6} {:> 22.12E}'
+        print("  " + "#" * 6 + " Basis set table start. " + "#" * 6)
+        print(" " + "-" * 50)
+        print(" {:>8} {:>10} {:>6} {:>22}".format("index", "Symmetry", "ms", "<i|f|i>"))
+        print(" " + "-" * 50)
+        outstr = " {:>8} {:>10} {:>6} {:> 22.12E}"
         for i in range(self._norb):
-            print(outstr.format(i,
-                                self._orbsym[i],
-                                self._ms[i],
-                                self._eig[i]))
-        print(' '+'-'*50)
-        print('  '+'#'*6+'  Ba(sis set table end.  '+'#'*6)
+            print(outstr.format(i, self._orbsym[i], self._ms[i], self._eig[i]))
+        print(" " + "-" * 50)
+        print("  " + "#" * 6 + "  Ba(sis set table end.  " + "#" * 6)
         self.print_symmetry_table()
-        print('\nEigenvalues')
+        print("\nEigenvalues")
         self.print_eigenvalues()
 
     def print_symmetry_table(self) -> None:
@@ -643,12 +621,12 @@ class Integral(System):
         Then write out the resulting point group table from the cross
         product of the orbital point groups.
         """
-        print('\n')
-        print(' Symmetry cross product (xp) table using:')
-        print('    pg_mask: {}'.format(self._pg_mask))
-        print('    row = pg symmetry 1')
-        print('    col = pg symmetry 2')
-        print('    xp[row,col]:')
+        print("\n")
+        print(" Symmetry cross product (xp) table using:")
+        print("    pg_mask: {}".format(self._pg_mask))
+        print("    row = pg symmetry 1")
+        print("    col = pg symmetry 2")
+        print("    xp[row,col]:")
         print()
 
         xp = np.zeros((self._maxsym, self._maxsym), dtype=np.int64)
@@ -657,24 +635,24 @@ class Integral(System):
                 xp_pg = utils.bitarray_pg(isym, jsym, self._pg_mask)
                 xp[isym, jsym] = xp_pg
 
-        header = ' sym |'
-        pg_rows = [f'  {isym:>2} |' for isym in range(0, self._maxsym)]
+        header = " sym |"
+        pg_rows = [f"  {isym:>2} |" for isym in range(0, self._maxsym)]
         for isym in range(0, self._maxsym):
-            header += f' {isym:>2}'
+            header += f" {isym:>2}"
             for jsym in range(0, self._maxsym):
-                pg_rows[isym] += f' {xp[isym, jsym]:>2}'
+                pg_rows[isym] += f" {xp[isym, jsym]:>2}"
 
         print(header)
-        print(' ' + '-'*int(6 + 3 * (self._maxsym)))
+        print(" " + "-" * int(6 + 3 * (self._maxsym)))
         for isym in range(0, self._maxsym):
             print(pg_rows[isym])
 
         print()
-        print(' Symmetry cross product table from system orbitals:')
-        print('    pg_mask: {}'.format(self._pg_mask))
-        print('    row = orbital 1')
-        print('    col = orbital 2')
-        print('    xp[row,col]:')
+        print(" Symmetry cross product table from system orbitals:")
+        print("    pg_mask: {}".format(self._pg_mask))
+        print("    row = orbital 1")
+        print("    col = orbital 2")
+        print("    xp[row,col]:")
         print()
 
         xp = np.zeros((self._norb, self._norb), dtype=np.int64)
@@ -685,21 +663,21 @@ class Integral(System):
                 xp_pg = utils.bitarray_pg(isym, jsym, self._pg_mask)
                 xp[iorb, jorb] = xp_pg
 
-        header = ' orb |'
-        pg_rows = [f'  {iorb:>2} |' for iorb in range(0, self._norb)]
+        header = " orb |"
+        pg_rows = [f"  {iorb:>2} |" for iorb in range(0, self._norb)]
         for iorb in range(0, self._norb):
-            header += f' {iorb:>2}'
+            header += f" {iorb:>2}"
             for jorb in range(0, self._norb):
-                pg_rows[iorb] += f' {xp[iorb, jorb]:>2}'
+                pg_rows[iorb] += f" {xp[iorb, jorb]:>2}"
 
         print(header)
-        print(' ' + '-'*int(6 + 3 * (self._norb)))
+        print(" " + "-" * int(6 + 3 * (self._norb)))
         for irow in range(0, self._norb):
             print(pg_rows[irow])
 
-    def print_eigenvalues(self,
-                          float_fmt: str = ' % 24.16E',
-                          int_fmt: str = '%3i') -> None:
+    def print_eigenvalues(
+        self, float_fmt: str = " % 24.16E", int_fmt: str = "%3i"
+    ) -> None:
         """
         Print eigenvalues.
 
@@ -710,9 +688,9 @@ class Integral(System):
         int_fmt : str
             Format string for integers.
         """
-        fmt = float_fmt + f' {int_fmt} {int_fmt} {int_fmt} {int_fmt}'
+        fmt = float_fmt + f" {int_fmt} {int_fmt} {int_fmt} {int_fmt}"
         inds = np.arange(0, self._norb, 2 - self._uhf)
         for i in inds:
-            iout = int(i/(2 - self._uhf)) + 1
+            iout = int(i / (2 - self._uhf)) + 1
             out_tuple = (self._eig[i], iout, 0, 0, 0)
             print(fmt % out_tuple)

@@ -18,9 +18,9 @@ class Method:
     """
 
     def __init__(
-            self,
-            system: systems.System,
-            ) -> None:
+        self,
+        system: systems.System,
+    ) -> None:
         self._system = system
         self._ran_calculation = False
 
@@ -36,16 +36,18 @@ class Method:
 
     def run(self) -> None:
         """
-        Base method for initializing iterative calculations.
+        Ensure calculations are only run once.
 
         This base method handles a flag to ensure ``run`` is
         only called once. Any other calculations
         must be defined by the child class.
         """
         if self._ran_calculation:
-            raise RuntimeError("A calculation has already been run for this "
-                               "Method object. To prevent data loss, please "
-                               "create a new Method object.")
+            raise RuntimeError(
+                "A calculation has already been run for this "
+                "Method object. To prevent data loss, please "
+                "create a new Method object."
+            )
         self._ran_calculation = True
 
 
@@ -59,8 +61,7 @@ class Analytic(Method):
         The predefined System to run the model with.
     """
 
-    def __init__(self,
-                 system: systems.System):
+    def __init__(self, system: systems.System):
         super().__init__(system)
 
 
@@ -97,9 +98,9 @@ class Iterative(Method):
 
     def setup(self, report_values) -> None:
         """
-        Base method for initializing iterative calculations.
+        Create structures for periodically reporting calculation state.
 
-        This base method creates a data structure for reporting 
+        This base method creates a data structure for reporting
         user-supplied values every iteration. Any other setup
         activities must be defined by the child class.
 
@@ -112,23 +113,25 @@ class Iterative(Method):
             will automatically be included.
         """
         if self._ran_calculation:
-            raise RuntimeError("A calculation has already been run for this "
-                               "Method object. To prevent data loss, please "
-                               "create a new Method object.")
+            raise RuntimeError(
+                "A calculation has already been run for this "
+                "Method object. To prevent data loss, please "
+                "create a new Method object."
+            )
 
         self._report_values = []
         self._report_reqs = {}
 
         for item in report_values:
-
             if item not in report_registry:
-                raise AttributeError(f"Value {item} is not present in "
-                                     "pydmqmc.report_registry. Did you "
-                                     "forget to enroll it?")
+                raise AttributeError(
+                    f"Value {item} is not present in "
+                    "pydmqmc.report_registry. Did you "
+                    "forget to enroll it?"
+                )
 
             self._report_values.append(item)
-            self._report_reqs[item] = report_registry.get_requirements(item,
-                                                                       self)
+            self._report_reqs[item] = report_registry.get_requirements(item, self)
 
         self._report_data = []
 

@@ -1,4 +1,5 @@
 """System-derived class for reading & using HANDE-created Hamiltonians."""
+
 from .system import System
 
 import numpy as np
@@ -53,19 +54,17 @@ class MatrixHamiltonian(System):
     """
 
     def __init__(
-            self,
-            input_file: str,
-            is_complex: bool = False,
-            n_orbitals: int | None = None,
-            n_electrons: int | None = None,
-            n_alpha: int | None = None,
-            n_beta: int | None = None,
-            orbital_pg_symmetry: ArrayLike | None = None,
-            eigenvalues: ArrayLike | None = None,
-            ) -> None:
-
-        super().__init__(input_file=input_file,
-                         is_complex=is_complex)
+        self,
+        input_file: str,
+        is_complex: bool = False,
+        n_orbitals: int | None = None,
+        n_electrons: int | None = None,
+        n_alpha: int | None = None,
+        n_beta: int | None = None,
+        orbital_pg_symmetry: ArrayLike | None = None,
+        eigenvalues: ArrayLike | None = None,
+    ) -> None:
+        super().__init__(input_file=input_file, is_complex=is_complex)
 
         self._read_matrix()  # set self._H
         self._ndets = self._H.shape[0]
@@ -75,10 +74,12 @@ class MatrixHamiltonian(System):
 
         if n_electrons and n_alpha and n_beta:
             if n_alpha + n_beta != n_electrons:
-                raise RuntimeError("Supplied total number of electrons "
-                                   f"{n_electrons} is greater than the sum "
-                                   f"of supplied alpha ({n_alpha}) and beta "
-                                   f"({n_beta}) electrons.")
+                raise RuntimeError(
+                    "Supplied total number of electrons "
+                    f"{n_electrons} is greater than the sum "
+                    f"of supplied alpha ({n_alpha}) and beta "
+                    f"({n_beta}) electrons."
+                )
             self._nel = n_electrons
             self._na = n_alpha
             self._nb = n_beta
@@ -96,16 +97,17 @@ class MatrixHamiltonian(System):
             self._nb = n_beta
         # check for insufficient info
         elif n_electrons is not None and n_alpha is None and n_beta is None:
-            warnings.warn("Unable to set n_alpha and n_beta with current "
-                          "information.")
+            warnings.warn("Unable to set n_alpha and n_beta with current information.")
             self._nel = n_electrons
         elif n_alpha is not None and n_electrons is None and n_beta is None:
-            warnings.warn("Unable to set n_electrons and n_beta with current "
-                          "information.")
+            warnings.warn(
+                "Unable to set n_electrons and n_beta with current information."
+            )
             self._na = n_alpha
         elif n_beta is not None and n_electrons is None and n_alpha is None:
-            warnings.warn("Unable to set n_electrons and n_alpha with current "
-                          "information.")
+            warnings.warn(
+                "Unable to set n_electrons and n_alpha with current information."
+            )
             self._nb = n_beta
 
         # super.__init__() sets self._orbsym and self._eig to None
@@ -127,14 +129,14 @@ class MatrixHamiltonian(System):
         """Load matrix from a HANDE file into a NumPy array."""
         if self._is_complex:
             raise NotImplementedError(
-                'Reading complete HANDE Hamiltonians is not currently '
-                'implemented please send patches!'
+                "Reading complete HANDE Hamiltonians is not currently "
+                "implemented please send patches!"
             )
 
         ndets = 0
         elements = {}
 
-        with open(self._input_file, 'rt') as stream:
+        with open(self._input_file, "rt") as stream:
             for line in stream:
                 i, j, hij = line.split()
 

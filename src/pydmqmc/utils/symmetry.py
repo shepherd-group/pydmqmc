@@ -8,7 +8,6 @@ See:
     https://doi.org/10.1021/acs.jctc.8b01217
 """
 
-
 import numpy as np
 
 
@@ -51,7 +50,7 @@ def conj_sym(sym, mask):
     ! In:
     !   read_in: information on the symmetries of the basis functions.
     !   sym: the bit representation of the irrep of the pg sym including
-    !        Lz in its higher bits 
+    !        Lz in its higher bits
     ! Returns:
     !   The symmetry conjugate of the symmetry. For pg symmetry this is the same as
     !   it's Abelian, but we need to take Lz to -Lz here.

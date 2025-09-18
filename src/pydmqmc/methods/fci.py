@@ -18,10 +18,7 @@ class FullConfigurationInteraction(Analytic):
     The supplied system must have a hermtian Hamiltonian.
     """
 
-    def __init__(
-            self,
-            system: systems.System
-            ) -> None:
+    def __init__(self, system: systems.System) -> None:
         super().__init__(system)
 
         # Prepare the system, if needed
@@ -49,11 +46,13 @@ class FullConfigurationInteraction(Analytic):
         self._energies, self._wavefunctions = eigh(self.system.hamiltonian)
         return
 
-    def save_data(self,
-                  basename: str,
-                  energy_filetype: str = "csv",
-                  wavefunction_filetype: str = "csv",
-                  pickle_protocol: int | None = None) -> None:
+    def save_data(
+        self,
+        basename: str,
+        energy_filetype: str = "csv",
+        wavefunction_filetype: str = "csv",
+        pickle_protocol: int | None = None,
+    ) -> None:
         """
         Save the final energies and wavefunctions to file.
 
@@ -82,12 +81,13 @@ class FullConfigurationInteraction(Analytic):
             Protocol version to use if either `filetype` is "pkl".
             If none, uses `pickle`'s default.
         """
-        save_array(self._energies,
-            basename + "_energies",
-            energy_filetype,
-            pickle_protocol)
-        
-        save_array(self._wavefunctions,
+        save_array(
+            self._energies, basename + "_energies", energy_filetype, pickle_protocol
+        )
+
+        save_array(
+            self._wavefunctions,
             basename + "_wavefunctions",
             wavefunction_filetype,
-            pickle_protocol)
+            pickle_protocol,
+        )

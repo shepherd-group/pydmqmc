@@ -6,48 +6,48 @@ build-backend = "setuptools.build_meta"
 name = "pydmqmc"
 version = "0.0.1"
 authors = [
+    { name="Claire Kopenhafer", email="kopenhaf@msu.edu"},
     { name="William Van Benschoten", email="vanwill2@msu.edu" },
-    { name="Claire Kopenhafer", email="kopenhaf@msu.edu"}
 ]
 description = "Python library for density matrix quantum Monte Carlo"
 # classifiers
 # requires-python >= 3.10
 dependencies = [
-    "flake8",
-    "flake8-docstrings",
-    "flake8-pyproject",
     "numpy",
     "numpydoc",
     "numba",
     "pandas",
     "pytest",
     "pytest-lazy-fixture",  # requires pip
+    "ruff",
     "scipy",
     "sphinx",
     "sphinx_rtd_theme",
     "sympy"
 ]
 
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.setuptools]
-packages = ["pydmqmc"]
-
-[tool.flake8]
-docstring-convention = "numpy"
+[tool.ruff]
 exclude = [
     "docs",
     "tests",
     "development",
 ]
-per-file-ignores = [
-    # imported but unused
-    "__init__.py: F401",
-    "integral.py: E203"
-]
 
-# pyproject.toml
+[tool.ruff.lint]
+select = ["D", "E", "F", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+    "__init__.py" = ["F401"]  # import but unused
+    "registry.py" = ["F821"]  # Undefined name
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
 [tool.pytest.ini_options]
 filterwarnings = [
     "ignore::UserWarning",

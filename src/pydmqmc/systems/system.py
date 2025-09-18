@@ -22,12 +22,11 @@ class System:
     """
 
     def __init__(
-            self,
-            input_file: str,
-            is_complex: bool = False,
-            **kwargs,
-            ) -> None:
-
+        self,
+        input_file: str,
+        is_complex: bool = False,
+        **kwargs,
+    ) -> None:
         self._input_file = input_file
         self._is_complex = is_complex
 
@@ -73,15 +72,14 @@ class System:
         enforce consistency accross children.
         """
         if self._orbsym is not None:
-            self._maxsym = int(2**np.ceil(np.log(np.max(self._orbsym)+1)
-                               / np.log(2)))
+            self._maxsym = int(
+                2 ** np.ceil(np.log(np.max(self._orbsym) + 1) / np.log(2))
+            )
             self._pg_mask = self._maxsym - 1
 
         if self._norb is not None:
             self._orbs = np.arange(self._norb)
-            self._ms = np.array(
-                        [(i+1) % 2 - i % 2 for i in self._orbs]
-                       )
+            self._ms = np.array([(i + 1) % 2 - i % 2 for i in self._orbs])
 
     @property
     def input_file(self) -> str:
@@ -179,7 +177,8 @@ class System:
             self._H -= self._ref_eng * np.eye(self._ndets)
         else:
             raise RuntimeError(
-                "The Hamiltonian is currently `None` and cannot be shifted.")
+                "The Hamiltonian is currently `None` and cannot be shifted."
+            )
 
     def generate_determinant_bitarrays(self) -> None:
         """
@@ -226,31 +225,32 @@ class System:
 
         # Check for required components.
         # TODO decide if sym is hard required
-        req_quants = [self._norb, self._na, self._nb,
-                      self._orbsym, self._pg_mask]
+        req_quants = [self._norb, self._na, self._nb, self._orbsym, self._pg_mask]
         missing = [i is None for i in req_quants]
         if True in missing:
-            raise RuntimeError("Method generate_determinant_bitarrays "
-                               "requires the following be defined: "
-                               "n_orbitals, n_alpha, n_beta, "
-                               "orbital_pg_symmetry.")
+            raise RuntimeError(
+                "Method generate_determinant_bitarrays "
+                "requires the following be defined: "
+                "n_orbitals, n_alpha, n_beta, "
+                "orbital_pg_symmetry."
+            )
 
-        aba = np.zeros(int(self._norb/2), dtype=int)
-        aba[:self._na] = 1
+        aba = np.zeros(int(self._norb / 2), dtype=int)
+        aba[: self._na] = 1
         alpha_bas = list(gen_perm_set(aba))[::-1]
 
-        bba = np.zeros(int(self._norb/2), dtype=int)
-        bba[:self._nb] = 1
+        bba = np.zeros(int(self._norb / 2), dtype=int)
+        bba[: self._nb] = 1
         beta_bas = list(gen_perm_set(bba))[::-1]
 
         bas = []
         for bba in beta_bas:
-            bind = 2*np.nonzero(bba)[0] + 1
+            bind = 2 * np.nonzero(bba)[0] + 1
             boccsym = self._orbsym[bind]
             bsym = utils.orb_sym(boccsym, self._pg_mask)
 
             for aba in alpha_bas:
-                aind = 2*np.nonzero(aba)[0]
+                aind = 2 * np.nonzero(aba)[0]
                 aoccsym = self._orbsym[aind]
                 asym = utils.orb_sym(aoccsym, self._pg_mask)
 
@@ -272,8 +272,7 @@ class System:
         # Generate bitarrays if not already set.
         self.generate_determinant_bitarrays()
 
-        bitints = [np.exp2(self._orbs[ba == 1]).sum()
-                   for ba in self._bitarrays]
+        bitints = [np.exp2(self._orbs[ba == 1]).sum() for ba in self._bitarrays]
         return np.array(bitints).astype(np.int64)
 
     def generate_excitation_matrix(self) -> None:
@@ -298,15 +297,13 @@ class System:
         self.generate_determinant_bitarrays()
         self._nex_mat = np.zeros((self._ndets, self._ndets), dtype=np.int64)
         for i, b1 in enumerate(self._bitarrays):
-            for j, b2 in enumerate(self._bitarrays[i+1:]):
+            for j, b2 in enumerate(self._bitarrays[i + 1 :]):
                 j += i + 1
                 nex = utils.get_nex(b1, b2)
                 self._nex_mat[i, j] = nex
                 self._nex_mat[j, i] = nex
 
-    def get_virtual_orbitals(self,
-                             occ: ArrayLike
-                             ) -> list[Array]:
+    def get_virtual_orbitals(self, occ: ArrayLike) -> list[Array]:
         """
         Given an occupied orbital array, get information on virtual orbitals.
 
@@ -340,10 +337,12 @@ class System:
         req_quants = [self._orbs, self._orbsym, self._ms, self._maxsym]
         missing = [i is None for i in req_quants]
         if True in missing:
-            raise RuntimeError("Method get_virtual_orbitals "
-                               "requires the following be defined: "
-                               "orbitals, orbital_pg_symmetry, "
-                               "spin_polarizations, max_symmetry.")
+            raise RuntimeError(
+                "Method get_virtual_orbitals "
+                "requires the following be defined: "
+                "orbitals, orbital_pg_symmetry, "
+                "spin_polarizations, max_symmetry."
+            )
 
         unocc = self._orbs[np.isin(self._orbs, occ, invert=True)]
         virt_ms = self._ms[unocc]

@@ -59,7 +59,7 @@ def integer_to_bitarray(iba: int, norb: int) -> Array:
     these are used to represent Slater determinants.
     """
     ba = np.binary_repr(iba, width=norb)
-    return np.frombuffer(ba.encode(), dtype='S1').astype(int)[::-1]
+    return np.frombuffer(ba.encode(), dtype="S1").astype(int)[::-1]
 
 
 def concate_bitarrays_to_label(ba1: Array, ba2: Array) -> int:
@@ -109,12 +109,12 @@ def extract_bitarrays_from_label(label: int, norb: int) -> Array:
     More traditionally referred to as "bitstrings,"
     these are used to represent Slater determinants.
     """
-    return np.array_split(integer_to_bitarray(label, 2*norb), 2)
+    return np.array_split(integer_to_bitarray(label, 2 * norb), 2)
 
 
 def get_nex(b1: Array, b2: Array) -> int:
     """Return the number of excitations between two states."""
-    return int(np.count_nonzero(b1 != b2)/2)
+    return int(np.count_nonzero(b1 != b2) / 2)
 
 
 def get_occ(b1: Array) -> int:
@@ -131,7 +131,7 @@ def get_single_perm(b1, a, r, nel):
     b2[a] = 0
     b2[r] = 1
     occ2 = get_occ(b2)
-    perms = int(2*nel)
+    perms = int(2 * nel)
     perms -= get_iocc(occ1, a)
     perms -= get_iocc(occ2, r)
     return b2, perms
@@ -145,7 +145,7 @@ def get_double_perm(b1, a, b, r, s, nel):
     b2[r] = 1
     b2[s] = 1
     occ2 = get_occ(b2)
-    perms = int(4*nel) - 2
+    perms = int(4 * nel) - 2
     perms -= get_iocc(occ1, a)
     perms -= get_iocc(occ1, b)
     perms -= get_iocc(occ2, r)
@@ -154,7 +154,6 @@ def get_double_perm(b1, a, b, r, s, nel):
 
 
 def get_ex_info(b1, b2, nel):
-
     occ1 = get_occ(b1)
     occ2 = get_occ(b2)
     nex = get_nex(b1, b2)
@@ -162,11 +161,11 @@ def get_ex_info(b1, b2, nel):
     excit2 = get_occ(np.logical_and(b1 != b2, b2 != 0))
 
     perms = 0
-    a, b, r, s = [None]*4
+    a, b, r, s = [None] * 4
     if nex == 1:
         a = excit1[0]
         r = excit2[0]
-        perms += int(2*nel)
+        perms += int(2 * nel)
         perms -= get_iocc(occ1, a)
         perms -= get_iocc(occ2, r)
     elif nex == 2:
@@ -174,7 +173,7 @@ def get_ex_info(b1, b2, nel):
         b = excit1[1]
         r = excit2[0]
         s = excit2[1]
-        perms += int(4*nel) - 2
+        perms += int(4 * nel) - 2
         perms -= get_iocc(occ1, a)
         perms -= get_iocc(occ1, b)
         perms -= get_iocc(occ2, r)

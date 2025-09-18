@@ -39,9 +39,9 @@ def sc0(ba: ArrayLike, sys) -> float:
         on Chemistry, 1996
     """
     E = sys.h0e
-    E += np.einsum('a,aa->', ba, sys.h1e)
-    E += 0.5*np.einsum('a,b,abab->', ba, ba, sys.h2e)
-    E -= 0.5*np.einsum('a,b,abba->', ba, ba, sys.h2e)
+    E += np.einsum("a,aa->", ba, sys.h1e)
+    E += 0.5 * np.einsum("a,b,abab->", ba, ba, sys.h2e)
+    E -= 0.5 * np.einsum("a,b,abba->", ba, ba, sys.h2e)
     return E
 
 
@@ -65,9 +65,9 @@ def sc1(ba, a, r, perms, sys):
     ba1 = np.copy(ba)
     ba1[[a, r]] = 0
     E = sys.h1e[a, r]
-    E += np.einsum('b,bb->', ba1, sys.h2e[a, :, r, :])
-    E -= np.einsum('b,bb->', ba1, sys.h2e[a, :, :, r])
-    E *= (1.0 - 2.0*(perms % 2))
+    E += np.einsum("b,bb->", ba1, sys.h2e[a, :, r, :])
+    E -= np.einsum("b,bb->", ba1, sys.h2e[a, :, :, r])
+    E *= 1.0 - 2.0 * (perms % 2)
     return E
 
 
@@ -89,5 +89,5 @@ def sc2(a, b, r, s, perms, sys):
     """
     E = sys.h2e[a, b, r, s]
     E -= sys.h2e[a, b, s, r]
-    E *= (1.0 - 2.0*(perms % 2))
+    E *= 1.0 - 2.0 * (perms % 2)
     return E

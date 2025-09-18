@@ -7,11 +7,7 @@ Each function in this module must have the same call signature.
 from collections.abc import Callable
 
 
-def euler(func: Callable,
-          y: float,
-          dt: float,
-          *args,
-          **kwargs):
+def euler(func: Callable, y: float, dt: float, *args, **kwargs):
     """
     Update `y` using Euler's method.
 
@@ -23,11 +19,7 @@ def euler(func: Callable,
     return y + dt * dx_dt
 
 
-def rk4(func: Callable,
-        y: float,
-        dt: float,
-        *args,
-        **kwargs):
+def rk4(func: Callable, y: float, dt: float, *args, **kwargs):
     """
     Update `y` using the fourth-order Runge-Kutta method.
 
@@ -36,8 +28,8 @@ def rk4(func: Callable,
         dy/dt = func(y, ...)
     """
     k1 = func(y, *args, **kwargs)
-    k2 = func(y + dt/2 * k1, *args, **kwargs)
-    k3 = func(y + dt/2 * k2, *args, **kwargs)
+    k2 = func(y + dt / 2 * k1, *args, **kwargs)
+    k3 = func(y + dt / 2 * k2, *args, **kwargs)
     k4 = func(y + dt * k3, *args, **kwargs)
 
-    return y + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
+    return y + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)

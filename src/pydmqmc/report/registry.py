@@ -1,19 +1,22 @@
-from .report_functions import *
+"""Class for associating strings with functions that calculate observables."""
+
+from .report_functions import trace, energy, von_neumann
 
 from collections.abc import Iterable, Callable
 from functools import partial
 
-class ReportRegistry():
+
+class _ReportRegistry:
     def __init__(self):
         self._registry = {
-            'trace': trace,
-            'energy': energy,
-            'von Neumann':von_neumann,
-            }
+            "trace": trace,
+            "energy": energy,
+            "von Neumann": von_neumann,
+        }
         # abbreviated list of requirements
         self._requirements = {
-            'energy': ('hamiltonian',),
-            }
+            "energy": ("hamiltonian",),
+        }
 
     @property
     def functions(self) -> dict[str, Callable]:
@@ -30,8 +33,8 @@ class ReportRegistry():
         return name in self._registry
 
     def __getitem__(self, name):
-        """A shortcut for accessing the associated function."""
-        return self._registry[name]  # actually return a partial with the requirements in place?
+        """Access the associated function."""
+        return self._registry[name]
 
     def keys(self):
         return self._registry.keys()
@@ -43,10 +46,9 @@ class ReportRegistry():
             req = None
         return req
 
-    def enroll(self,
-               name: str,
-               function: Callable,
-               requires: str | Iterable[str] | None) -> None:
+    def enroll(
+        self, name: str, function: Callable, requires: str | Iterable[str] | None
+    ) -> None:
         """
         Include a new analysis function in the registry.
 
@@ -61,7 +63,7 @@ class ReportRegistry():
             List of prerequisites required by the analysis function.
             These should be attributes of a Method or System object.
             Can be formatted as, e.g., `"method.system.hamiltonian"` or just
-            `"hamiltonian"`. In the latter case, the Method and its System 
+            `"hamiltonian"`. In the latter case, the Method and its System
             will be searched for an attribute called `hamiltonian`.
 
         Examples
@@ -72,21 +74,20 @@ class ReportRegistry():
         under the name `"my_analysis"` as below:
         >>> def my_func(matrix: NDArray, hamiltonian: NDArray):
         ...     return np.norm(hamiltonian @ matrix)
-        >>> my_reg.enroll("my_analysis",
-        ...               my_func,
-        ...               ["hamiltonian"])
+        >>> my_reg.enroll("my_analysis", my_func, ["hamiltonian"])
         """
         if name in self._registry:
-            raise RuntimeError(f"A function called '{name}' is "
-                               "already enrolled in this registry!")
+            raise RuntimeError(
+                f"A function called '{name}' is already enrolled in this registry!"
+            )
         self._registry[name] = function
 
         if requires:
             self._requirements[name] = tuple(requires)  # make immutable
 
-    def get_requirements(self,
-                           name: str,
-                           method: 'Method') -> bool:
+    def get_requirements(
+        self, name: str, method: "Method"
+    ) -> bool:  # avoid circular imports
         """
         Check for a function's requirements in a given Method.
 
@@ -109,18 +110,21 @@ class ReportRegistry():
             met by the given Method object.
         """
         if name not in self._registry:
-            raise RuntimeError(f"Function '{name}' has not been "
-                               "enrolled in this registry!")
+            raise RuntimeError(
+                f"Function '{name}' has not been enrolled in this registry!"
+            )
 
         if name not in self._requirements:
             return {}
 
         req_dict = {}
         for req in self._requirements[name]:
-            error_msg = f"Requirements for {req} not currently " \
-                         "satisfied. This Method and its System " \
-                         "must be able to satisfy the following:" \
-                         f" {self.list_requirements(req)}"
+            error_msg = (
+                f"Requirements for {req} not currently "
+                "satisfied. This Method and its System "
+                "must be able to satisfy the following:"
+                f" {self.list_requirements(req)}"
+            )
 
             # The requirement may be the full attribute "path"
             try:
@@ -150,26 +154,31 @@ class ReportRegistry():
                             raise RuntimeError(error_msg)
                         req_dict[req] = req_data  # add to return dict
                     except AttributeError:
-                        raise ValueError(f"The requirement {req} is not "
-                                        "present in either the provided "
-                                        "Method or its associated System.")
+                        raise ValueError(
+                            f"The requirement {req} is not "
+                            "present in either the provided "
+                            "Method or its associated System."
+                        )
 
         # None of the requirements resulted in errors;
         # all could be found and weren't None
         return req_dict
 
+
 # Create the main registry of report functions
-report_registry = ReportRegistry()
+report_registry = _ReportRegistry()
+
 
 class enroll:
-    # Implement a decorator accepting keyword arguments
-    # that are passed report_registry.enroll()
+    """Decorator accepting keyword arguments for report_registry.enroll()."""
+
     # Taken from the yt-project's derived_field decorator :)
 
     def __init__(self, **kwargs) -> None:
         self._kwargs = kwargs
 
     def __call__(self, f: Callable) -> Callable:
+        """Enroll a function in the report registry."""
         if "name" not in self._kwargs:
             self._kwargs["name"] = f.__name__
         partial(report_registry.enroll, function=f)(**self._kwargs)

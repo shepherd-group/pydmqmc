@@ -1,12 +1,13 @@
+"""Functions for calculating possible permutations."""
+
 import numpy as np
 
 from numpy.typing import NDArray as Array
 
 
-def generate_ijab_symmetries_array(i: int, j: int,
-                                   a: int, b: int,
-                                   eight_fold: bool = True,
-                                   rhf: bool = True) -> Array:
+def generate_ijab_symmetries_array(
+    i: int, j: int, a: int, b: int, eight_fold: bool = True, rhf: bool = True
+) -> Array:
     """
     Generate an array of valid symmetry permutations of the orbital indicies.
 
@@ -36,10 +37,10 @@ def generate_ijab_symmetries_array(i: int, j: int,
         raise ValueError(f"Index b {b} cannot excede j {j}.")
 
     if rhf:
-        i, j, a, b = i+i, j+j, a+a, b+b
+        i, j, a, b = i + i, j + j, a + a, b + b
     uhf = not rhf
-    nspat = int(4 - 3*uhf)
-    nspin = int(4 - 3*uhf + 4*eight_fold - 3*eight_fold*uhf)
+    nspat = int(4 - 3 * uhf)
+    nspin = int(4 - 3 * uhf + 4 * eight_fold - 3 * eight_fold * uhf)
 
     SS = [
         [0, 0, 0, 0],
