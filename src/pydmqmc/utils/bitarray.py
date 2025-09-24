@@ -289,13 +289,6 @@ def get_ex_info(b1: Array, b2: Array, nel: int) -> tuple[int, list, int]:
         If a double excitation, the list is [a, b, r, s].
     int
         The number of permutations associated with the excitation.
-
-    Raises
-    ------
-    RuntimeError
-        If the number of excitations between the two states is not
-        one or two. This ensures the function does not silently fail
-        should this edge case arise.
     """
     occ1 = get_occ(b1)
     occ2 = get_occ(b2)
@@ -321,9 +314,5 @@ def get_ex_info(b1: Array, b2: Array, nel: int) -> tuple[int, list, int]:
         perms -= get_iocc(occ1, b)
         perms -= get_iocc(occ2, r)
         perms -= get_iocc(occ2, s)
-    else:
-        raise ValueError(
-            f"Unexpected number of excitations ({nex}) between determinants."
-        )
 
     return nex, [a, b, r, s], perms

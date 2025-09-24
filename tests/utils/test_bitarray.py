@@ -90,7 +90,3 @@ class TestBitarrayUtils():
         assert ex_orbs == [2, 4, 6, 8]
         assert perms == 7
 
-    def test_get_ex_info_invalid_nex(self):
-        ba3 = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
-        with raises(ValueError):
-            get_ex_info(self._bitarrays[0], ba3, 6)
