@@ -102,7 +102,7 @@ class TestExtendedMatrixHamiltonian():
         assert np.allclose(sys.orbitals, np.arange(4))
         assert np.allclose(sys.spin_polarizations, [1, -1, 1, -1])
 
-    def test_bad_nelectron_nalpha_nbeta(self):
+    def test_invalid_nelectron_nalpha_nbeta(self):
         with raises(RuntimeError):
             MatrixHamiltonian(self._input,
                               n_electrons=10,

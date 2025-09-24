@@ -11,10 +11,9 @@ from .bitarray import (
     get_single_perm,
     get_double_perm,
     get_ex_info,
-    bitarray_pg,
 )
 
-from .symmetry import cross_prod_sym, orb_sym, conj_sym
+from .symmetry import cross_prod_sym, orb_sym, conj_sym, bitarray_pg
 
 from .slater_condon import sc0, sc1, sc2
 

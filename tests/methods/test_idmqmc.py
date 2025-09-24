@@ -88,7 +88,7 @@ class TestIPDMQMC():
                            diag)
         assert self._mtd_sm.density_matrix.size == 4
 
-    def test_setup_fixed_bad(self):
+    def test_setup_fixed_invalid(self):
         diag = [10, 30, 40]
 
         with raises(RuntimeError):

@@ -103,7 +103,7 @@ class TestIterative():
         assert self._mtd.report_values == report_lst
         assert self._mtd.report_requirements["trace"] == {}
 
-    def test_setup_bad_report_values(self):
+    def test_setup_invalid_report_values(self):
         with raises(AttributeError):
             self._mtd.setup(["junk"])
 

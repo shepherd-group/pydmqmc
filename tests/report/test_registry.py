@@ -43,7 +43,7 @@ class TestReportRegistry():
         assert isinstance(req_dict, dict)
         assert "hamiltonian" in req_dict
 
-    def test_get_requirements_bad(self):
+    def test_get_requirements_invalid(self):
         dummy_sys = System("/dummy/path")
         empty_mtd = Method(dummy_sys)
         with raises(RuntimeError):

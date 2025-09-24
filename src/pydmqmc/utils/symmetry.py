@@ -9,6 +9,7 @@ See:
 """
 
 import numpy as np
+import numba
 
 
 def cross_prod_sym(sym1, sym2, mask):
@@ -56,3 +57,16 @@ def conj_sym(sym, mask):
     !   it's Abelian, but we need to take Lz to -Lz here.
     """
     return np.bitwise_or(np.bitwise_and(sym, mask), 0)
+
+
+@numba.njit
+def bitarray_pg(s1, s2, pg):
+    """
+    Cross product of two point group symmetries with the total point group.
+
+    Use bitwise operations to find the cross product of two point group
+    symmetries with the point group of the total symmetry.
+    """
+    s12 = np.bitwise_xor(s1, s2)
+    s = np.bitwise_and(s12, pg)
+    return s

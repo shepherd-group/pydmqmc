@@ -70,7 +70,7 @@ class TestDMQMC():
                         diag)
         assert self._mtd.density_matrix.size == 400
 
-    def test_setup_fixed_bad(self):
+    def test_setup_fixed_invalid(self):
         diag = [10, 30, 40]
 
         with raises(RuntimeError):
@@ -90,7 +90,7 @@ class TestDMQMC():
         with raises(RuntimeError):
             self._mtd.run(25, 0.01, 10, 0.05)
 
-    def test_run_bad_ilevel(self):
+    def test_run_invalid_ilevel(self):
         self._mtd.setup("deterministic")
 
         with raises(TypeError):
