@@ -9,9 +9,9 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 
-def sc0(ba: ArrayLike, sys) -> float:
+def sc0(ba: ArrayLike, sys: "System") -> float:
     r"""
-    Slater-Condon rule for ground state electrons(???).
+    Slater-Condon rule for the reference state.
 
     Parameters
     ----------
@@ -21,7 +21,7 @@ def sc0(ba: ArrayLike, sys) -> float:
     Returns
     -------
     float
-        The energy(???)
+        The Hamiltonian matrix element for the reference state.
 
     Notes
     -----
@@ -47,7 +47,7 @@ def sc0(ba: ArrayLike, sys) -> float:
 
 def sc1(ba, a, r, perms, sys):
     r"""
-    Slater-Condon rule for singly excited states(???).
+    Slater-Condon rule for singly excited states.
 
     Notes
     -----
@@ -73,7 +73,7 @@ def sc1(ba, a, r, perms, sys):
 
 def sc2(a, b, r, s, perms, sys):
     r"""
-    Slater-Condon rule for doubly excited states(???).
+    Slater-Condon rule for doubly excited states.
 
     Notes
     -----

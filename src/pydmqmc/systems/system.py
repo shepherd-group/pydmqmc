@@ -225,7 +225,13 @@ class System:
 
         # Check for required components.
         # TODO decide if sym is hard required
-        req_quants = [self._norb, self._na, self._nb, self._orbsym, self._pg_mask]
+        req_quants = [
+            self._norb,
+            self._na,
+            self._nb,
+            self._orbsym,
+            self._pg_mask,
+        ]
         missing = [i is None for i in req_quants]
         if True in missing:
             raise RuntimeError(

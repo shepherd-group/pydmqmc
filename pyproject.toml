@@ -18,7 +18,7 @@ dependencies = [
     "numba",
     "pandas",
     "pytest",
-    "pytest-lazy-fixture",  # requires pip
+    "pytest-lazy-fixtures",  # requires pip
     "ruff",
     "scipy",
     "sphinx",
@@ -32,6 +32,7 @@ exclude = [
     "tests",
     "development",
 ]
+line-length = 80
 
 [tool.ruff.lint]
 select = ["D", "E", "F", "W"]
@@ -39,6 +40,7 @@ select = ["D", "E", "F", "W"]
 [tool.ruff.lint.per-file-ignores]
     "__init__.py" = ["F401"]  # import but unused
     "registry.py" = ["F821"]  # Undefined name
+    "slater_condon.py" = ["F821"]  # Undefined name
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
