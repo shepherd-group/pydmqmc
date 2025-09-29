@@ -9,28 +9,33 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 
-def sc0(ba: ArrayLike, sys: "System") -> float:
+def sc0(ba: ArrayLike, sys: "Integral") -> float:
     r"""
-    Slater-Condon rule for the reference state.
+    Hamiltonian matrix element between a state and itself.
 
     Parameters
     ----------
     ba : array_like
-        bitarray
+        Bitarray for the state.
+    sys : Integral
+        System object with integral information.
 
     Returns
     -------
     float
-        The Hamiltonian matrix element for the reference state.
+        Hamiltonian matrix element.
 
     Notes
     -----
-    Math from Szabo and Ostlund [1]_:
+    Math from Szabo and Ostlund (Table 2.5, Case 1) [1]_:
 
     .. math::
 
         <\Psi_{0}|H|\Psi_{0}> = \sum_{a} <a|h|a>
                             + 1/2 \sum_{a,b} <ab|ab> - <ab|ba>
+
+    where :math:`a` and :math:`b` are occupied orbitals.
+    Note that this equation is written in physicists' notation.
 
     References
     ----------
@@ -45,16 +50,38 @@ def sc0(ba: ArrayLike, sys: "System") -> float:
     return E
 
 
-def sc1(ba, a, r, perms, sys):
+def sc1(ba: ArrayLike, a: int, r: int, perms: int, sys: "Integral") -> float:
     r"""
-    Slater-Condon rule for singly excited states.
+    Hamiltonian matrix element between singly excited states.
+
+    Parameters
+    ----------
+    ba : array_like
+        Bitarray for the state.
+    a : int
+        Index of the occupied orbital to be vacated.
+    r : int
+        Index of the unoccupied orbital to be filled.
+    perms : int
+        Number of permutations associated with the excitation.
+    sys : Integral
+        System object with integral information.
+
+    Returns
+    -------
+    float
+        Hamiltonian matrix element.
 
     Notes
     -----
-    Math from Szabo and Ostlund [1]_:
+    Math from Szabo and Ostlund (Table 2.5, Case 2) [1]_:
 
     .. math::
         <\Psi_{0}|H|\Psi_{a}^{r}> = <a|h|r> + \sum_{b} <ab|rb> - <ab|br>
+
+    where :math:`a` and :math:`b` are occupied orbitals
+    and :math:`r` is unoccpied. Note that this equation is written in
+    physicists' notation.
 
     References
     ----------
@@ -71,15 +98,38 @@ def sc1(ba, a, r, perms, sys):
     return E
 
 
-def sc2(a, b, r, s, perms, sys):
+def sc2(a: int, b: int, r: int, s: int, perms: int, sys: "Integral") -> float:
     r"""
-    Slater-Condon rule for doubly excited states.
+    Hamiltonian matrix element between doubly excited states.
+
+    Parameters
+    ----------
+    a, b : int
+        Indices of the occupied orbitals to be vacated.
+    r, s : int
+        Indices of the unoccupied orbitals to be filled.
+    perms : int
+        Number of permutations associated with the excitation.
+    sys : Integral
+        System object with integral information.
+
+    Returns
+    -------
+    float
+        Hamiltonian matrix element.
 
     Notes
     -----
-    Math from Szabo and Ostlund [1]_:
+    Math from Szabo and Ostlund (Table 2.5, Case 3) [1]_:
 
     .. math:: <\Psi_{0}|H|\Psi_{ab}^{rs}> = <ab|rs> - <ab|sr>
+
+    where :math:`a` and :math:`b` are occupied orbitals
+    and :math:`r` and :math:`s` are unoccpied orbitals.
+    Note that this equation is written in physicists' notation.
+
+    The bitarray is not needed as input since the orbitals
+    involved are fully specified by the indices.
 
     References
     ----------
