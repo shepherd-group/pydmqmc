@@ -18,7 +18,7 @@ dependencies = [
     "numba",
     "pandas",
     "pytest",
-    "pytest-lazy-fixtures",  # requires pip
+    "pytest-lazy-fixtures",  # not available with conda
     "ruff",
     "scipy",
     "sphinx",

@@ -260,7 +260,7 @@ class System:
                 aoccsym = self._orbsym[aind]
                 asym = utils.orb_sym(aoccsym, self._pg_mask)
 
-                sym = utils.cross_prod_sym(bsym, asym, self._pg_mask)
+                sym = utils.pg_sym_cross_prod(bsym, asym, self._pg_mask)
                 ba = np.zeros(self._norb, dtype=int)
                 ba[np.arange(0, self._norb, 2)] = aba
                 ba[np.arange(1, self._norb, 2)] = bba

@@ -27,7 +27,6 @@ Bitarray Manipulation
     pydmqmc.utils.get_single_perm
     pydmqmc.utils.get_double_perm
     pydmqmc.utils.get_ex_info
-    pydmqmc.utils.bitarray_pg
 
 Integrators
 -----------
@@ -52,9 +51,9 @@ Point Group Symmetry
 .. autosummary::
     :toctree: stubs
 
-    pydmqmc.utils.cross_prod_sym
+    pydmqmc.utils.pg_sym_cross_prod
+    pydmqmc.utils.pg_sym_conj
     pydmqmc.utils.orb_sym
-    pydmqmc.utils.conj_sym
 
 Saving Data
 -----------

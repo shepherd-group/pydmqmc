@@ -274,7 +274,7 @@ class Integral(System):
         bba_chk = self._orbsym[self._ref[self._ref % 2 != 0]]
         bsym_chk = utils.orb_sym(bba_chk, self._pg_mask)
         asym_chk = utils.orb_sym(aba_chk, self._pg_mask)
-        sym_chk = utils.cross_prod_sym(bsym_chk, asym_chk, self._pg_mask)
+        sym_chk = utils.pg_sym_cross_prod(bsym_chk, asym_chk, self._pg_mask)
         if sym_chk != self._sym:
             raise ValueError(
                 "Reference determinant is not within the the symmetry of the system!"
@@ -327,8 +327,8 @@ class Integral(System):
         for i, (ims, isym) in enumerate(zip(occ_ms, occ_sym)):
             for jms, jsym in zip(occ_ms[i + 1 :], occ_sym[i + 1 :]):
                 for syma in np.arange(self._maxsym):
-                    symb = utils.cross_prod_sym(isym, jsym, self._pg_mask)
-                    symb = utils.cross_prod_sym(syma, symb, self._pg_mask)
+                    symb = utils.pg_sym_cross_prod(isym, jsym, self._pg_mask)
+                    symb = utils.pg_sym_cross_prod(syma, symb, self._pg_mask)
                     if syma == symb and ims == jms:
                         ndouble += nvirt[ims, syma] * (nvirt[jms, symb] - 1) / 2
                     elif syma == symb:
@@ -406,8 +406,8 @@ class Integral(System):
         occb = np.random.choice(int(self._norb / 2), self._nb, replace=False)
         symb = utils.orb_sym(self._orbsym[2 * occb + 1], self._pg_mask)
 
-        if not (utils.cross_prod_sym(symb, syma, self._pg_mask) == self.symmetry):
-            return self.random_bitarray_symspace()  # this is recursive??
+        if not (utils.pg_sym_cross_prod(symb, syma, self._pg_mask) == self.symmetry):
+            return self.random_bitarray_symspace()  # draw again
 
         ba = np.zeros(self._norb, dtype=int)
         ba[2 * occa] = 1
@@ -447,8 +447,10 @@ class Integral(System):
         else:
             allowed_excit = False
             i, j = np.random.choice(occ, 2, replace=False)
-            ijsym = utils.utils.conj_sym(
-                utils.cross_prod_sym(self._orbsym[i], self._orbsym[j], self._pg_mask),
+            ijsym = utils.pg_sym_conj(
+                utils.pg_sym_cross_prod(
+                    self._orbsym[i], self._orbsym[j], self._pg_mask
+                ),
                 self,
             )
             ijms = self._ms[i] + self._ms[j]
@@ -456,8 +458,8 @@ class Integral(System):
 
             if ijms == -2:
                 for syma in range(self._maxsym):
-                    symb = utils.conj_sym(
-                        utils.cross_prod_sym(syma, ijsym, self._pg_mask), self
+                    symb = utils.pg_sym_conj(
+                        utils.pg_sym_cross_prod(syma, ijsym, self._pg_mask), self
                     )
                     bool1 = nvirt[-1, syma] > 0
                     bool2 = nvirt[-1, symb] > 1
@@ -469,8 +471,8 @@ class Integral(System):
                 shift = 1
             elif ijms == 0:
                 for syma in range(self._maxsym):
-                    symb = utils.conj_sym(
-                        utils.cross_prod_sym(syma, ijsym, self._pg_mask), self
+                    symb = utils.pg_sym_conj(
+                        utils.pg_sym_cross_prod(syma, ijsym, self._pg_mask), self
                     )
                     bool1 = nvirt[-1, syma] > 0 and nvirt[1, symb] > 0
                     bool2 = nvirt[1, syma] > 0 and nvirt[-1, symb] > 0
@@ -481,8 +483,8 @@ class Integral(System):
                 shift = 0
             elif ijms == 2:
                 for syma in range(self._maxsym):
-                    symb = utils.conj_sym(
-                        utils.cross_prod_sym(syma, ijsym, self._pg_mask), self
+                    symb = utils.pg_sym_conj(
+                        utils.pg_sym_cross_prod(syma, ijsym, self._pg_mask), self
                     )
                     bool1 = nvirt[1, syma] > 0
                     bool2 = nvirt[1, symb] > 1
@@ -498,8 +500,8 @@ class Integral(System):
                 while True:
                     a = np.random.choice(unocc[unocc % fac == shift])
                     imsb = ijms - self._ms[a]
-                    isymb = utils.conj_sym(
-                        utils.cross_prod_sym(ijsym, self._orbsym[a], self._pg_mask),
+                    isymb = utils.pg_sym_conj(
+                        utils.pg_sym_cross_prod(ijsym, self._orbsym[a], self._pg_mask),
                         self,
                     )
                     bool1 = nvirt[imsb, isymb] > 1
@@ -518,8 +520,8 @@ class Integral(System):
                 if ijms == -2:
                     n_aij = int(self._norb / 2) - self._nb
                     for syma in range(self._maxsym):
-                        symb = utils.conj_sym(
-                            utils.cross_prod_sym(syma, ijsym, self._pg_mask),
+                        symb = utils.pg_sym_conj(
+                            utils.pg_sym_cross_prod(syma, ijsym, self._pg_mask),
                             self,
                         )
                         bool1 = nvirt[-1, symb] == 0
@@ -535,8 +537,8 @@ class Integral(System):
                 elif ijms == 0:
                     n_aij = self._norb - self._nel
                     for syma in range(self._maxsym):
-                        symb = utils.conj_sym(
-                            utils.cross_prod_sym(syma, ijsym, self._pg_mask),
+                        symb = utils.pg_sym_conj(
+                            utils.pg_sym_cross_prod(syma, ijsym, self._pg_mask),
                             self,
                         )
                         bool1 = nvirt[-1, symb] == 0
@@ -550,8 +552,8 @@ class Integral(System):
                 elif ijms == 2:
                     n_aij = int(self._norb / 2) - self._na
                     for syma in range(self._maxsym):
-                        symb = utils.conj_sym(
-                            utils.cross_prod_sym(syma, ijsym, self._pg_mask),
+                        symb = utils.pg_sym_conj(
+                            utils.pg_sym_cross_prod(syma, ijsym, self._pg_mask),
                             self,
                         )
                         bool1 = nvirt[1, symb] == 0
@@ -635,7 +637,7 @@ class Integral(System):
         xp = np.zeros((self._maxsym, self._maxsym), dtype=np.int64)
         for isym in range(0, self._maxsym):
             for jsym in range(0, self._maxsym):
-                xp_pg = utils.bitarray_pg(isym, jsym, self._pg_mask)
+                xp_pg = utils.pg_sym_cross_prod(isym, jsym, self._pg_mask)
                 xp[isym, jsym] = xp_pg
 
         header = " sym |"
@@ -663,7 +665,7 @@ class Integral(System):
             isym = self._orbsym[iorb]
             for jorb in range(0, self._norb):
                 jsym = self._orbsym[jorb]
-                xp_pg = utils.bitarray_pg(isym, jsym, self._pg_mask)
+                xp_pg = utils.pg_sym_cross_prod(isym, jsym, self._pg_mask)
                 xp[iorb, jorb] = xp_pg
 
         header = " orb |"

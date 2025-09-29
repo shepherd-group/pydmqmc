@@ -9,64 +9,103 @@ See:
 """
 
 import numpy as np
-import numba
+
+from numpy.typing import ArrayLike
 
 
-def cross_prod_sym(sym1, sym2, mask):
-    r"""Symmetry checking using bitwise operations in
-    this form is original to the HANDE code base.
-    The form and function is condensed for
-    the purpose of this code.
+def pg_sym_cross_prod(sym1: int, sym2: int, mask: int) -> int:
+    """
+    Cross product of two point group symmetries.
 
-    ! In:
-    !    read_in: information on the symmetries of the basis functions.
-    !    sym_i,sym_j: bit string representations of irreducible
-    !                 representations of a point group and Lz symmetry
-    ! Returns:
-    !    The bit string representation of the irreducible representation
-    !    formed from the direct product sym_i \cross sym_j.
-    !    The Lz part of the symmetry is split off and handled separately from the
-    !    rest, and then reintegrated.
+    Parameters
+    ----------
+    sym1, sym2 : int
+        The symmetries to find the direct product of. These should be
+        the bit representations of the point group symmetries' irreducible
+        representations.
+    mask : int
+        Mask for extracting the point group symmetry from
+        the full symmetry representation.
 
-    https://github.com/hande-qmc/hande/blob/main/src/pg_symmetry.f90
-    https://doi.org/10.1021/acs.jctc.8b01217
+    Returns
+    -------
+    int
+        Direct product of the symmetries' irreducible representations.
 
-    See orb_sym below as well.
+    See Also
+    --------
+    pg_sym_conj:
+        Conjugate of a point group symmetry.
+    orb_sym:
+        Construct the symmetry of a determinant from its orbitals.
+    pydmqmc.systems.Integral.random_bitarray_symspace,
+    pydmqmc.systems.Integral.generate_renorm_excitation,
+    pydmqmc.systems.Integral.print_symmetry_table:
+        Example uses of this function.
     """
     return np.bitwise_and(np.bitwise_xor(sym1, sym2), mask)
 
 
-def orb_sym(orb_syms, mask):
-    """See notes in cross_prod_pg_sym above for more information."""
+def orb_sym(orb_syms: ArrayLike, mask: int) -> int:
+    """
+    Construct the symmetry of a determinant from its orbitals.
+
+    Parameters
+    ----------
+    orb_syms : array-like of int
+        List of the symmetries for the orbitals in the determinant. These should be
+        the bit representations of the point group symmetries' irreducible
+        representations.
+    mask : int
+        Mask for extracting the point group symmetry from
+        the full symmetry representation.
+
+    Returns
+    -------
+    int
+        The symmetry of the determinant.
+
+    See Also
+    --------
+    pg_sym_cross_prod:
+        Cross product of two point group symmetries.
+    pg_sym_conj:
+        Conjugate of a point group symmetry.
+    pydmqmc.systems.Integral.random_bitarray_symspace:
+        Example use of this function.
+    """
     sym1 = 0
     for sym2 in orb_syms:
-        sym1 = cross_prod_sym(sym1, sym2, mask)
-    return sym1
+        sym1 = pg_sym_cross_prod(sym1, sym2, mask)
+    return int(sym1)
 
 
-def conj_sym(sym, mask):
-    r"""See notes in cross_prod_pg_sym above for more information.
-    mask was originally sym and sym.pg_mask
+def pg_sym_conj(sym: int, mask: int) -> int:
+    """
+    Conjugate of a point group symmetry.
 
-    ! In:
-    !   read_in: information on the symmetries of the basis functions.
-    !   sym: the bit representation of the irrep of the pg sym including
-    !        Lz in its higher bits
-    ! Returns:
-    !   The symmetry conjugate of the symmetry. For pg symmetry this is the same as
-    !   it's Abelian, but we need to take Lz to -Lz here.
+    Parameters
+    ----------
+    sym : int
+        The symmetry to be conjugated. This should be the bit
+        representation of the point group symmetry's irreducible
+        representation.
+    mask : int
+        Mask for extracting the point group symmetry from
+        the full symmetry representation.
+
+    Returns
+    -------
+    int
+        The symmetry conjugate of the given symmetry.
+
+    See Also
+    --------
+    pg_sym_cross_prod:
+        Cross product of two point group symmetries.
+    orb_sym:
+        Construct the symmetry of a determinant from its orbitals.
+    pydmqmc.systems.Integral.generate_renorm_excitation:
+        Example use of this function.
     """
     return np.bitwise_or(np.bitwise_and(sym, mask), 0)
-
-
-@numba.njit
-def bitarray_pg(s1, s2, pg):
-    """
-    Cross product of two point group symmetries with the total point group.
-
-    Use bitwise operations to find the cross product of two point group
-    symmetries with the point group of the total symmetry.
-    """
-    s12 = np.bitwise_xor(s1, s2)
-    s = np.bitwise_and(s12, pg)
-    return s

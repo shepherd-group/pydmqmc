@@ -13,7 +13,7 @@ from .bitarray import (
     get_ex_info,
 )
 
-from .symmetry import cross_prod_sym, orb_sym, conj_sym, bitarray_pg
+from .symmetry import pg_sym_cross_prod, orb_sym, pg_sym_conj
 
 from .slater_condon import sc0, sc1, sc2
 

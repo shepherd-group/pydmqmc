@@ -14,6 +14,7 @@ def integral_system_small(request) -> Integral:
     sys = Integral(file)
     return sys
 
+
 class TestSlaterCondon():
     """Test the Slater-Condon rules."""
 

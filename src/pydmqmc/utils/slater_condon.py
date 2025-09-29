@@ -25,6 +25,13 @@ def sc0(ba: ArrayLike, sys: "Integral") -> float:
     float
         Hamiltonian matrix element.
 
+    See Also
+    --------
+    sc1, sc2:
+        Other Slater-Condon rules.
+    pydmqmc.systems.Integral.generate_hamiltonian:
+        Uses this function to generate the Hamiltonian matrix.
+
     Notes
     -----
     Math from Szabo and Ostlund (Table 2.5, Case 1) [1]_:
@@ -72,6 +79,13 @@ def sc1(ba: ArrayLike, a: int, r: int, perms: int, sys: "Integral") -> float:
     float
         Hamiltonian matrix element.
 
+    See Also
+    --------
+    sc0, sc2:
+        Other Slater-Condon rules.
+    pydmqmc.systems.Integral.generate_hamiltonian:
+        Uses this function to generate the Hamiltonian matrix.
+
     Notes
     -----
     Math from Szabo and Ostlund (Table 2.5, Case 2) [1]_:
@@ -117,6 +131,13 @@ def sc2(a: int, b: int, r: int, s: int, perms: int, sys: "Integral") -> float:
     -------
     float
         Hamiltonian matrix element.
+
+    See Also
+    --------
+    sc0, sc1:
+        Other Slater-Condon rules.
+    pydmqmc.systems.Integral.generate_hamiltonian:
+        Uses this function to generate the Hamiltonian matrix.
 
     Notes
     -----
