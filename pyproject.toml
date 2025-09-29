@@ -32,10 +32,11 @@ exclude = [
     "tests",
     "development",
 ]
-line-length = 80
+line-length = 88
 
 [tool.ruff.lint]
 select = ["D", "E", "F", "W"]
+ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
     "__init__.py" = ["F401"]  # import but unused
