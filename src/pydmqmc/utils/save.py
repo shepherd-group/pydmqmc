@@ -40,7 +40,9 @@ def save_array(
         )
 
     if filetype == "txt":
-        np.savetxt(basename + ".txt", data)
+        # delimit with tabs instead of spaces
+        # to match the txt dialect in save_report
+        np.savetxt(basename + ".txt", data, delimiter="\t")
     elif filetype == "csv":
         np.savetxt(basename + ".csv", data, delimiter=",")
     elif filetype == "npy":
@@ -68,11 +70,11 @@ def save_report(
     list_of_dicts : list of dictionaries with strings as keys.
         Data to be written to disk. Each dictionary must have
         identical keys.
+    basename : str
+        Base filename (i.e., without extension) to which to write data.
     index_col : string, optional
         Name of the column to put first. Must be a key in the
         dictionaries in `list_of_dicts`.
-    basename : str
-        Base filename (i.e., without extension) to which to write data.
     filetype : str, default "csv"
         File type (aka extension) with which to save `list_of_dicts`.
         Supported types are:
@@ -98,8 +100,13 @@ def save_report(
         fields.remove(index_col)
         fields = [index_col] + fields
 
+        if filetype == "csv":
+            dialect = "excel"  # default dialect
+        else:
+            dialect = "excel-tab"  # use tabs to deliminate columns
+
         with open(filename, "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=fields)
+            writer = csv.DictWriter(f, fieldnames=fields, dialect=dialect)
 
             writer.writeheader()
             writer.writerows(list_of_dicts)
