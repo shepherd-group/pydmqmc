@@ -105,31 +105,33 @@ class TestIPDMQMC():
         Implicitly tests dummy matrix created for ilevel = None and ilevel = 0.
         """
         self._mtd_lg.reset_rng(42)
-        self._mtd_lg.setup("random-grand-canonical", self._nparticle)
-        self._mtd_lg.run(final_beta=self._final_beta,
-                         dbeta=0.001,
+        self._mtd_lg.setup(final_beta=self._final_beta,
+                           initialization="random-grand-canonical",
+                           n_particles=self._nparticle,
+                           spawn_cutoff=0.01)
+        self._mtd_lg.run(dbeta=0.001,
                          cycles_per_shift=10,
                          shift_dampening=0.05,
-                         spawn_cutoff=0.01,
                          shift_by_rows=False)
 
-        assert np.isclose(self._mtd_lg.density_matrix.trace(), 67981.48932281222)
+        assert np.isclose(self._mtd_lg.density_matrix.trace(), 52340.753547299064)
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        assert np.isclose(eng, -141115.38639919003)
+        assert np.isclose(eng, -69386.92596075413)
 
     def test_rbr(self):
         self._mtd_lg.reset_rng(42)
-        self._mtd_lg.setup("random-grand-canonical", self._nparticle)
-        self._mtd_lg.run(final_beta=self._final_beta,
-            dbeta=0.001,
-            cycles_per_shift=1000,
-            shift_dampening=0.05,
-            spawn_cutoff=0.01,
-            shift_by_rows=True)
+        self._mtd_lg.setup(final_beta=self._final_beta,
+                           initialization="random-grand-canonical",
+                           n_particles=self._nparticle,
+                           spawn_cutoff=0.01)
+        self._mtd_lg.run(dbeta=0.001,
+                         cycles_per_shift=10,
+                         shift_dampening=0.05,
+                         shift_by_rows=True)
 
-        assert np.isclose(self._mtd_lg.density_matrix.trace(), 22493.37887777515)
+        assert np.isclose(self._mtd_lg.density_matrix.trace(), 53533.63151285252)
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        assert np.isclose(eng, -46578.848998115835)
+        assert np.isclose(eng, -73295.69251028381)
 
     def test_ilevel_zero(self):
         """
@@ -139,29 +141,32 @@ class TestIPDMQMC():
         using ilevel=0 is emphasized.
         """
         self._mtd_lg.reset_rng(42)
-        self._mtd_lg.setup("deterministic")
-        self._mtd_lg.run(final_beta=self._final_beta,
-            dbeta=0.001,
-            cycles_per_shift=1000,
-            shift_dampening=0.05,
-            spawn_cutoff=0.01,
-            n_add=3,  # strongly limit this spawn channel to emph ilevel
-            ilevel=0)
+        self._mtd_lg.setup(self._final_beta,
+                           "deterministic",
+                           n_particles=self._nparticle)
+        self._mtd_lg.run(dbeta=0.001,
+                         cycles_per_shift=10,
+                         shift_dampening=0.05,
+                         spawn_cutoff=0.01,
+                         n_add=3,  # strongly limit this spawn channel to emph ilevel
+                         ilevel=0)
 
-        assert np.isclose(self._mtd_lg.density_matrix.trace(), 14.206870483605295)
+        assert np.isclose(self._mtd_lg.density_matrix.trace(), 0.5438596288692907)
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        assert np.isclose(eng, -29.461275823860465)
+        assert np.isclose(eng, -0.7209339729863059)
 
     def test_ilevel_nonzero(self):
         self._mtd_lg.reset_rng(42)
-        self._mtd_lg.setup("random-grand-canonical", self._nparticle)
-        self._mtd_lg.run(final_beta=self._final_beta,
-            dbeta=0.001,
-            cycles_per_shift=1000,
-            shift_dampening=0.05,
-            spawn_cutoff=0.01,
-            ilevel=2)
+        self._mtd_lg.setup(self._final_beta,
+                           "deterministic",
+                           n_particles=self._nparticle)
+        self._mtd_lg.run(dbeta=0.001,
+                         cycles_per_shift=10,
+                         shift_dampening=0.05,
+                         spawn_cutoff=0.01,
+                         n_add=3,  # strongly limit this spawn channel to emph ilevel
+                         ilevel=2)
 
-        assert np.isclose(self._mtd_lg.density_matrix.trace(), 67981.48986893434)
+        assert np.isclose(self._mtd_lg.density_matrix.trace(), 0.5247747931327135)
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        assert np.isclose(eng, -141115.3875013612)
+        assert np.isclose(eng, -0.6968812877679958)

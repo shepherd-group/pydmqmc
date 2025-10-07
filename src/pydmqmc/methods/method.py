@@ -139,8 +139,22 @@ class Iterative(Method):
         """
         Parse the supplied string to return the corresponding function.
 
-        Call signature is func, x, y, dy where func(x, y) = dx/dy.
-        TODO: list supported methods.
+        Expected call signature for each method is
+        ``(func, x, y, dy)`` where func(x, y) = dx/dy.
+
+        Supported methods are:
+            * Forward Euler (``euler``)
+            * 4th Order Runge Kutta (``rk4``)
+
+        Parameters
+        ----------
+        method : {"euler", "rk4"}
+            Desired integration method.
+
+        Returns
+        -------
+        callable
+            The associated function from :mod:`pydmqmc.utils.integrators`
         """
         method = method.lower()
         if method == "euler":

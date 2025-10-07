@@ -118,7 +118,7 @@ def initialize(H, initial, bars, eig, nel, tb, bitints, spawn_cutoff):
         nel_gci = nalpha_gci + nbeta_gci
         rho0_gci = np.zeros(bars_gci.shape[0], dtype=np.float64)
 
-        while nspawned < initial_gci:
+        while nspawned <= initial_gci:
             ba = np.zeros(norb_gci, dtype=np.int64)
             nsel, nsela, nselb, bitint = 0, 0, 0, 0
 
@@ -147,7 +147,7 @@ def initialize(H, initial, bars, eig, nel, tb, bitints, spawn_cutoff):
                 ps *= cutoff_gci
 
                 rho0_gci[bitints_gci == bitint] += ps
-                nspawned += int(ps)
+                nspawned += ps
 
         return np.trunc(rho0_gci + rng.random(rho0_gci.shape[0]))
 
@@ -217,7 +217,7 @@ def main(clargs):
     np.save("initial_dm.npy", np.diag(p))
     S = np.zeros(H.shape[0], dtype=np.float64)
     nw = np.sum(p, axis=rbr)
-    nw *= initial_particles/(nw.sum()) # scaling?
+    #nw *= initial_particles/(nw.sum()) # scaling?
 
     S, tr, en, nw, oc = estimates(p, H, S, nw, ncycles, zeta, tau, rbr)
     df = store_row_data(p, H, S, df, 0.0)

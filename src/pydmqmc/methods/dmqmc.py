@@ -87,7 +87,7 @@ class DensityMatrixQMC(Iterative):
         n_particles : int, default 1
             The initial number of psip particles that should be present
             in the density matrix. Only used with the "deterministic" method.
-        diag : array_like, optional
+        fixed_diagonal : array_like, optional
             Directly defined the diagonal of the density matrix when used
             with the "fixed" initialization method. The length of `diag`
             must be the same as the number of determinants in the system.
@@ -114,12 +114,14 @@ class DensityMatrixQMC(Iterative):
             Takes the optional parameter `fixed_diagonal` which is used as the
             diagonal of the density matrix.
         """
-        super().setup(report_values)
-
         self._density_matrix = self._init_dm(
             initialization, n_particles, fixed_diagonal
         )
 
+        self._setup_report(report_values)
+
+    def _setup_report(self, report_values: list[str]) -> None:
+        super().setup(report_values)
         self._S = np.zeros(self.system.n_determinants, dtype=np.float64)
 
     def _init_dm(self, init: str, particles: int, diag: ArrayLike | None) -> Array:
@@ -203,8 +205,8 @@ class DensityMatrixQMC(Iterative):
             `excitation_matrix` to be defineable
             if :math:`\texttt{ilevel} > 0`.
         update_method : str, default "euler"
-            One of the supported update methods from (TODO link to)
-            Iterative.parse_method()
+            One of the supported update methods from
+            :meth:`pydmqmc.methods.Iterative.parse_method()`
         quiet : boolean, default False
             Silence printing the iteration report as the simulation runs.
 
@@ -262,8 +264,6 @@ class DensityMatrixQMC(Iterative):
         n_shifts = int(final_beta / (dbeta * cycles_per_shift))
         update_func = super().parse_method(update_method)
         rbr = 1 if shift_by_rows else None
-
-        self._density_matrix = self._density_matrix
 
         # set initial shift
         # np will not be altered in this instance
@@ -463,8 +463,8 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
         dp = np.zeros_like(p, dtype=np.float64)
 
         for i in range(dets):
+            Stot = H[0, 0] + S[i]
             for j in range(dets):
-                Stot = H[0, 0] + S[i]
                 dp[i, j] = p[i, j] * (Stot - H[j, j])  # -(H_jj - S)
 
                 p_ij = abs(p[i, j])

@@ -47,6 +47,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         spawn_cutoff: float = 0.01,  # may also be used by self.run()
         defined_thermal_weights: ArrayLike | None = None,
         fixed_diagonal: ArrayLike | None = None,
+        report_values: list[str] = ["trace", "energy"],
     ) -> None:
         r"""
         Set parameters for each of the realizations.
@@ -69,7 +70,12 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             - fixed
 
         n_particles : int, default 1
-            TODO what does this mean
+            The initial number of psip particles that should be present
+            in the density matrix. Used with the "deterministic",
+            "random-thermal", and "random-grand-canonical" methods.
+            Note that for "random-grand-canonical", `n_particles`
+            specifies a target minimum number of particles; the actual number
+            of particles in the density matrix may be slightly larger.
         spawn_cutoff : float, default None
             Used with "random-grand-canonical" `initialization` method.
             If using this method, the `run()` method will inherit this value
@@ -81,6 +87,15 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         defined_thermal_weights : array_like, optional
             Supply pre-defined thermal weights instead of using the
             auto-generated weights. Useful for, e.g., supplying FCI weights.
+        fixed_diagonal : array_like, optional
+            Directly defined the diagonal of the density matrix when used
+            with the "fixed" initialization method. The length of `diag`
+            must be the same as the number of determinants in the system.
+        report_values : list, optional
+            List of values to periodically report while performing
+            the calculation. Each item must be recognized by the
+            `report_registry`. The iteration variable
+            :math:`beta` will automatically be included.
 
         Notes
         -----
@@ -121,7 +136,8 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             defined_thermal_weights,
             fixed_diagonal,
         )
-        self._S = np.zeros(self.system.n_determinants, dtype=np.float64)
+
+        super()._setup_report(report_values)
 
     def _init_dm(
         self,
@@ -263,7 +279,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         nel_gci = nalpha_gci + nbeta_gci
         rho0_gci = np.zeros(bars_gci.shape[0], dtype=np.float64)
 
-        while nspawned < initial_gci:
+        while nspawned <= initial_gci:
             ba = np.zeros(norb_gci, dtype=np.int64)
             nsel, nsela, nselb, bitint = 0, 0, 0, 0
 
@@ -292,7 +308,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
                 ps *= cutoff_gci
 
                 rho0_gci[bitints_gci == bitint] += ps
-                nspawned += int(ps)
+                nspawned += ps
 
         return np.trunc(rho0_gci + rng.random(rho0_gci.shape[0]))
 
@@ -325,7 +341,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             the Hamiltonian shift.
         shift_dampening : float
             Affects how much the Hamiltonian shift varies as it updates
-            every `cycles_per_shift` steps.
+            every ``cycles_per_shift`` steps.
         shift_by_rows : bool, default false
             If True, calculate a shift for each row of the Hamiltonian.
             If False, calculate one shift for the entire Hamiltonian.
@@ -333,22 +349,22 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             Only accumulate psips if the change in a density matrix
             site :math:`|\partial p_{ik}| > \mathtt{spawn\_cutoff}`.
             If the "random-grand-canonical" method was used for
-            `initialization` during `setup()`, this parameter is ignored and
-            the value of `spawn_cutoff` set during `setup()` is used instead.
+            ``initialization`` during ``setup()``, this parameter is ignored and
+            the value of ``spawn_cutoff`` set during ``setup()`` is used instead.
         n_add : float, default None
-            If not `None`, utilize the initiator approximation
+            If not ``None``, utilize the initiator approximation
             and only allow spawning from sites :math:`p_{ij}` to empty
             sites :math:`p_{ik}` if :math:`|p_{ij}| > \mathtt{n_add}`.
         ilevel : int, default None
-            If not `None`, utilize the initiator level approximation,
+            If not ``None``, utilize the initiator level approximation,
             allowing sites :math:`p_{ij}` to spawn if
             the difference in number of excitations between :math:`i`
-            and :math:`j` is less than `ilevel`. Requires the system's
-            `excitation_matrix` to be defineable
+            and :math:`j` is less than ``ilevel``. Requires the system's
+            ``excitation_matrix`` to be defineable
             if :math:`\texttt{ilevel} > 0`.
         update_method : str, default "euler"
-            One of the supported update methods from (TODO link to)
-            Iterative.parse_method()
+            One of the supported update methods from
+            :meth:`pydmqmc.methods.Iterative.parse_method()`
 
         Notes
         -----
@@ -362,6 +378,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
                Physical Review B, 89, 24, 2014
         """
         if self._spawn_cutoff is not None:  # did we set it during setup?
+            # TODO add an error here
             spawn_cutoff = self._spawn_cutoff  # if yes, override argument
 
         return super().run(
