@@ -399,7 +399,7 @@ class Integral(System):
         Returns
         -------
         Array
-            The bitarray of the determinant
+            The bitarray of the random determinant
         """
         occa = np.random.choice(int(self._norb / 2), self._na, replace=False)
         syma = utils.orb_sym(self._orbsym[2 * occa], self._pg_mask)
