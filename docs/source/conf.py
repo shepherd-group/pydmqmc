@@ -18,6 +18,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.intersphinx',
               'numpydoc',
               'sphinx_rtd_theme',
+              'sphinxcontrib.bibtex'
               ]
 
 autodoc_typehints = "none"
@@ -37,6 +38,8 @@ numpydoc_class_members_toctree = False
 intersphinx_mapping = {
     'numpy': ('https://numpy.org/doc/stable/', None)
 }
+
+bibtex_bibfiles = ['references.bib']
 
 templates_path = ['_templates']
 exclude_patterns = []

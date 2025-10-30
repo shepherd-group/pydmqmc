@@ -12,7 +12,7 @@ dm_diag = np.load("development/initial_dm.npy")
 
 mtd.setup(final_beta=1.0,
           initialization="random-grand-canonical",
-          spawn_cutoff=0.01,
+          gc_spawn_cutoff=0.01,
           n_particles=int(1e5))
 mtd.setup(1.0, "deterministic", n_particles=int(1e5))
 print("Ref:", dm_diag)

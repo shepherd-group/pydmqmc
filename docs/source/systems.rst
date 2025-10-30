@@ -3,7 +3,7 @@
 Available Systems
 =================
 
-The systems that are available for use are described below
+The systems that are available for use are described below.
 
 .. contents:: Systems
     :local:

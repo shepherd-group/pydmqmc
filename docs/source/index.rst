@@ -19,7 +19,7 @@ and executed.
     installation
     quickstart
     systems
-    methods
+    methods/index
     iteration_report
     dev/index
     api/index

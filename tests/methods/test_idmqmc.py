@@ -64,16 +64,14 @@ class TestIPDMQMC():
         assert np.allclose(self._mtd_sm.density_matrix, ref)
 
     def test_setup_random_grand_canonical(self):
-        ref = np.array([15386., 10196., 10300.,  8896.,
-                        8802.,  8712.,  6525.,  6572.,
-                        6188.,  6048.,  6319.,  5985.,
-                        6037.,  4437.,  4406.,  4455.,
-                        3772.,  3709.,  3700.,  2864.])
+        ref = np.array([11521.,  7595.,  7687.,  6636.,  6635.,  6528.,  4917.,  4973.,
+                        4627.,  4466.,  4685.,  4528.,  4546.,  3306.,  3364.,  3431.,
+                        2840.,  2748.,  2850.,  2121.])
 
         self._mtd_lg.reset_rng(rng_seed=42)
         self._mtd_lg.setup(self._final_beta,
                            "random-grand-canonical",
-                           spawn_cutoff=0.01,
+                           gc_spawn_cutoff=0.01,
                            n_particles=self._nparticle)
 
         assert np.allclose(np.diag(self._mtd_lg.density_matrix),
@@ -108,10 +106,11 @@ class TestIPDMQMC():
         self._mtd_lg.setup(final_beta=self._final_beta,
                            initialization="random-grand-canonical",
                            n_particles=self._nparticle,
-                           spawn_cutoff=0.01)
+                           gc_spawn_cutoff=0.01)
         self._mtd_lg.run(dbeta=0.001,
                          cycles_per_shift=10,
                          shift_dampening=0.05,
+                         spawn_cutoff=0.01,
                          shift_by_rows=False)
 
         assert np.isclose(self._mtd_lg.density_matrix.trace(), 52340.753547299064)
@@ -123,10 +122,11 @@ class TestIPDMQMC():
         self._mtd_lg.setup(final_beta=self._final_beta,
                            initialization="random-grand-canonical",
                            n_particles=self._nparticle,
-                           spawn_cutoff=0.01)
+                           gc_spawn_cutoff=0.01)
         self._mtd_lg.run(dbeta=0.001,
                          cycles_per_shift=10,
                          shift_dampening=0.05,
+                         spawn_cutoff=0.01,
                          shift_by_rows=True)
 
         assert np.isclose(self._mtd_lg.density_matrix.trace(), 53533.63151285252)

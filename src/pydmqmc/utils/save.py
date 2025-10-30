@@ -33,6 +33,10 @@ def save_array(
 
     pickle_protocol : unt, optional
         Protocol version to use with pickle. If none, uses `pickle`'s default.
+
+    See Also
+    --------
+    save_report : Save lists of dictionaries as a chosen file type.
     """
     if data is None:
         raise RuntimeError(
@@ -63,7 +67,7 @@ def save_report(
     pickle_protocol: int | None = None,
 ) -> None:
     """
-    Save a dictionary of data as a chosen file type.
+    Save a lists of dictionaries as a chosen file type.
 
     Parameters
     ----------
@@ -85,6 +89,10 @@ def save_report(
 
     pickle_protocol : unt, optional
         Protocol version to use with pickle. If none, uses `pickle`'s default.
+
+    See Also
+    --------
+    save_array : Save an array as a chosen file type.
     """
     if list_of_dicts is None:
         raise RuntimeError(

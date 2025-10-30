@@ -30,21 +30,16 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         self._spawn_cutoff = None
 
     @property
-    def final_beta(self) -> float | None:
-        """Target inverse temperature."""
-        return self._final_beta
-
-    @property
     def spawn_cutoff(self) -> float | None:
         """Cutoff for psip spawning."""
         return self._spawn_cutoff
 
     def setup(
         self,
-        final_beta: float,  # will also be used by self.run()
+        final_beta: float,
         initialization: str = "deterministic",
         n_particles: int = 1,
-        spawn_cutoff: float = 0.01,  # may also be used by self.run()
+        gc_spawn_cutoff: float = 0.01,
         defined_thermal_weights: ArrayLike | None = None,
         fixed_diagonal: ArrayLike | None = None,
         report_values: list[str] = ["trace", "energy"],
@@ -57,7 +52,6 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         final_beta : float
             Target inverse temperature expressed as
             :math:`\beta = 1 / (k_\mathrm{B} T)`.
-            Will also be used by the `run()` method for consistency.
             Ignored if `defined_thermal_weights` is not `None`.
         initialization : str, default "deterministic"
             Initialization method for the density matrix. See Notes for more.
@@ -76,12 +70,10 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             Note that for "random-grand-canonical", `n_particles`
             specifies a target minimum number of particles; the actual number
             of particles in the density matrix may be slightly larger.
-        spawn_cutoff : float, default None
-            Used with "random-grand-canonical" `initialization` method.
-            If using this method, the `run()` method will inherit this value
-            for consistency. In `run()`, this parameter will only
-            allow psip spawns if the change in a density matrix
-            site :math:`|\partial p_{ik}| > \mathtt{spawn\_cutoff}`.
+        gc_spawn_cutoff : float, default None
+            Used with "random-grand-canonical" `initialization` method
+            and sets the spawn cutoff for sampling the grand canoncial
+            density matrix.
             If the `initialization` method is anything other than
             "random-grand-canonical," this parameter is ignored.
         defined_thermal_weights : array_like, optional
@@ -123,16 +115,13 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         """
         # Set values for use in run()
         self._final_beta = final_beta
-        if initialization == "random-grand-canonical":
-            self._spawn_cutoff = spawn_cutoff
-        else:
-            self._spawn_cutoff = None
 
         # Initialize density matrix
         self._density_matrix = self._init_dm(
             initialization,
             final_beta,
             n_particles,
+            gc_spawn_cutoff,
             defined_thermal_weights,
             fixed_diagonal,
         )
@@ -144,6 +133,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         init: str,
         target: float,
         particles: int,
+        spawn_cutoff: float,
         thermal_weights: ArrayLike | None,
         diag: ArrayLike | None,
     ):
@@ -177,14 +167,14 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
                 )
             randomrows = diag
         elif init == "random-grand-canonical":
-            randomrows = self._grand_canonical(particles)
+            randomrows = self._grand_canonical(particles, spawn_cutoff)
         else:
             raise RuntimeError(f"Unknown initalization method {init}")
 
         f = np.diag(randomrows)
         return f
 
-    def _grand_canonical(self, init_part):
+    def _grand_canonical(self, init_part, cutoff):
         r"""
         Initialize to :math:`\exp(-\beta_T H^{(0)})`.
 
@@ -253,7 +243,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             eig,
             self._final_beta,
             eshift,
-            self._spawn_cutoff,
+            cutoff,
         )
 
         return rho0
@@ -314,14 +304,15 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
 
     def run(
         self,
-        dbeta,
-        cycles_per_shift,
-        shift_dampening,
-        shift_by_rows=False,
-        spawn_cutoff=0.01,
-        n_add=None,
-        ilevel=None,
-        update_method="euler",
+        dbeta: float,
+        cycles_per_shift: int,
+        shift_dampening: float,
+        shift_by_rows: bool = False,
+        spawn_cutoff: float = 0.01,
+        n_add: float | None = None,
+        ilevel: int | None = None,
+        update_method: str = "euler",
+        quiet: bool = False,
     ):
         r"""
         Run an IP-DMQMC realization.
@@ -348,9 +339,6 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         spawn_cutoff : float, default 0.01
             Only accumulate psips if the change in a density matrix
             site :math:`|\partial p_{ik}| > \mathtt{spawn\_cutoff}`.
-            If the "random-grand-canonical" method was used for
-            ``initialization`` during ``setup()``, this parameter is ignored and
-            the value of ``spawn_cutoff`` set during ``setup()`` is used instead.
         n_add : float, default None
             If not ``None``, utilize the initiator approximation
             and only allow spawning from sites :math:`p_{ij}` to empty
@@ -365,6 +353,8 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         update_method : str, default "euler"
             One of the supported update methods from
             :meth:`pydmqmc.methods.Iterative.parse_method()`
+        quiet : boolean, default False
+            Silence printing the iteration report as the simulation runs.
 
         Notes
         -----
@@ -377,12 +367,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         .. [1] N. S. Blunt et al., "Density-matrix quantum Monte Carlo method,"
                Physical Review B, 89, 24, 2014
         """
-        if self._spawn_cutoff is not None:  # did we set it during setup?
-            # TODO add an error here
-            spawn_cutoff = self._spawn_cutoff  # if yes, override argument
-
         return super().run(
-            self._final_beta,
             dbeta,
             cycles_per_shift,
             shift_dampening,
@@ -391,6 +376,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             n_add,
             ilevel,
             update_method,
+            quiet,
         )
 
     @staticmethod

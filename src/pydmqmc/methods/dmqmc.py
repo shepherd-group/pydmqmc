@@ -49,6 +49,11 @@ class DensityMatrixQMC(Iterative):
         """Density matrix."""
         return self._density_matrix
 
+    @property
+    def final_beta(self) -> float | None:
+        """Target inverse temperature."""
+        return self._final_beta
+
     def reset_rng(self, rng_seed: None | int | ArrayLike = None) -> None:
         """
         Create a new psuedo-random number generator with the given seed.
@@ -63,12 +68,13 @@ class DensityMatrixQMC(Iterative):
 
     def setup(
         self,
+        final_beta: float,
         initialization: str = "deterministic",
         n_particles: int = 1,
         fixed_diagonal: ArrayLike | None = None,
         report_values: list[str] = ["trace", "energy"],
     ) -> None:
-        """
+        r"""
         Specify conditions for the DMQMC realization.
 
         This setup includes the initial density matrix and a data structure
@@ -76,6 +82,9 @@ class DensityMatrixQMC(Iterative):
 
         Parameters
         ----------
+        final_beta : float
+            Target inverse temperature expressed as
+            :math:`\beta = 1 / (k_\mathrm{B} T)`.
         initialization : str, default "deterministic"
             Initialization method for the density matrix. See Notes for more.
             Must be one of:
@@ -114,6 +123,9 @@ class DensityMatrixQMC(Iterative):
             Takes the optional parameter `fixed_diagonal` which is used as the
             diagonal of the density matrix.
         """
+        # Set values for use in run()
+        self._final_beta = final_beta
+
         self._density_matrix = self._init_dm(
             initialization, n_particles, fixed_diagonal
         )
@@ -157,7 +169,6 @@ class DensityMatrixQMC(Iterative):
 
     def run(
         self,
-        final_beta: float,
         dbeta: float,
         cycles_per_shift: int,
         shift_dampening: float,
@@ -176,9 +187,6 @@ class DensityMatrixQMC(Iterative):
 
         Parameters
         ----------
-        final_beta : float
-            Target inverse temperature expressed as
-            :math:`\beta = 1 / (k_\mathrm{B} T)`
         dbeta : float
             Size of a single update step in inverse temperature :math:`\beta`.
         cycles_per_shift : int
@@ -261,7 +269,7 @@ class DensityMatrixQMC(Iterative):
                 (self.system.n_determinants, self.system.n_determinants), dtype=np.int64
             ) - np.eye(self.system.n_determinants)
 
-        n_shifts = int(final_beta / (dbeta * cycles_per_shift))
+        n_shifts = int(self._final_beta / (dbeta * cycles_per_shift))
         update_func = super().parse_method(update_method)
         rbr = 1 if shift_by_rows else None
 
