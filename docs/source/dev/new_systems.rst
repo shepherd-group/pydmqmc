@@ -26,20 +26,16 @@ directly specifying a Hamiltonian matrix as with
 For this tutorial, we'll call our class ``Demo`` since it's job
 is to demonstrate how to write a new System class.
 
-Creating a New File
--------------------
+Adding a New File
+-----------------
 
-Each unique system should be defined in its own file. From the root
-pydmqmc directory that you cloned from GitHub, create a Python (.py) file in
-``src/pydmqmc/systems/``.
-
+Each unique system should be defined in its own Python file located in the
+``src/pydmqmc/systems/`` directory.
 The filename should be obviously connected to your new class. For example,
 the :class:`~pydmqmc.systems.MatrixHamiltonian` class is in ``hamiltonian.py``.
 The name should be written in lowercase letters and use underscores to separate words.
 
-For this example, we'll create ``src/pydmqmc/systems/demo.py``.
-
-Go ahead an open up this file for editing!
+For this example, we'll create ``src/pydmqmc/systems/demo.py`` and open it for editing.
 
 Coding Your Class
 -----------------
@@ -68,9 +64,9 @@ All utility functions will be available in your code as ``utils.function_name``.
 
 .. note::
     These imports (``from .system`` and ``from ..``) mean
-    we are importing from files rather than the ``pydmqmc``. The former imports
-    from a file in the same directory as the file we are editing
-    while the latter imports from the directory above our current one.
+    we are importing from files rather than the ``pydmqmc`` library. The former imports
+    from the ``system.py`` file in the same directory as the file we are editing 
+    while the latter imports the ``utils`` folder from the directory above our current one.
     Importing directly from files and directories like this instead of 
     importing from the ``pydmqmc`` package 
     (e.g., ``from pydmqmc.systems import System``) helps prevent circular imports.
@@ -84,9 +80,12 @@ wish to import the following NumPy types depending on your needs:
     from numpy.typing import ArrayLike
 
 You may of course import any other packages or routines that you may need to
-help you write your code, including NumPy and SciPy routines. If you are only
+help you write your code, including `NumPy`_ and `SciPy`_ routines. If you are only
 using particular functions from these libraries, please import them individually
 using ``from``.
+
+.. _NumPy: https://numpy.org/
+.. _SciPy: https://scipy.org/
 
 Defining Your Class
 +++++++++++++++++++
@@ -112,8 +111,9 @@ the `numpydoc`_ standard, and the standard ``__init__`` initialization function:
         
         At minimum you should include a "Parameters" section which documents all
         the parameters needed for the __init__ function.
-        You will likely not need an "Attributes" section
-        because of how pydmqmc's classes are written.
+        You will likely not need an "Attributes" section because any publicly
+        accessible attributes are actually methods tagged with the `@property`
+        decorator.
 
         Parameters
         ----------
@@ -262,7 +262,7 @@ TODO point to other documentation about what generator methods may be expected.
 
 .. note::
     Functions should be named following the "lower with under" convention
-    (stylized as `lower_with_under`). As the stylization suggests, words should
+    (stylized as ``lower_with_under``). As the stylization suggests, words should
     be lowercase and underscores should be used between words. Function names that
     start with an underscore will be *private* and only available within class
     definitions (either by the class itself or to any child classes).
@@ -328,7 +328,7 @@ changes don't break your code.
 
 Tests for the system classes live in the ``tests/systems/`` directory.
 You'll want to create a new file with the prefix ``test_`` followed by the
-file name your new class lives in; for example, ``test_demo.py``.
+file name your new class lives in; for example, ``tests/systems/test_demo.py``.
 
 This guide doesn't have the space to explain how to write good tests,
 but you should make sure any public methods (including class initialization)
@@ -380,8 +380,8 @@ Within the :ref:`api-reference`, there is a page dedicated to the
 class and its child classes. The child classes are described via links
 to their own individual pages.
 
-First, create a new individual page for your class in ``docs/source/api/systems``.
-For the example we've been using here, the page will be called ``demo.rst``.
+First, create a new individual page for your class in ``docs/source/api/systems/``.
+For the example we've been using here, the page will be called ``docs/source/api/systems/demo.rst``.
 The contents of this page are pretty minimal. Replace all references to "demo"
 in the following example with your own class name:
 
