@@ -8,42 +8,42 @@ At this time, `pydmqmc` is only buildable from source.
 
 First, clone this repository and set the branch:
 
-    ``` bash
-    git clone https://github.com/shepherd-group/pydmqmc.git
-    cd pydmqmc
-    git switch release_alpha
-    ```
+``` bash
+git clone https://github.com/shepherd-group/pydmqmc.git
+cd pydmqmc
+git switch release_alpha
+```
 
 Next, set up a Python environment. If you use Conda to manage your Python
 environments, you can set one up using the provided `environment.yml`:
 
-    ``` bash
-    conda env create -f environment.yml
-    ```
+``` bash
+conda env create -f environment.yml
+```
 
 If you prefer to build with pip, you can skip to building `pydmqmc` and all dependencies should be installed automatically.
 
 The final step is to build the `pydmqmc` Python package. Since this project is in early development,
 it's advisable to build with the `--editable` or `-e` flag:
 
-    ```bash
-    pip install -e .
-    ```
+```bash
+pip install -e .
+```
 
 You can test your installation is working by running the test suite:
 
-    ``` bash
-    pytest
-    ```
+``` bash
+pytest
+```
 
 ## Building the Documentation
 
 The dependencies for `pydmqmc` include everything you need to build the documentation yourself. To do so, run the following:
 
-    ``` bash
-    cd docs
-    make html
-    ```
+``` bash
+cd docs
+make html
+```
 
 The documentation will then be available in `pydmqmc/docs/build/html`. Open `pydmqmc/docs/build/html/index.html` to browse the
 documentation like a webpage!
