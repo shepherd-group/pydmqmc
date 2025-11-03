@@ -1,14 +1,81 @@
 # pydmqmc
-Python based density matrix quantum Monte Carlo
+
+The `pydmqmc` package let’s you quickly assemble finite-temperature many-electron calculations (is that a suitable name for the range of calculations spanned by DMQMC, FCI and others?). It serves as library with which your own scripts can be written and executed.
+
+## Installation
+
+At this time, `pydmqmc` is only buildable from source.
+
+First, clone this repository and set the branch:
+
+    ``` bash
+    git clone https://github.com/shepherd-group/pydmqmc.git
+    cd pydmqmc
+    git switch release_alpha
+    ```
+
+Next, set up a Python environment. If you use Conda to manage your Python
+environments, you can set one up using the provided `environment.yml`:
+
+    ``` bash
+    conda env create -f environment.yml
+    ```
+
+If you prefer to build with pip, you can skip to building `pydmqmc` and all dependencies should be installed automatically.
+
+The final step is to build the `pydmqmc` Python package. Since this project is in early development,
+it's advisable to build with the `--editable` or `-e` flag:
+
+    ```bash
+    pip install -e .
+    ```
+
+You can test your installation is working by running the test suite:
+
+    ``` bash
+    pytest
+    ```
+
+## Building the Documentation
+
+The dependencies for `pydmqmc` include everything you need to build the documentation yourself. To do so, run the following:
+
+    ``` bash
+    cd docs
+    make html
+    ```
+
+The documentation will then be available in `pydmqmc/docs/build/html`. Open `pydmqmc/docs/build/html/index.html` to browse the
+documentation like a webpage!
+
+Navigate to the Quickstart page to get started with `pydmqmc`!
+
 
 ## Developer Notes
-Notes for Claire's tracking of progress :)
+
+Please be advised that `pydmqmc` is in a alpha release state and is still being
+actively developed. Some features may be missing and the API is subject to change.
+You are welcome to submit comments and requests to the lead developer (Claire Kopenhafer, kopenhaf@msu.edu),
+ideally as issues on the `pydmqmc` GitHub page (though Slack and email messages also work).
+
+The following are notes from Claire about unfinished work, future planned work, and possible changes.
+
+### Unfinished Work
+
 * Functions `random_bitarray_symspace()` and `generate_renorm_excitation()`
-in the `Integral` class need tests.
+in the `Integral` class need unit tests.
 * Internal `Integral` methods `_set_reference`,
 `_set_symmetry`, and `_symmetry_check` still need
 verification.
+* The `report_registry` could have more functions available to it.
+* Development documentation needs stub pages to be filled out.
 
-Once docs and the above are finished:
+### Future Work
+
 * Implement Will's MPI
 * Create a speed/scaling page that also compares with HANDE
+* Add more `Methods` from Will's original code.
+
+### Possible API Changes
+
+* The `Method` categories `Iterative` and `Analytic` represent a false dichotomy. `Analytic` may become `Direct`, or `Iterative` could become `Stochastic`. It depends on what other `Method` types get added to `pydmqmc`.
