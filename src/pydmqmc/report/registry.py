@@ -1,7 +1,12 @@
 """Class for associating strings with functions that calculate observables."""
 
-from .report_functions import trace, energy, von_neumann
-
+from .report_functions import (
+    trace,
+    energy_numerator,
+    energy_expectation,
+    von_neumann_numerator,
+    von_neumann_expectation,
+)
 from collections.abc import Iterable, Callable
 from functools import partial
 
@@ -10,12 +15,15 @@ class _ReportRegistry:
     def __init__(self):
         self._registry = {
             "trace": trace,
-            "energy": energy,
-            "von Neumann": von_neumann,
+            "energy numerator": energy_numerator,
+            "energy expectation": energy_expectation,
+            "von Neumann numerator": von_neumann_numerator,
+            "von Neumann expectation": von_neumann_expectation,
         }
         # abbreviated list of requirements
         self._requirements = {
-            "energy": ("hamiltonian",),
+            "energy numerator": ("hamiltonian",),
+            "energy expectation": ("hamiltonian",),
         }
 
     @property

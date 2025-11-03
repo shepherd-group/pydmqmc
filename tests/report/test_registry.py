@@ -7,7 +7,13 @@ from pydmqmc.methods import Method, AsymmetricBlochDMQMC
 from pydmqmc import report_registry, enroll
 from pydmqmc.report.report_functions import trace
 
-default_enrolled =  ["trace", "energy", "von Neumann"]
+default_enrolled =  [
+    "trace", 
+    "energy numerator",
+    "energy expectation",
+    "von Neumann numerator",
+    "von Neumann expectation"
+]
 
 class TestReportRegistry():
 
@@ -32,14 +38,14 @@ class TestReportRegistry():
         assert list(report_registry.keys()) == default_enrolled
 
     def test_list_requirements(self):
-        assert report_registry.list_requirements("energy") == ("hamiltonian",)
+        assert report_registry.list_requirements("energy expectation") == ("hamiltonian",)
 
     def test_list_requirements_none(self):
         assert report_registry.list_requirements("trace") is None
 
     #@mark.parametrize("func", default_enrolled)
     def test_get_requirements(self, _setup):
-        req_dict = report_registry.get_requirements("energy", self._mtd)
+        req_dict = report_registry.get_requirements("energy expectation", self._mtd)
         assert isinstance(req_dict, dict)
         assert "hamiltonian" in req_dict
 
@@ -47,7 +53,7 @@ class TestReportRegistry():
         dummy_sys = System("/dummy/path")
         empty_mtd = Method(dummy_sys)
         with raises(RuntimeError):
-            report_registry.get_requirements("energy", empty_mtd)
+            report_registry.get_requirements("energy expectation", empty_mtd)
 
     def test_enroll_func(self, _setup):
         def test_func(method):

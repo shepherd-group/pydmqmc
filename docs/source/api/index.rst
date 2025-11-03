@@ -13,3 +13,4 @@ The "base" listing is not
     systems/system
     methods/index
     utils/index
+    report/index

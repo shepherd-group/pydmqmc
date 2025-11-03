@@ -1,4 +1,4 @@
-.. _methods_dmqmc:
+.. _methods-dmqmc:
 
 Density-Matrix Quantum Monte Carlo Methods
 ==========================================
@@ -64,29 +64,43 @@ same for all DMQMC classes listed above:
     # use your system to instantiate your desired DMQMC method
     mtd = SymmetricBlochDMQMC(sys)
 
-Once your desired DMQMC method has been instantiated, you can initialize the density matrix with the
+Once your desired DMQMC method has been instantiated, you need to run the
 ``setup()`` method. This method is used to define the final inverse temperature :math:`\beta` for the
-simulation, the framework for defining the initial density matrix, and possible additional
-parameters for this initialization depending on the method chosen:
+simulation, the framework for defining the initial density matrix, and the list of :ref:`quantities
+to report <iteration-report>` during the iteration. You may need to specify additional parameters based on
+the initialization method chosen. An example of a simulation setup is below:
 
 .. code-block:: python
 
     mtd.setup(
         final_beta = 0.75,
         initialization = "deterministic",
+        report_quants = ["trace", "energy-expectation"]
     )
+
+For more information on reporting quantities as the simulation runs, see :ref:`iteration-report`.
+
+The ``setup()`` method can be called any number of times so long as the ``run()`` method has not been invoked.
+This allows you to change the final :meth:`\beta`, initial density matrix, or list of reported quantities
+before running the simulation.
+Neither attribute can be changed once the simulation has been run to prevent loss of data.
+
+Density Matrix Initialization
++++++++++++++++++++++++++++++
 
 The :class:`~pydmqmc.methods.SymmetricBlochDMQMC` and :class:`~pydmqmc.methods.AsymmetricBlochDMQMC`
 methods both offer the same set of frameworks for the initial density matrix: 
 the identity matrix (``"deterministic"``),
 randomly placing a number of psips along the diagonal following a uniform distribution (``"random-uniform"``),
 and a user-supplied initial diagonal (``"fixed"``).
+
 The :class:`~pydmqmc.methods.InteractionPictureDMQMC` method also offers ``"deterministic"`` and
 ``"random-uniform"`` options but uses the Hartree-Fock thermal weights instead of integer psips. It also offers A
 ``"random-thermal"`` framework where the diagonal is sampled with probabilities proportional
 to the thermal weights and the ``"random-grand-canoncial"`` framework that uses the grand canonical density matrix
 to inform sampling.
-See the appropriate API documentation for more details on these options and the additional parameters required.
+
+Use the links above to see the appropriate API documentation for more details on these options and the additional parameters required.
 
 Once the density matrix has been set up, you can view it with the ``density_matrix`` attribute:
 
@@ -99,10 +113,6 @@ You can also double check the final :meth:`\beta` that was specified with the ``
 .. code-block:: python
 
     print(mtd.final_beta)
-
-The ``setup()`` method can be called any number of times so long as the ``run()`` method has not been invoked.
-This allows you to change either the final :meth:`\beta` or initial density matrix before running the simulation.
-Neither attribute can be changed once the simulation has been run to prevent loss of data.
 
 
 .. _running-dmqmc:
@@ -123,8 +133,6 @@ three parameters that control the stability of the iterations as detailed in the
         cycles_per_shift=10,
         shift_dampening=0.05
     )
-
-This will use the default fields for the :ref:`iteration_report`.
 
 Integration Control
 +++++++++++++++++++
@@ -180,6 +188,22 @@ to include another rule before 4:
 if the number of excitations between the determinant labels for :math:`i` and :math:`j` is
 less than or equal to the supplied level, allow the spawn at :math:`\rho_{ik}`.
 *Currently, only initiator level zero is supported.*
+
+Saving Simulation Results
+-------------------------
+
+Both the final density matrix and the iteration report (the set of specified quantities
+that are calculated periodically as the simulation runs) can be saved to disk using one
+simple command:
+
+.. code-block:: python
+
+    mtd.save_data("my_sim")
+
+This will create two files: ``my_sim_density_matrix.csv`` that contains the final
+density matrix and ``my_sim_report.csv`` that contains the iteration report.
+See the :meth:`~pydmqmc.methods.DensityMatrixQMC.save_data` API for more information on the available options.
+
 
 References
 ----------

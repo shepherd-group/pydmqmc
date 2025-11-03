@@ -150,14 +150,18 @@ An example simulation with all three parts is below:
     mtd = SymmetricBlochDMQMC(sys, rng_seed=42)
 
     # Setup and run the simulation
-    mtd.setup("random-uniform", n_particles=int(1e5))
-    mtd.run(final_beta=25,
-            dbeta=0.001,
-            cycles_per_shift=1000,
-            shift_dampening=0.05,
-            spawn_cutoff=0.01,
-            shift_by_rows=False
-            )
+    mtd.setup(
+        final_beta=25,
+        initialization="random-uniform",
+        n_particles=int(1e5)
+    )
+    mtd.run(
+        dbeta=0.001,
+        cycles_per_shift=1000,
+        shift_dampening=0.05,
+        spawn_cutoff=0.01,
+        shift_by_rows=False
+    )
 
     mtd.save_data("test_run")
 
@@ -272,14 +276,18 @@ you'll need multiple objects:
         mtd = SymmetricBlochDMQMC(sys, rng_seed=seed)
 
         # Setup and run the simulation
-        mtd.setup("random-uniform", n_particles=int(1e5))
-        mtd.run(final_beta=25,
-                dbeta=0.001,
-                cycles_per_shift=1000,
-                shift_dampening=0.05,
-                spawn_cutoff=0.01,
-                shift_by_rows=False
-                )
+        mtd.setup(
+            final_beta=25,
+            initialization="random-uniform",
+            n_particles=int(1e5)
+        )
+        mtd.run(
+            dbeta=0.001,
+            cycles_per_shift=1000,
+            shift_dampening=0.05,
+            spawn_cutoff=0.01,
+            shift_by_rows=False
+        )
 
         mtd.save_data(f"seed_{seed}")
 

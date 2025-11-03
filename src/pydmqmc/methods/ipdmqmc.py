@@ -42,7 +42,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         gc_spawn_cutoff: float = 0.01,
         defined_thermal_weights: ArrayLike | None = None,
         fixed_diagonal: ArrayLike | None = None,
-        report_values: list[str] = ["trace", "energy"],
+        report_quants: list[str] = ["trace", "energy expectation"],
     ) -> None:
         r"""
         Set parameters for each of the realizations.
@@ -83,8 +83,8 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             Directly defined the diagonal of the density matrix when used
             with the "fixed" initialization method. The length of `diag`
             must be the same as the number of determinants in the system.
-        report_values : list, optional
-            List of values to periodically report while performing
+        report_quants : list, optional
+            List of quantities to periodically report while performing
             the calculation. Each item must be recognized by the
             `report_registry`. The iteration variable
             :math:`beta` will automatically be included.
@@ -126,7 +126,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             fixed_diagonal,
         )
 
-        super()._setup_report(report_values)
+        super()._setup_report(report_quants)
 
     def _init_dm(
         self,

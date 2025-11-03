@@ -72,13 +72,13 @@ class DensityMatrixQMC(Iterative):
         initialization: str = "deterministic",
         n_particles: int = 1,
         fixed_diagonal: ArrayLike | None = None,
-        report_values: list[str] = ["trace", "energy"],
+        report_quants: list[str] = ["trace", "energy expectation"],
     ) -> None:
         r"""
         Specify conditions for the DMQMC realization.
 
         This setup includes the initial density matrix and a data structure
-        for reporting user-supplied values every iteration.
+        for reporting user-supplied quantities every iteration.
 
         Parameters
         ----------
@@ -100,8 +100,8 @@ class DensityMatrixQMC(Iterative):
             Directly defined the diagonal of the density matrix when used
             with the "fixed" initialization method. The length of `diag`
             must be the same as the number of determinants in the system.
-        report_values : list, optional
-            List of values to periodically report while performing
+        report_quants : list, optional
+            List of quantities to periodically report while performing
             the calculation. Each item must be recognized by the
             `report_registry`. The iteration variable
             :math:`beta` will automatically be included.
@@ -130,7 +130,7 @@ class DensityMatrixQMC(Iterative):
             initialization, n_particles, fixed_diagonal
         )
 
-        self._setup_report(report_values)
+        self._setup_report(report_quants)
 
     def _setup_report(self, report_values: list[str]) -> None:
         super().setup(report_values)
@@ -283,7 +283,7 @@ class DensityMatrixQMC(Iterative):
         # Do initial reporting
         if not quiet:
             header = f"{'beta':>14}"
-            for value in self._report_values:
+            for value in self._report_quants:
                 header += f" {value:>14}"
             print(header)
         self._do_report(0.0, quiet)
@@ -329,7 +329,7 @@ class DensityMatrixQMC(Iterative):
         """Put values for this current iteration into the self._data list."""
         current_data = {"beta": current_beta}
         rep_str = f"{current_beta:>14e}"
-        for value in self._report_values:
+        for value in self._report_quants:
             data = report_registry[value](
                 self._density_matrix, **self._report_reqs[value]
             )
