@@ -108,8 +108,8 @@ in your scripts, as shown in the next section.
 
 .. _use-in-scripts:
 
-Using pydmqmc in Scripts
-------------------------
+Using pydmqmc
+-------------
 
 Let's put together a script that runs a density-matrix quantum Monte Carlo (DMQMC)
 simulation for a system defined by an `FCIDUMP`_ file. Specifically, let's
@@ -301,7 +301,8 @@ to "see the math in action," particularly when learning methods like DMQMC for t
 
 Because of pydmqmc's reliance on class inheritance for its :ref:`dev-philosophy`,
 its commitment to a flexible choice of integration methods, and
-:ref:`use of Numba<dev-numba>` for better performance, the core elements of an Iterative method
+:ref:`use of Numba<dev-numba>` for better performance, the core elements of an 
+:ref:`Iterative method <methods-iterative>`
 like :class:`~pydmqmc.methods.SymmetricBlochDMQMC` are somewhat obfuscated.
 
 Within the source code, search for the class's definition. This will look like:

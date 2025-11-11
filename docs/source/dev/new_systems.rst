@@ -296,6 +296,10 @@ System's submodule:
 Run the Linter
 --------------
 
+.. todo::
+
+    I've replaced flake8 with ruff. Update these instructions.
+
 Python developers will use software called "linters" to help
 keep their code clean (like removing lint from a wool sweater).
 The pydmqmc library uses `flake8`_ as its linter to help enforce
