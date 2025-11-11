@@ -10,7 +10,7 @@ The "base" listing is not
     :maxdepth: 2
     :caption: Submodules:
 
-    systems/system
+    systems/index
     methods/index
     utils/index
     report/index

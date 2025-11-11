@@ -1,7 +1,7 @@
 .. _api-iterative:
 
-Iterative
-=========
+Iterative Base Class
+====================
 
 .. warning::
     This class is not designed for standalone use.

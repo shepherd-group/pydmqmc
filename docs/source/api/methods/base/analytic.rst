@@ -1,7 +1,7 @@
 .. _api-analytic:
 
-Analytic
-========
+Analytic Base Class
+===================
 
 .. warning::
     This class is not designed for standalone use.

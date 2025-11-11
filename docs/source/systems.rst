@@ -1,7 +1,7 @@
 .. _ref-systems:
 
-Available Systems
-=================
+Using the Available Systems
+===========================
 
 The systems that are available for use are described below.
 

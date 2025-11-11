@@ -1,7 +1,7 @@
 .. _api-method:
 
-Method
-======
+Method Base Class
+=================
 
 .. warning::
     This class is not designed for standalone use.
