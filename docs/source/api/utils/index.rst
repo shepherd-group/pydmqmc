@@ -11,6 +11,8 @@ than the rest of pydmqmc.
     :local:
     :depth: 2
 
+.. _api-bitarrays:
+
 Bitarray Manipulation
 ---------------------
 
@@ -28,6 +30,8 @@ Bitarray Manipulation
     pydmqmc.utils.get_double_perm
     pydmqmc.utils.get_ex_info
 
+.. _api-integrators:
+
 Integrators
 -----------
 
@@ -37,6 +41,8 @@ Integrators
     pydmqmc.utils.euler
     pydmqmc.utils.rk4
 
+.. _api-permutations:
+
 Permutations
 ------------
 
@@ -44,6 +50,8 @@ Permutations
     :toctree: stubs
 
     pydmqmc.utils.generate_ijab_symmetries_array
+
+.. _api-pg-symmetry:
 
 Point Group Symmetry
 --------------------
@@ -55,6 +63,8 @@ Point Group Symmetry
     pydmqmc.utils.pg_sym_conj
     pydmqmc.utils.orb_sym
 
+.. _api-saving:
+
 Saving Data
 -----------
 
@@ -63,6 +73,8 @@ Saving Data
 
     pydmqmc.utils.save_array
     pydmqmc.utils.save_report
+
+.. _api-slater-condon:
 
 Slater-Condon Rules
 -------------------
