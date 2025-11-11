@@ -12,6 +12,8 @@ from functools import partial
 
 
 class _ReportRegistry:
+    """Class for associating functions and their dependencies with a string."""
+
     def __init__(self):
         self._registry = {
             "trace": trace,
@@ -28,10 +30,12 @@ class _ReportRegistry:
 
     @property
     def functions(self) -> dict[str, Callable]:
+        """Dictionary of enrolled functions."""
         return self._registry
 
     @property
     def requirements(self) -> dict[str, tuple[str]]:
+        """Dictionary of requirements for enrolled functions."""
         return self._requirements
 
     def __len__(self):
@@ -45,9 +49,29 @@ class _ReportRegistry:
         return self._registry[name]
 
     def keys(self):
+        """Return a view of the registry's enrolled function keys."""
         return self._registry.keys()
 
-    def list_requirements(self, name):
+    def list_requirements(self, name) -> tuple[str]:
+        """
+        List a function's requirements.
+
+        Parameters
+        ----------
+        name : str
+            Name of the enrolled function whose requirements we
+            should return.
+
+        Returns
+        -------
+        tuple of strings
+            Dependencies requires by the given function.
+
+        Raises
+        ------
+        KeyError
+            Supplied ``name`` is not registered.
+        """
         try:
             req = self._requirements[name]
         except KeyError:

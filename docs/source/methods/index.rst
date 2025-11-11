@@ -1,7 +1,7 @@
 .. _ref-methods:
 
-Available Methods
-=================
+Using the Available Methods
+===========================
 
 As the name implies, pydmqmc was original written to perform Density Matrix Quantum Monte
 Carlo (DMQMC) simulations. Support for a broader variety of methods is planned for future releases.

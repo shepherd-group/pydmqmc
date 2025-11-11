@@ -10,10 +10,6 @@ def trace(matrix: Array):
     return np.trace(matrix)
 
 
-def mean_shift():
-    pass
-
-
 def energy_numerator(matrix: Array, hamiltonian: Array):
     """Numerator of the energy estimator."""
     return np.trace(hamiltonian @ matrix)

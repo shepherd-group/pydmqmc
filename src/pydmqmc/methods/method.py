@@ -3,6 +3,7 @@
 from .. import systems
 from .. import utils
 from ..report.registry import report_registry
+from ..utils import save_report
 
 from collections.abc import Callable
 
@@ -134,6 +135,44 @@ class Iterative(Method):
             self._report_reqs[item] = report_registry.get_requirements(item, self)
 
         self._report_data = []
+
+    def save_data(
+        self,
+        report_basename: str,
+        report_filetype: str = "csv",
+        pickle_protocol: int | None = None,
+        index_quant: str | None = None,
+    ):
+        """
+        Save the iteration report to file.
+
+        Parameters
+        ----------
+        report_basename : str
+            Base filename for saving the iteration report. Will automatically
+            be combined with the extension specified by ``report_filetype``.
+        report_filetype : str, default "csv"
+            File type (aka extension) with which to save the report.
+            Supported types are:
+
+            - "csv" : comma-separated value file
+            - "txt" : text file (space-delimited)
+            - "pkl" : pickle file
+
+        pickle_protocol : unt, optional
+            Protocol version to use if either `filetype` is "pkl".
+            If none, uses `pickle`'s default.
+        index_quant : string, optional
+            Name of the quantity to put as the first column.
+            Must be a key in the report.
+        """
+        save_report(
+            self._report_data,
+            report_basename + "_report",
+            index_quant,
+            report_filetype,
+            pickle_protocol,
+        )
 
     def parse_method(self, method: str = "euler") -> Callable:
         """

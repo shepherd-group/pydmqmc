@@ -1,17 +1,37 @@
 .. _api-report:
 
-Report Submodule
-================
+Report Registry
+===============
 
-This submodule is used to construct the ``pydmqmc.report_registry``
-that's used for generating :ref:`iteration-report`. It contains the
-private ``_ReportRegistry`` class. Since it's private, the API for this
-class is not documented. Please see the documentation on :ref:`iteration-report`
-to add your own function to the ``pydmqmc.report_registry``.
+This submodule contains the :data:`~pydmqmc.report_registry`
+that's used for generating :ref:`iteration-report`.
+It also contains the functions that come pre-enrolled
+in the :data:`~pydmqmc.report_registry` for calculating
+traceable quantities.
 
-What is documented for this submodule are the standard quantities that are
-available as part of the ``pydmqmc.report_registry``; specifically, the functions
-used to calculated these quantities.
+Please see the documentation on :ref:`iteration-report`
+for more information, including how to use the registry.
+
+Accessing the Report Registry
+-----------------------------
+
+.. autodata:: pydmqmc.report_registry
+
+.. autosummary::
+    :toctree: stubs
+
+    pydmqmc.report_registry.list_requirements
+    pydmqmc.report_registry.get_requirements
+    pydmqmc.report_registry.enroll
+    pydmqmc.report_registry.keys
+    pydmqmc.report_registry.functions
+    pydmqmc.report_registry.requirements
+
+Functions for Standard Quantities
+---------------------------------
+
+These functions are already enrolled in the :data:`~pydmqmc.report_registry`
+for use as detailed in the page on :ref:`iteration-report`.
 
 .. autosummary::
     :toctree: stubs

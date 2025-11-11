@@ -3,7 +3,7 @@
 from .method import Iterative
 from ..systems import System
 from ..report.registry import report_registry
-from ..utils import save_array, save_report
+from ..utils import save_array
 
 import numpy as np
 from numba import njit
@@ -291,7 +291,7 @@ class DensityMatrixQMC(Iterative):
         for shift in range(n_shifts):
             for cycle in range(cycles_per_shift):
                 self._density_matrix = update_func(
-                    self._propagate,  # f(dx/dy)
+                    self._propagate,  # f(dy/dt)
                     self._density_matrix,  # y
                     dbeta,  # stepsize dt
                     spawn_cutoff,
@@ -422,17 +422,11 @@ class DensityMatrixQMC(Iterative):
             Protocol version to use if either `filetype` is "pkl".
             If none, uses `pickle`'s default.
         """
+        super().save_data(basename, report_filetype, pickle_protocol, "beta")
         save_array(
             self._density_matrix,
             basename + "_density_matrix",
             matrix_filetype,
-            pickle_protocol,
-        )
-        save_report(
-            self._report_data,
-            basename + "_report",
-            "beta",
-            report_filetype,
             pickle_protocol,
         )
 
