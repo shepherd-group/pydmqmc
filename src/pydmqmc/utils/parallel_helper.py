@@ -5,6 +5,8 @@ import functools
 
 from mpi4py import MPI  # calls MPI_Init()
 
+from numpy.typing import ArrayLike
+
 
 def abort_on_exception(func):
     """Aborts MPI process if wrapped function raises an exception."""
@@ -146,7 +148,7 @@ class ParallelHelper:
         else:
             self.print("Buffers already allocated; skipping.")
 
-    def get_rng_seed(self, rng_seed: int) -> int:
+    def get_rng_seed(self, rng_seed: int | ArrayLike) -> int:
         """
         Work out the rng seed for the calling processor.
 
@@ -154,26 +156,26 @@ class ParallelHelper:
 
         Parameters
         ----------
-        rng_seed : int
+        rng_seed : int or array_like of ints
             The user provided initial rng seed.
 
         Returns
         -------
-        seed : int
-            The rng seed to use for the NumPy generator, which should be
+        seed : int or array_like of ints
+            The rng seed(s) to use for the NumPy generator, which should be
             rank and calculation safe.
         """
         seed = rng_seed + self._size * self._rank
 
         self.print("Setting processor rng seeds to:")
-        self.print(f"{'iproc':>8} {'seed':>24}")
+        self.print(f"{'iproc':>8} {'seed'}")
         for iproc in range(self._size):
             iseed = rng_seed + self._size * iproc
 
             if iproc == self._rank:
                 assert iseed == seed
 
-            self.print(f"{iproc:>8d} {iseed:>24d}")
+            self.print(f"{iproc:>8d} {iseed}")
 
         return seed
 

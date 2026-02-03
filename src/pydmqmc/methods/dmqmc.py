@@ -3,7 +3,7 @@
 from .method import Iterative
 from ..systems import System
 from ..report.registry import report_registry
-from ..utils import save_array
+from ..utils import save_array, ParallelHelper
 
 import numpy as np
 from numba import njit
@@ -26,10 +26,18 @@ class DensityMatrixQMC(Iterative):
         The predefined System to run the model with.
     rng_seed : int or array_like of ints, optional
         Seed or sequence of seeds for the psuedo-random number generator.
-        See :func:`numpy.random.default_rng`
+        See :func:`numpy.random.default_rng`. If using MPI parallelization,
+        each processor will have a unique seed based on this value.
+    parallel : bool, default False
+        Whether to use MPI to parallelize the calculation.
     """
 
-    def __init__(self, system: System, rng_seed: None | int | ArrayLike = None) -> None:
+    def __init__(
+        self,
+        system: System,
+        rng_seed: None | int | ArrayLike = None,
+        parallel: bool = False,
+    ) -> None:
         super().__init__(system)
 
         # Prepare the system, if needed.
@@ -37,10 +45,20 @@ class DensityMatrixQMC(Iterative):
             print("Generating Hamiltonian.")
             self.system.generate_hamiltonian()
 
-        self._rng = np.random.default_rng(rng_seed)
+        self._density_matrix: Array | None = None
+        self._S: Array | None = None
 
-        self._density_matrix = None
-        self._S = None
+        self._parallel: bool = parallel
+        self._ph: ParallelHelper | None = None
+
+        if parallel:
+            self._ph = ParallelHelper(vector_size=self.system.n_determinants)
+
+        if parallel:
+            seed = self._ph.get_rng_seed(rng_seed)
+            self._rng = np.random.default_rng(seed)
+        else:
+            self._rng = np.random.default_rng(rng_seed)
 
         return
 
@@ -58,13 +76,20 @@ class DensityMatrixQMC(Iterative):
         """
         Create a new psuedo-random number generator with the given seed.
 
+        If running in parallel, each processor will have a unique seed
+        based on the supplied `rng_seed`.
+
         Parameters
         ----------
         rng_seed : int or array_like of ints, optional
             Seed or sequence of seeds for the psuedo-random number generator.
             See :func:`numpy.random.default_rng`
         """
-        self._rng = np.random.default_rng(rng_seed)
+        if self._parallel:
+            seed = self._ph.get_rng_seed(rng_seed)
+            self._rng = np.random.default_rng(seed)
+        else:
+            self._rng = np.random.default_rng(rng_seed)
 
     def setup(
         self,
@@ -241,6 +266,9 @@ class DensityMatrixQMC(Iterative):
 
         # Run super()'s run method to ensure data safety.
         super().run()
+
+        if self._parallel:
+            self._ph.allocate_buffers(initiator_threshold=ilevel)
 
         # While it makes sense for a parameter to be None when a feature
         # is disabled, Numba-compiled `propagate` methods in child classes

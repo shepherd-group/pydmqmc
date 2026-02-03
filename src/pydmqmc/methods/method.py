@@ -97,7 +97,7 @@ class Iterative(Method):
         """List of dictionaries with report values."""
         return self._report_data
 
-    def setup(self, report_values) -> None:
+    def setup(self, report_values: list[str]) -> None:
         """
         Create structures for periodically reporting calculation state.
 
@@ -174,7 +174,7 @@ class Iterative(Method):
             pickle_protocol,
         )
 
-    def parse_method(self, method: str = "euler") -> Callable:
+    def parse_method(self, method: str = "euler", parallel: bool = False) -> Callable:
         """
         Parse the supplied string to return the corresponding function.
 
@@ -196,9 +196,19 @@ class Iterative(Method):
             The associated function from :mod:`pydmqmc.utils.integrators`
         """
         method = method.lower()
-        if method == "euler":
-            return utils.euler
-        elif method == "rk4":
-            return utils.rk4
+        if not parallel:
+            if method == "euler":
+                return utils.euler
+            elif method == "rk4":
+                return utils.rk4
+            else:
+                raise RuntimeError(f"Update method {method} is not recognized.")
         else:
-            raise RuntimeError(f"Update method {method} is not recognized.")
+            if method == "euler":
+                return utils.parallel_euler
+            elif method == "rk4":
+                return utils.parallel_rk4
+            else:
+                raise RuntimeError(
+                    f"Parallel update method {method} is not recognized."
+                )
