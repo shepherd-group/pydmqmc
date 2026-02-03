@@ -22,3 +22,5 @@ from .permute import generate_ijab_symmetries_array
 from .integrators import euler, rk4
 
 from .save import save_array, save_report
+
+from .parallel_helper import ParallelHelper, TwoMatrixParallelHelper

@@ -36,6 +36,24 @@ You can test your installation is working by running the test suite:
 pytest
 ```
 
+### Parallel Tests
+
+Note that, by default, `pytest` is configured to skip tests for the parallel (MPI) infrastructure.
+This is because the way `pytest` prefers to natively run these tests (i.e., using forking) fails on some version
+of MPI, such as OpenMPI on Ubuntu (see the documentation for [mpi-pytest](https://pypi.org/project/mpi-pytest/) for more details).
+
+To run these parallel tests with OpenMPI, please run the following:
+``` bash
+pytest  # serial tests
+bash tests/run_parallel_tests.sh  # parallel tests
+```
+
+For all other versions of MPI, you may run:
+``` bash
+pytest  # serial tests
+pytest -m parallel  # parallel tests
+```
+
 ## Building the Documentation
 
 The dependencies for `pydmqmc` include everything you need to build the documentation yourself. To do so, run the following:
