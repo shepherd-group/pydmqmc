@@ -116,6 +116,13 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         # Set values for use in run()
         self._final_beta = final_beta
 
+        if self._parallel and not self._ph.root:
+            # Make an empty density matrix
+            self._density_matrix = np.zeros(
+                (self.system.n_determinants, self.system.n_determinants),
+                dtype=np.float64,
+            )
+
         # Initialize density matrix
         self._density_matrix = self._init_dm(
             initialization,
@@ -125,6 +132,9 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             defined_thermal_weights,
             fixed_diagonal,
         )
+
+        if self._parallel:
+            self._density_matrix = self._ph.broadcast(self._density_matrix)
 
         super()._setup_report(report_quants)
 
@@ -386,6 +396,8 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         H: Array,
         S: Array,
         rng,
+        start: int,
+        end: int,
         cutoff: float,
         nadd: float,
         ilvl: int,
@@ -394,7 +406,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         dets = p.shape[0]
         dp = np.zeros_like(p, dtype=np.float64)
 
-        for i in range(dets):
+        for i in range(start, end):  # only loop over assigned rows in parallel
             for j in range(dets):
                 dp[i, j] = p[i, j] * (H[i, i] - H[j, j] + S[i])
 

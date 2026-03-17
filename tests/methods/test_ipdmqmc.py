@@ -1,6 +1,5 @@
 import numpy as np
 from pytest import fixture, raises, mark
-from pytest_lazy_fixtures import lf
 from os.path import dirname, join
 
 from pydmqmc.systems import Integral
@@ -42,8 +41,8 @@ class TestIPDMQMC():
         assert np.allclose(self._mtd_sm.density_matrix, ref)
 
     def test_setup_random_uniform(self):
-        ref = np.array([[41382.02524792,     0.        ],
-                        [    0.        ,  8559.39204498]])
+        ref = np.array([[41382.0252,  0.       ],
+                        [    0.    ,  8559.3920]])
 
         self._mtd_sm.reset_rng(rng_seed=42)
         self._mtd_sm.setup(self._final_beta,
@@ -113,9 +112,9 @@ class TestIPDMQMC():
                          spawn_cutoff=0.01,
                          shift_by_rows=False)
 
-        assert np.isclose(self._mtd_lg.density_matrix.trace(), 52340.753547299064)
+        assert np.isclose(self._mtd_lg.density_matrix.trace(), 52340.7535)
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        assert np.isclose(eng, -69386.92596075413)
+        assert np.isclose(eng, -69386.9260)
 
     def test_rbr(self):
         self._mtd_lg.reset_rng(42)
@@ -129,9 +128,9 @@ class TestIPDMQMC():
                          spawn_cutoff=0.01,
                          shift_by_rows=True)
 
-        assert np.isclose(self._mtd_lg.density_matrix.trace(), 53533.63151285252)
+        assert np.isclose(self._mtd_lg.density_matrix.trace(), 53533.6315)
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        assert np.isclose(eng, -73295.69251028381)
+        assert np.isclose(eng, -73295.6925)
 
     def test_ilevel_zero(self):
         """
@@ -151,9 +150,9 @@ class TestIPDMQMC():
                          n_add=3,  # strongly limit this spawn channel to emph ilevel
                          ilevel=0)
 
-        assert np.isclose(self._mtd_lg.density_matrix.trace(), 0.5438596288692907)
+        assert np.isclose(self._mtd_lg.density_matrix.trace(), 0.54385963)
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        assert np.isclose(eng, -0.7209339729863059)
+        assert np.isclose(eng, -0.72093397)
 
     def test_ilevel_nonzero(self):
         self._mtd_lg.reset_rng(42)
@@ -167,6 +166,6 @@ class TestIPDMQMC():
                          n_add=3,  # strongly limit this spawn channel to emph ilevel
                          ilevel=2)
 
-        assert np.isclose(self._mtd_lg.density_matrix.trace(), 0.5247747931327135)
+        assert np.isclose(self._mtd_lg.density_matrix.trace(), 0.52477479)
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        assert np.isclose(eng, -0.6968812877679958)
+        assert np.isclose(eng, -0.69688129)

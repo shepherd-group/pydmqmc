@@ -52,7 +52,9 @@ class DensityMatrixQMC(Iterative):
         self._ph: ParallelHelper | None = None
 
         if parallel:
-            self._ph = ParallelHelper(vector_size=self.system.n_determinants)
+            self._ph = ParallelHelper(
+                shape=(self.system.n_determinants, self.system.n_determinants)
+            )
 
         if parallel:
             seed = self._ph.get_rng_seed(rng_seed)
@@ -151,9 +153,20 @@ class DensityMatrixQMC(Iterative):
         # Set values for use in run()
         self._final_beta = final_beta
 
+        if self._parallel and not self._ph.root:
+            # Make an empty density matrix
+            self._density_matrix = np.zeros(
+                (self.system.n_determinants, self.system.n_determinants),
+                dtype=np.float64,
+            )
+
+        # Root (or singular process) will always execute
         self._density_matrix = self._init_dm(
             initialization, n_particles, fixed_diagonal
         )
+
+        if self._parallel:
+            self._density_matrix = self._ph.broadcast(self._density_matrix)
 
         self._setup_report(report_quants)
 
@@ -268,7 +281,12 @@ class DensityMatrixQMC(Iterative):
         super().run()
 
         if self._parallel:
-            self._ph.allocate_buffers(initiator_threshold=ilevel)
+            self._ph.allocate_buffers()
+            start_index = self._ph.imin
+            end_index = self._ph.imax
+        else:
+            start_index = 0
+            end_index = self.system.n_determinants
 
         # While it makes sense for a parameter to be None when a feature
         # is disabled, Numba-compiled `propagate` methods in child classes
@@ -298,7 +316,7 @@ class DensityMatrixQMC(Iterative):
             ) - np.eye(self.system.n_determinants)
 
         n_shifts = int(self._final_beta / (dbeta * cycles_per_shift))
-        update_func = super().parse_method(update_method)
+        update_func = super().parse_method(update_method, parallel=self._parallel)
         rbr = 1 if shift_by_rows else None
 
         # set initial shift
@@ -322,11 +340,14 @@ class DensityMatrixQMC(Iterative):
                     self._propagate,  # f(dy/dt)
                     self._density_matrix,  # y
                     dbeta,  # stepsize dt
-                    spawn_cutoff,
-                    n_add,  # args
-                    ilevel,
-                    n_ex,
-                )  # args
+                    self._ph,  # parallel helper (if applicable)
+                    start=start_index,  # kwargs for _propagate_core
+                    end=end_index,
+                    cutoff=spawn_cutoff,
+                    nadd=n_add,
+                    ilvl=ilevel,
+                    nex=n_ex,
+                )
 
                 # Only store |p_ij| > 1.0, otherwise
                 # round below this threshold in a non-biased manner
@@ -472,10 +493,17 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
     rng_seed : int or array_like of ints, optional
         Seed or sequence of seeds for the psuedo random number generator.
         See :func:`numpy.random.default_rng`
+    parallel : bool, default False
+        Whether to use MPI to parallelize the calculation.
     """
 
-    def __init__(self, system: System, rng_seed: None | int | ArrayLike = None) -> None:
-        super().__init__(system, rng_seed)
+    def __init__(
+        self,
+        system: System,
+        rng_seed: None | int | ArrayLike = None,
+        parallel: bool = False,
+    ) -> None:
+        super().__init__(system, rng_seed, parallel)
 
     @staticmethod
     @njit
@@ -484,6 +512,8 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
         H: Array,
         S: Array,
         rng,
+        start: int,
+        end: int,
         cutoff: float,
         nadd: float,
         ilvl: int,
@@ -492,7 +522,7 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
         dets = p.shape[0]
         dp = np.zeros_like(p, dtype=np.float64)
 
-        for i in range(dets):
+        for i in range(start, end):  # only loop over assigned rows in parallel
             Stot = H[0, 0] + S[i]
             for j in range(dets):
                 dp[i, j] = p[i, j] * (Stot - H[j, j])  # -(H_jj - S)
@@ -538,10 +568,17 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
     rng_seed : int or array_like of ints, optional
         Seed or sequence of seeds for the psuedo random number generator.
         See :func:`numpy.random.default_rng`
+    parallel : bool, default False
+        Whether to use MPI to parallelize the calculation.
     """
 
-    def __init__(self, system: System, rng_seed: None | int | ArrayLike = None) -> None:
-        super().__init__(system, rng_seed)
+    def __init__(
+        self,
+        system: System,
+        rng_seed: None | int | ArrayLike = None,
+        parallel: bool = False,
+    ) -> None:
+        super().__init__(system, rng_seed, parallel)
 
     @staticmethod
     @njit
@@ -550,6 +587,8 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
         H: Array,
         S: Array,
         rng,
+        start: int,
+        end: int,
         cutoff: float,
         nadd: float,
         ilvl: int,
@@ -558,7 +597,7 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
         dets = p.shape[0]
         dp = np.zeros_like(p, dtype=np.float64)
 
-        for i in range(dets):
+        for i in range(start, end):  # only loop over assigned rows in parallel
             for j in range(dets):
                 Stot = H[0, 0] + S[i]
                 dp[i, j] = p[i, j] / 2 * (Stot - H[i, i])

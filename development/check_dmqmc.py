@@ -1,28 +1,19 @@
 # coding: utf-8
 import numpy as np
 from pydmqmc.systems import Integral
-from pydmqmc.methods import InteractionPictureDMQMC
+from pydmqmc.methods import AsymmetricBlochDMQMC
 
 sys = Integral("tests/inputs/integrals/STRICT-STO3G-STR-H4.FCIDUMP")
-mtd = InteractionPictureDMQMC(sys, rng_seed=42)
+mtd = AsymmetricBlochDMQMC(sys, rng_seed=42, parallel=True)
 
-dm_diag = np.load("development/initial_dm.npy")
-
-# mtd.setup(1.0, "fixed", fixed_diagonal=dm_diag)
-
-mtd.setup(final_beta=1.0,
-          initialization="random-grand-canonical",
-          gc_spawn_cutoff=0.01,
-          n_particles=int(1e5))
-mtd.setup(1.0, "deterministic", n_particles=int(1e5))
-print("Ref:", dm_diag)
-print("Act:", np.diag(mtd.density_matrix))
+mtd.setup(25, "random-uniform", n_particles=int(1e5))
 
 mtd.run(dbeta=0.001,
-        cycles_per_shift=10,
+        cycles_per_shift=1000,
         shift_dampening=0.05,
-        n_add=3,
-        ilevel=2
+        spawn_cutoff=0.01,
+        shift_by_rows=False,
+        update_method="rk4"
         )
 
 print("Trace", mtd.density_matrix.trace())
