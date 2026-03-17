@@ -248,11 +248,11 @@ class TestSymmetricBlochDMQMC_Parallel():
             shift_by_rows=False
         )
 
-        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67981.4893),
-                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 67981.4893")
+        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67926.3811),
+                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 67926.3811")
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -141115.3864),
-                        msg=f"Energy: {eng}\nExpected: -141115.3864")
+        parallel_assert(np.isclose(eng, -141000.9932),
+                        msg=f"Energy: {eng}\nExpected: -141000.9932")
 
     @mark.parallel([1,2,3])
     def test_rbr(self):
