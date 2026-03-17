@@ -5,14 +5,14 @@ from pytest_mpi import parallel_assert
 from pydmqmc.utils.parallel_helper import ParallelHelper
 
 
-class TestParallelHelper():
+class TestParallelHelper_Parallel():
     """Test the ParallelHelper class."""
 
     @fixture(autouse=True)
     def _setup(self):
-        self._vector_size = 10
-        self._initiator_threshold = 0
-        self._ph = ParallelHelper(self._vector_size, self._initiator_threshold)
+        self._matrix_shape = (10, 10)
+        self._matrix_size = np.prod(self._matrix_shape)
+        self._ph = ParallelHelper(self._matrix_shape)
 
     @mark.parallel([1,2,3])
     def test_properties(self):
@@ -24,11 +24,8 @@ class TestParallelHelper():
         parallel_assert(isinstance(self._ph.parallel, bool))
         parallel_assert(isinstance(self._ph.imin, int))
         parallel_assert(isinstance(self._ph.imax, int))
-        parallel_assert(self._ph.bufshape == (1, self._vector_size))
-
-    def test_nonzero_initiator_threshold(self):
-        ph = ParallelHelper(self._vector_size, initiator_threshold=5)
-        parallel_assert(ph.bufshape == (5, self._vector_size))
+        parallel_assert(self._ph.bufsize == self._matrix_size)
+        parallel_assert(self._ph.bufshape == self._matrix_shape)
 
     @mark.parallel(1)
     def test_setup_job_map_1proc(self):
@@ -69,44 +66,42 @@ class TestParallelHelper():
     def test_allocate_buffers(self):
         self._ph.allocate_buffers()
         parallel_assert(self._ph._recvbuf is not None)
-        parallel_assert(self._ph._recvbuf.size == self._vector_size)
-        parallel_assert(self._ph._recvbuf.shape == (1, self._vector_size))
+        parallel_assert(self._ph._recvbuf.shape == self._matrix_shape)
 
     @mark.parallel([1,2,3])
     def test_broadcast(self):
-        answer = np.arange(self._vector_size, dtype=float)
+        answer = np.arange(self._matrix_size, dtype=float)
+        answer = answer.reshape(self._matrix_shape)
         
         if self._ph.parent:
-            array = np.arange(self._vector_size, dtype=float)
+            array = np.arange(self._matrix_size, dtype=float)
+            array = array.reshape(self._matrix_shape)
         else:
-            array = np.empty(self._vector_size, dtype=float)
+            array = np.empty(self._matrix_shape, dtype=float)
         
-        self._ph.bcast(array)
+        self._ph.broadcast(array)
         parallel_assert(np.array_equal(array, answer))
 
     @mark.parallel([1,2,3])
-    def test_sum_reduce_without_allocation(self):
-        array = np.zeros(self._vector_size)
+    def test_allreduce_sum_without_allocation(self):
+        array = np.zeros(self._matrix_shape)
         with raises(RuntimeError):
-            self._ph.sum_reduce(array)
+            self._ph.allreduce_sum(array)
 
     @mark.parallel([1,2,3])
-    def test_sum_reduce_incorrect_size(self):
+    def test_allreduce_sum_incorrect_size(self):
         self._ph.allocate_buffers()
-        array = np.zeros((self._vector_size + 1,))
+        array = np.zeros((self._matrix_shape[0], self._matrix_shape[1] + 1))
         with raises(ValueError):
-            self._ph.sum_reduce(array)
+            self._ph.allreduce_sum(array)
 
     @mark.parallel([1,2,3])
-    def test_sum_reduce(self):
-        local_array = np.ones((1, self._vector_size))
+    def test_allreduce_sum(self):
+        local_array = np.ones(self._matrix_shape)
         answer = local_array * self._ph.size
         
         self._ph.allocate_buffers()
         
-        res = self._ph.sum_reduce(local_array)
+        res = self._ph.allreduce_sum(local_array)
         
-        if self._ph.parent:
-            parallel_assert(np.array_equal(res, answer))
-        else:
-            parallel_assert(np.array_equal(res, local_array))
+        parallel_assert(np.array_equal(res, answer))

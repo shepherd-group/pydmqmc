@@ -119,3 +119,8 @@ class TestIterative():
 
         f_rk4 = self._mtd.parse_method("rk4")
         assert f_rk4 is utils.rk4
+
+        with raises(RuntimeError):
+            self._mtd.parse_method("junk")
+
+    # TODO: test parsing for parallel methods

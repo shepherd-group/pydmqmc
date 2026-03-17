@@ -25,4 +25,4 @@ from .parallel_integrators import parallel_euler, parallel_rk4
 
 from .save import save_array, save_report
 
-from .parallel_helper import ParallelHelper, TwoMatrixParallelHelper
+from .parallel_helper import ParallelHelper

@@ -203,7 +203,7 @@ class Iterative(Method):
                 return utils.rk4
             else:
                 raise RuntimeError(f"Update method {method} is not recognized.")
-        else:
+        else:  # TODO add tests for these toggles
             if method == "euler":
                 return utils.parallel_euler
             elif method == "rk4":

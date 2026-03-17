@@ -1,5 +1,4 @@
 import numpy as np
-from pytest import fixture
 
 from pydmqmc.utils.integrators import *
 
