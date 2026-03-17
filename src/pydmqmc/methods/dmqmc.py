@@ -74,6 +74,19 @@ class DensityMatrixQMC(Iterative):
         """Target inverse temperature."""
         return self._final_beta
 
+    @property
+    def parallel(self) -> bool:
+        """Whether this method is set up to run in parallel."""
+        return self._parallel
+
+    @property
+    def parallel_size(self) -> int | None:
+        """Number of processors if running in parallel."""
+        if self._parallel and self._ph is not None:
+            return self._ph.size
+        else:
+            return None
+
     def reset_rng(self, rng_seed: None | int | ArrayLike = None) -> None:
         """
         Create a new psuedo-random number generator with the given seed.

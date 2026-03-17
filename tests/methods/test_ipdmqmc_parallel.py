@@ -34,13 +34,14 @@ class TestIPDMQMC_Parallel():
 
     @mark.parallel([1,2,3])
     def test_setup_determinitistic(self):
-        ref = np.array([[0.8291, 0.    ],
-                        [0.    , 0.1709]])
+        ref = np.array([[0.82911633, 0.        ],
+                        [0.        , 0.17088367]])
 
         self._mtd_sm.setup(self._final_beta,
                            "deterministic")
 
-        parallel_assert(np.allclose(self._mtd_sm.density_matrix, ref))
+        parallel_assert(np.allclose(self._mtd_sm.density_matrix, ref),
+                        msg=f"Density matrix:\n{self._mtd_sm.density_matrix}\nRef:\n{ref}")
 
     @mark.parallel([1,2,3])
     def test_setup_random_uniform(self):
@@ -52,7 +53,8 @@ class TestIPDMQMC_Parallel():
                            "random-uniform",
                            n_particles=self._nparticle)
 
-        parallel_assert(np.allclose(self._mtd_sm.density_matrix, ref))
+        parallel_assert(np.allclose(self._mtd_sm.density_matrix, ref),
+                        msg=f"Density matrix:\n{self._mtd_sm.density_matrix}\nRef:\n{ref}")
 
     @mark.parallel([1,2,3])
     def test_setup_random_thermal(self):
@@ -64,7 +66,8 @@ class TestIPDMQMC_Parallel():
                            "random-thermal",
                            n_particles=self._nparticle)
 
-        parallel_assert(np.allclose(self._mtd_sm.density_matrix, ref))
+        parallel_assert(np.allclose(self._mtd_sm.density_matrix, ref),
+                        msg=f"Density matrix:\n{self._mtd_sm.density_matrix}\nRef:\n{ref}")
 
     @mark.parallel([1,2,3])
     def test_setup_random_grand_canonical(self):
@@ -79,7 +82,8 @@ class TestIPDMQMC_Parallel():
                            n_particles=self._nparticle)
 
         parallel_assert(np.allclose(np.diag(self._mtd_lg.density_matrix),
-                           ref))
+                           ref),
+                        msg=f"Density matrix diagonal:\n{np.diag(self._mtd_lg.density_matrix)}\nRef:\n{ref}")
 
     @mark.parallel([1,2,3])
     def test_setup_fixed(self):
@@ -88,8 +92,10 @@ class TestIPDMQMC_Parallel():
         self._mtd_sm.setup(self._final_beta,
                            "fixed", fixed_diagonal=diag)
         parallel_assert(np.allclose(np.diag(self._mtd_sm.density_matrix),
-                           diag))
-        parallel_assert(self._mtd_sm.density_matrix.size == 4)
+                           diag),
+                        msg=f"Density matrix diagonal:\n{np.diag(self._mtd_sm.density_matrix)}\nRef:\n{diag}")
+        parallel_assert(self._mtd_sm.density_matrix.size == 4,
+                        msg=f"Density matrix size: {self._mtd_sm.density_matrix.size}\nExpected: 4")
 
     @mark.parallel([1,2,3])
     def test_setup_fixed_invalid(self):
@@ -121,9 +127,11 @@ class TestIPDMQMC_Parallel():
                          spawn_cutoff=0.01,
                          shift_by_rows=False)
 
-        parallel_assert(np.isclose(self._mtd_lg.density_matrix.trace(), 52340.7535))
+        parallel_assert(np.isclose(self._mtd_lg.density_matrix.trace(), 52340.7535),
+                        msg=f"Density matrix trace: {self._mtd_lg.density_matrix.trace()}\nExpected: 52340.7535")
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -69386.9260))
+        parallel_assert(np.isclose(eng, -69386.9260),
+                        msg=f"Energy: {eng}\nExpected: -69386.9260")
 
     @mark.parallel([1,2,3])
     def test_rbr(self):
@@ -138,9 +146,11 @@ class TestIPDMQMC_Parallel():
                          spawn_cutoff=0.01,
                          shift_by_rows=True)
 
-        parallel_assert(np.isclose(self._mtd_lg.density_matrix.trace(), 53533.6315))
+        parallel_assert(np.isclose(self._mtd_lg.density_matrix.trace(), 53533.6315),
+                        msg=f"Density matrix trace: {self._mtd_lg.density_matrix.trace()}\nExpected: 53533.6315")
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -73295.6925))
+        parallel_assert(np.isclose(eng, -73295.6925),
+                        msg=f"Energy: {eng}\nExpected: -73295.6925")
 
     @mark.parallel([1,2,3])
     def test_ilevel_zero(self):
@@ -161,9 +171,11 @@ class TestIPDMQMC_Parallel():
                          n_add=3,  # strongly limit this spawn channel to emph ilevel
                          ilevel=0)
 
-        parallel_assert(np.isclose(self._mtd_lg.density_matrix.trace(), 0.5439))
+        parallel_assert(np.isclose(self._mtd_lg.density_matrix.trace(), 0.54385963),
+                        msg=f"Density matrix trace: {self._mtd_lg.density_matrix.trace()}\nExpected: 0.54385963")
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -0.7209))
+        parallel_assert(np.isclose(eng, -0.72093397),
+                        msg=f"Energy: {eng}\nExpected: -0.72093397")
 
     @mark.parallel([1,2,3])
     def test_ilevel_nonzero(self):
@@ -178,6 +190,8 @@ class TestIPDMQMC_Parallel():
                          n_add=3,  # strongly limit this spawn channel to emph ilevel
                          ilevel=2)
 
-        parallel_assert(np.isclose(self._mtd_lg.density_matrix.trace(), 0.5248))
+        parallel_assert(np.isclose(self._mtd_lg.density_matrix.trace(), 0.52477479),
+                        msg=f"Density matrix trace: {self._mtd_lg.density_matrix.trace()}\nExpected: 0.52477479")
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -0.6969))
+        parallel_assert(np.isclose(eng, -0.69688129),
+                        msg=f"Energy: {eng}\nExpected: -0.69688129")

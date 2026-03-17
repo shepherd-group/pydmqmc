@@ -10,21 +10,30 @@ class TestIntegrators_Parallel():
 
     @fixture(autouse=True)
     def _setup(self):
-        self._ph = ParallelHelper(shape=(1))
+        self._ph = ParallelHelper(shape=(4, 1))
         self._ph.allocate_buffers()
+
+    def dxdy(self, y):
+        """
+        Each process updates a different slice of `y`.
+        """
+        dy = np.zeros_like(y)
+        dy[self._ph.imin:self._ph.imax] = np.exp(y[self._ph.imin:self._ph.imax])
+        return dy
 
     @mark.parallel([1,2,3])
     def test_euler_parallel(self):
-        y_prime = parallel_euler(np.exp, 1, 0.01, ph=self._ph)
+        y = np.arange(4.0).reshape(4, 1)
+        y_prime = parallel_euler(self.dxdy, y, 0.01, ph=self._ph)
 
-        answer = 1 + 0.01*np.exp(1)
-        parallel_assert(np.isclose(y_prime, answer))
+        answer = y + 0.01*np.exp(y)
+        parallel_assert(np.allclose(y_prime, answer), msg=f"y_prime: {y_prime}\nExpected: {answer}")
 
     @mark.parallel([1,2,3])
     def test_rk4_parallel(self):
-        y_prime = parallel_rk4(np.exp, 1, 0.01, ph=self._ph)
+        y = np.arange(4.0).reshape(4, 1)
+        y_prime = parallel_rk4(self.dxdy, y, 0.01, ph=self._ph)
 
-        y = 1
         h = 0.01
         k1 = np.exp(y)
         k2 = np.exp(y + h/2*k1)
@@ -32,4 +41,4 @@ class TestIntegrators_Parallel():
         k4 = np.exp(y + h * k3)
         answer = y + h/6 * (k1 + 2*k2 + 2*k3 + k4)
 
-        parallel_assert(np.isclose(y_prime, answer))
+        parallel_assert(np.allclose(y_prime, answer), msg=f"y_prime: {y_prime}\nExpected: {answer}")

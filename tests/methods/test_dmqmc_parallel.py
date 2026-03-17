@@ -43,17 +43,19 @@ class TestDMQMC_Parallel():
     @mark.parametrize("system", 
                       [lf('matrix_system'), 
                        lf('integral_system_small')])
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_init(self, system):
-        mtd = DensityMatrixQMC(system)
+        mtd = DensityMatrixQMC(system, parallel=True)
 
         parallel_assert(mtd.system is system)
+        parallel_assert(mtd.parallel)
 
     @mark.parallel([1,2,3])
     def test_setup_determinitistic(self):
         self._mtd.setup(1.0, "deterministic")
         parallel_assert(np.allclose(self._mtd.density_matrix, 
-                        np.eye(self._mtd.system.n_determinants)))
+                        np.eye(self._mtd.system.n_determinants)),
+                        msg=f"Density matrix:\n{self._mtd.density_matrix}\nExpected:\n{np.eye(self._mtd.system.n_determinants)}")
 
     @mark.parallel([1,2,3])
     def test_setup_random_uniform(self):
@@ -63,7 +65,8 @@ class TestDMQMC_Parallel():
         self._mtd.reset_rng(rng_seed=42)
         self._mtd.setup(1.0, "random-uniform", n_particles=10)
         parallel_assert(np.allclose(np.diag(self._mtd.density_matrix),
-                        diag))
+                        diag),
+                        msg=f"Density matrix diagonal:\n{np.diag(self._mtd.density_matrix)}\nExpected:\n{diag}")
 
     @mark.parallel([1,2,3])
     def test_setup_fixed(self):
@@ -72,8 +75,10 @@ class TestDMQMC_Parallel():
 
         self._mtd.setup(1.0, "fixed", fixed_diagonal=diag)
         parallel_assert(np.allclose(np.diag(self._mtd.density_matrix),
-                        diag))
-        parallel_assert(self._mtd.density_matrix.size == 400)
+                        diag),
+                        msg=f"Density matrix diagonal:\n{np.diag(self._mtd.density_matrix)}\nExpected:\n{diag}")
+        parallel_assert(self._mtd.density_matrix.size == 400,
+                        msg=f"Density matrix size: {self._mtd.density_matrix.size}\nExpected: 400")
 
     @mark.parallel([1,2,3])
     def test_setup_fixed_invalid(self):
@@ -132,9 +137,11 @@ class TestAsymmetricBlochDMQMC_Parallel():
             shift_by_rows=False
         )
 
-        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67981.4893))
+        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67981.4893),
+                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 67981.4893")
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -141115.3864))
+        parallel_assert(np.isclose(eng, -141115.3864),
+                        msg=f"Energy: {eng}\nExpected: -141115.3864")
 
     @mark.parallel([1,2,3])
     def test_rbr(self):
@@ -152,17 +159,21 @@ class TestAsymmetricBlochDMQMC_Parallel():
             shift_by_rows=True
         )
 
-        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 22493.3789))
+        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 22493.3789),
+                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 22493.3789")
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -46578.8490))
+        parallel_assert(np.isclose(eng, -46578.8490),
+                        msg=f"Energy: {eng}\nExpected: -46578.8490")
 
     @mark.parallel([1,2,3])
     def test_ilevel_zero(self):
         """
-        Test functionality of ilevel = 0 (and dummy matrix functionality).
+        Test functionality of ilevel = 0.
 
-        Set density matrix and n_add such that psip spawning 
-        using ilevel=0 is emphasized.
+        Set density matrix and n_add such that psip spawning using ilevel=0 is emphasized.
+        This does, however, mean the simulation is not well-converged.
+        Since the RNG seed varies across ranks, the results will also vary slightly
+        with the number of processes.
         """
         self._mtd.reset_rng(42)
         self._mtd.setup(
@@ -178,9 +189,19 @@ class TestAsymmetricBlochDMQMC_Parallel():
             ilevel=0
         )
 
-        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 14.2069))  # disagreement in parallel
+        traces = {1: 14.2069,
+                  2: 14.1996,
+                  3: 14.2261}
+        
+        energies = {1: -29.4613,
+                    2: -29.4470,
+                    3: -29.5008}
+
+        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), traces[self._mtd.parallel_size]),
+                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: {traces[self._mtd.parallel_size]}")
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -29.4613))
+        parallel_assert(np.isclose(eng, energies[self._mtd.parallel_size]),
+                        msg=f"Energy: {eng}\nExpected: {energies[self._mtd.parallel_size]}")
 
     @mark.parallel([1,2,3])
     def test_ilevel_nonzero(self):
@@ -198,9 +219,11 @@ class TestAsymmetricBlochDMQMC_Parallel():
             ilevel=2
         )
 
-        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67981.4899))
+        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67981.4899),
+                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 67981.4899")
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -141115.3875))
+        parallel_assert(np.isclose(eng, -141115.3875),
+                        msg=f"Energy: {eng}\nExpected: -141115.3875")
 
 
 class TestSymmetricBlochDMQMC_Parallel():
@@ -225,10 +248,11 @@ class TestSymmetricBlochDMQMC_Parallel():
             shift_by_rows=False
         )
 
-        print("*************TRACE***********:", self._mtd.density_matrix.trace())
-        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67981.4893))  # 67926.38
+        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67981.4893),
+                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 67981.4893")
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -141115.3864))
+        parallel_assert(np.isclose(eng, -141115.3864),
+                        msg=f"Energy: {eng}\nExpected: -141115.3864")
 
     @mark.parallel([1,2,3])
     def test_rbr(self):
@@ -246,17 +270,21 @@ class TestSymmetricBlochDMQMC_Parallel():
             shift_by_rows=True
         )
 
-        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 20325.6708))
+        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 20325.6708),
+                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 20325.6708")
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -42058.9926))
+        parallel_assert(np.isclose(eng, -42058.9926),
+                        msg=f"Energy: {eng}\nExpected: -42058.9926")
 
     @mark.parallel([1,2,3])
     def test_ilevel_zero(self):
         """
-        Test functionality of ilevel = 0 (and dummy matrix functionality).
+        Test functionality of ilevel = 0.
 
-        Set density matrix and n_add such that psip spawning 
-        using ilevel=0 is emphasized.
+        Set density matrix and n_add such that psip spawning using ilevel=0 is emphasized.
+        This does, however, mean the simulation is not well-converged.
+        Since the RNG seed varies across ranks, the results will also vary slightly
+        with the number of processes.
         """
         self._mtd.reset_rng(42)
         self._mtd.setup(
@@ -272,9 +300,18 @@ class TestSymmetricBlochDMQMC_Parallel():
             ilevel=0
         )
 
-        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 13.6085))  # disagreement in parallel
+        traces = {1: 13.6085,
+                  2: 13.6090,
+                  3: 13.6263}
+        energies = {1: -28.2156,
+                    2: -28.2128,
+                    3: -28.2521}
+
+        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), traces[self._mtd.parallel_size]),
+                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: {traces[self._mtd.parallel_size]}")
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -28.2156))
+        parallel_assert(np.isclose(eng, energies[self._mtd.parallel_size]),
+                        msg=f"Energy: {eng}\nExpected: {energies[self._mtd.parallel_size]}")
 
     @mark.parallel([1,2,3])
     def test_ilevel_nonzero(self):
@@ -292,6 +329,8 @@ class TestSymmetricBlochDMQMC_Parallel():
             ilevel=2
         )
 
-        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67926.3816))
+        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67926.3816),
+                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 67926.3816")
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -141000.9942))
+        parallel_assert(np.isclose(eng, -141000.9942),
+                        msg=f"Energy: {eng}\nExpected: -141000.9942")

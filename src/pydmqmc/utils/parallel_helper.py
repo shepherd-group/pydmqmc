@@ -51,6 +51,11 @@ class ParallelHelper:
         self._bufshape: tuple[int, ...] = shape
         self._bufsize: int = np.prod(shape)
 
+        if self._size > shape[0]:
+            raise ValueError(
+                f"Number of processors ({self._size}) is too many for this problem; "
+                f"expected at most {shape[0]}"
+            )
         self._setup_job_map(shape[0])  # Assume first dimension is the one to distribute
 
         self._recvbuf: np.array | None = None  # Receive buffer for reductions
@@ -252,7 +257,9 @@ class ParallelHelper:
             raise RuntimeError("Buffers not allocated.")
 
         if array.shape != self._recvbuf.shape:
-            raise ValueError("Array shape does not match buffer shape.")
+            raise ValueError(
+                f"Array shape ({array.shape}) does not match buffer shape ({self._recvbuf.shape})."
+            )
 
         self._comm.Allreduce(
             array,
