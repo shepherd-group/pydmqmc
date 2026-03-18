@@ -1,14 +1,8 @@
-from pytest import fixture, raises
+from pytest import fixture, raises, mark
 
 import pydmqmc.utils as utils
 from pydmqmc.systems import System
 from pydmqmc.methods import Method, Analytic, Iterative
-
-
-@fixture
-def dummy_iterative(dummy_system) -> Iterative:
-    mtd = Iterative(dummy_system)
-    return mtd
 
 
 class TestSystem():
@@ -97,11 +91,24 @@ class TestIterative():
         self._sys = System("/dummy/path")
         self._mtd = Iterative(self._sys)
 
+    def test_init(self):
+        assert self._mtd.system == self._sys
+        assert not self._mtd.ran_calculation
+        assert self._mtd.report_values is None
+        assert self._mtd.report_requirements is None
+        assert self._mtd.report is None
+        assert not self._mtd.parallel
+        assert self._mtd.parallel_size is None
+        assert self._mtd.parallel_rank is None
+        assert self._mtd.parallel_is_root is None
+
     def test_setup(self):
         report_lst = ["trace"]
         self._mtd.setup(report_lst)
         assert self._mtd.report_values == report_lst
         assert self._mtd.report_requirements["trace"] == {}
+        assert not self._mtd.ran_calculation
+        assert not self._mtd.parallel
 
     def test_setup_invalid_report_values(self):
         with raises(AttributeError):
@@ -123,4 +130,32 @@ class TestIterative():
         with raises(RuntimeError):
             self._mtd.parse_method("junk")
 
-    # TODO: test parsing for parallel methods
+class TestIterative_Parallel():
+
+    @fixture(autouse=True)
+    def _setup(self):
+        self._sys = System("/dummy/path")
+        self._mtd = Iterative(self._sys, parallel=True)
+
+    @mark.parallel([1,2,3])
+    def test_init(self):
+        assert self._mtd.system == self._sys
+        assert not self._mtd.ran_calculation
+        assert self._mtd.report_values is None
+        assert self._mtd.report_requirements is None
+        assert self._mtd.report is None
+        assert self._mtd.parallel
+        assert self._mtd.parallel_size is None
+        assert self._mtd.parallel_rank is None
+        assert self._mtd.parallel_is_root is None
+
+    @mark.parallel([1,2,3])
+    def test_parse_method(self):
+        f_euler = self._mtd.parse_method("euler")
+        assert f_euler is utils.parallel_euler
+
+        f_rk4 = self._mtd.parse_method("rk4")
+        assert f_rk4 is utils.parallel_rk4
+
+        with raises(RuntimeError):
+            self._mtd.parse_method("junk")

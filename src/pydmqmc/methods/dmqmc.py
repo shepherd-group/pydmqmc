@@ -17,9 +17,6 @@ class DensityMatrixQMC(Iterative):
     """
     Density matrix quantum Monte Carlo.
 
-    CK Note: rather than the proposed common start() and iterate() methods,
-    I refactored the common methods to setup() and run().
-
     Parameters
     ----------
     system : System object
@@ -38,7 +35,7 @@ class DensityMatrixQMC(Iterative):
         rng_seed: None | int | ArrayLike = None,
         parallel: bool = False,
     ) -> None:
-        super().__init__(system)
+        super().__init__(system, rng_seed, parallel)
 
         # Prepare the system, if needed.
         if self.system.hamiltonian is None:
@@ -48,19 +45,12 @@ class DensityMatrixQMC(Iterative):
         self._density_matrix: Array | None = None
         self._S: Array | None = None
 
-        self._parallel: bool = parallel
-        self._ph: ParallelHelper | None = None
-
         if parallel:
             self._ph = ParallelHelper(
                 shape=(self.system.n_determinants, self.system.n_determinants)
             )
 
-        if parallel:
-            seed = self._ph.get_rng_seed(rng_seed)
-            self._rng = np.random.default_rng(seed)
-        else:
-            self._rng = np.random.default_rng(rng_seed)
+        self.reset_rng(rng_seed)
 
         return
 
@@ -73,38 +63,6 @@ class DensityMatrixQMC(Iterative):
     def final_beta(self) -> float | None:
         """Target inverse temperature."""
         return self._final_beta
-
-    @property
-    def parallel(self) -> bool:
-        """Whether this method is set up to run in parallel."""
-        return self._parallel
-
-    @property
-    def parallel_size(self) -> int | None:
-        """Number of processors if running in parallel."""
-        if self._parallel and self._ph is not None:
-            return self._ph.size
-        else:
-            return None
-
-    def reset_rng(self, rng_seed: None | int | ArrayLike = None) -> None:
-        """
-        Create a new psuedo-random number generator with the given seed.
-
-        If running in parallel, each processor will have a unique seed
-        based on the supplied `rng_seed`.
-
-        Parameters
-        ----------
-        rng_seed : int or array_like of ints, optional
-            Seed or sequence of seeds for the psuedo-random number generator.
-            See :func:`numpy.random.default_rng`
-        """
-        if self._parallel:
-            seed = self._ph.get_rng_seed(rng_seed)
-            self._rng = np.random.default_rng(seed)
-        else:
-            self._rng = np.random.default_rng(rng_seed)
 
     def setup(
         self,
@@ -294,7 +252,7 @@ class DensityMatrixQMC(Iterative):
         super().run()
 
         if self._parallel:
-            self._ph.allocate_buffers()
+            self._ph.allocate_reduce_buffers()
             start_index = self._ph.imin
             end_index = self._ph.imax
         else:
@@ -329,7 +287,7 @@ class DensityMatrixQMC(Iterative):
             ) - np.eye(self.system.n_determinants)
 
         n_shifts = int(self._final_beta / (dbeta * cycles_per_shift))
-        update_func = super().parse_method(update_method, parallel=self._parallel)
+        update_func = super().parse_method(update_method)
         rbr = 1 if shift_by_rows else None
 
         # set initial shift

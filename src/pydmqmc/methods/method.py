@@ -3,9 +3,12 @@
 from .. import systems
 from .. import utils
 from ..report.registry import report_registry
-from ..utils import save_report
+from ..utils import save_report, ParallelHelper
+
+import numpy as np
 
 from collections.abc import Callable
+from numpy.typing import ArrayLike
 
 
 class Method:
@@ -74,13 +77,32 @@ class Iterative(Method):
     ----------
     system : System object
         The predefined System to run the model with.
+    rng_seed : int or array_like of ints, optional
+        Seed or sequence of seeds for the psuedo-random number generator.
+        See :func:`numpy.random.default_rng`. If using MPI parallelization,
+        each processor will have a unique seed based on this value.
+    parallel : bool, default False
+        Whether to use MPI to parallelize the calculation.
     """
 
-    def __init__(self, system: systems.System):
+    def __init__(
+        self,
+        system: systems.System,
+        rng_seed: None | int | ArrayLike = None,
+        parallel: bool = False,
+    ):
         super().__init__(system)
+
         self._report_quants = None
         self._report_reqs = None
         self._report_data = None
+
+        self._parallel: bool = parallel
+        self._ph: ParallelHelper | None = None
+
+        # The ParallelHelper must be initialized by the child class
+        # since the child method will know how to distribute the problem.
+        # Initialization of the rng seed (i.e. a call to reset_rng) must follow.
 
     @property
     def report_values(self) -> list[str] | None:
@@ -96,6 +118,54 @@ class Iterative(Method):
     def report(self) -> list[dict] | None:
         """List of dictionaries with report values."""
         return self._report_data
+
+    @property
+    def parallel(self) -> bool:
+        """Whether this method is set up to run in parallel."""
+        return self._parallel
+
+    @property
+    def parallel_size(self) -> int | None:
+        """Number of processors if running in parallel."""
+        if self._parallel and self._ph is not None:
+            return self._ph.size
+        else:
+            return None
+
+    @property
+    def parallel_rank(self) -> int | None:
+        """Rank of the current processor if running in parallel."""
+        if self._parallel and self._ph is not None:
+            return self._ph.rank
+        else:
+            return None
+
+    @property
+    def parallel_is_root(self) -> bool | None:
+        """Whether the current processor is the root if running in parallel."""
+        if self._parallel and self._ph is not None:
+            return self._ph.root
+        else:
+            return None
+
+    def reset_rng(self, rng_seed: None | int | ArrayLike = None) -> None:
+        """
+        Create a new psuedo-random number generator with the given seed.
+
+        If running in parallel, each processor will have a unique seed
+        based on the supplied `rng_seed`.
+
+        Parameters
+        ----------
+        rng_seed : int or array_like of ints, optional
+            Seed or sequence of seeds for the psuedo-random number generator.
+            See :func:`numpy.random.default_rng`
+        """
+        if self._parallel:
+            seed = self._ph.get_rng_seed(rng_seed)
+            self._rng = np.random.default_rng(seed)
+        else:
+            self._rng = np.random.default_rng(rng_seed)
 
     def setup(self, report_values: list[str]) -> None:
         """
@@ -174,7 +244,7 @@ class Iterative(Method):
             pickle_protocol,
         )
 
-    def parse_method(self, method: str = "euler", parallel: bool = False) -> Callable:
+    def parse_method(self, method: str = "euler") -> Callable:
         """
         Parse the supplied string to return the corresponding function.
 
@@ -196,14 +266,14 @@ class Iterative(Method):
             The associated function from :mod:`pydmqmc.utils.integrators`
         """
         method = method.lower()
-        if not parallel:
+        if not self.parallel:
             if method == "euler":
                 return utils.euler
             elif method == "rk4":
                 return utils.rk4
             else:
                 raise RuntimeError(f"Update method {method} is not recognized.")
-        else:  # TODO add tests for these toggles
+        else:
             if method == "euler":
                 return utils.parallel_euler
             elif method == "rk4":

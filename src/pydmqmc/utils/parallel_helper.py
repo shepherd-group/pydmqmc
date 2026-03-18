@@ -145,14 +145,6 @@ class ParallelHelper:
 
         return
 
-    def allocate_buffers(self) -> None:
-        """Allocate send and receive buffers for communication."""
-        if self._recvbuf is None:
-            self.print(f"Allocating one recv buffer with shape {self._bufshape}.")
-            self._recvbuf = np.zeros(self._bufshape, dtype=float)
-        else:
-            self.print("Buffers already allocated; skipping.")
-
     def get_rng_seed(self, rng_seed: None | int | ArrayLike = None) -> int:
         """
         Work out the rng seed for the calling processor.
@@ -235,6 +227,14 @@ class ParallelHelper:
         self._comm.Bcast(array, root=self._root)
 
         return array
+
+    def allocate_reduce_buffers(self) -> None:
+        """Allocate send and receive buffers for communication."""
+        if self._recvbuf is None:
+            self.print(f"Allocating one recv buffer with shape {self._bufshape}.")
+            self._recvbuf = np.zeros(self._bufshape, dtype=float)
+        else:
+            self.print("Buffers already allocated; skipping.")
 
     def allreduce_sum(self, array: np.array) -> np.array:
         """

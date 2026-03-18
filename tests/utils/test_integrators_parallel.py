@@ -11,7 +11,7 @@ class TestIntegrators_Parallel():
     @fixture(autouse=True)
     def _setup(self):
         self._ph = ParallelHelper(shape=(4, 1))
-        self._ph.allocate_buffers()
+        self._ph.allocate_reduce_buffers()
 
     def dxdy(self, y):
         """

@@ -77,7 +77,7 @@ class TestParallelHelper_Parallel():
 
     @mark.parallel([1,2,3])
     def test_allocate_buffers(self):
-        self._ph.allocate_buffers()
+        self._ph.allocate_reduce_buffers()
         parallel_assert(self._ph._recvbuf is not None,
                         msg=f"rank {self._ph.rank}: _recvbuf should not be None after allocation")
         parallel_assert(self._ph._recvbuf.shape == self._matrix_shape,
@@ -106,7 +106,7 @@ class TestParallelHelper_Parallel():
 
     @mark.parallel([1,2,3])
     def test_allreduce_sum_incorrect_size(self):
-        self._ph.allocate_buffers()
+        self._ph.allocate_reduce_buffers()
         array = np.zeros((self._matrix_shape[0], self._matrix_shape[1] + 1))
         with raises(ValueError):
             self._ph.allreduce_sum(array)
@@ -116,7 +116,7 @@ class TestParallelHelper_Parallel():
         local_array = np.ones(self._matrix_shape)
         answer = local_array * self._ph.size
         
-        self._ph.allocate_buffers()
+        self._ph.allocate_reduce_buffers()
         
         res = self._ph.allreduce_sum(local_array)
         
