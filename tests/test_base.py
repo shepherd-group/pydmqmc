@@ -1,4 +1,5 @@
 from pytest import fixture, raises, mark
+from pytest_mpi import parallel_assert
 
 import pydmqmc.utils as utils
 from pydmqmc.systems import System
@@ -100,7 +101,8 @@ class TestIterative():
         assert not self._mtd.parallel
         assert self._mtd.parallel_size is None
         assert self._mtd.parallel_rank is None
-        assert self._mtd.parallel_is_root is None
+        assert self._mtd.parallel_is_parent is None
+        assert self._mtd.is_reporter is True
 
     def test_setup(self):
         report_lst = ["trace"]
@@ -139,23 +141,24 @@ class TestIterative_Parallel():
 
     @mark.parallel([1,2,3])
     def test_init(self):
-        assert self._mtd.system == self._sys
-        assert not self._mtd.ran_calculation
-        assert self._mtd.report_values is None
-        assert self._mtd.report_requirements is None
-        assert self._mtd.report is None
-        assert self._mtd.parallel
-        assert self._mtd.parallel_size is None
-        assert self._mtd.parallel_rank is None
-        assert self._mtd.parallel_is_root is None
+        parallel_assert(self._mtd.system == self._sys)
+        parallel_assert(not self._mtd.ran_calculation)
+        parallel_assert(self._mtd.report_values is None)
+        parallel_assert(self._mtd.report_requirements is None)
+        parallel_assert(self._mtd.report is None)
+        parallel_assert(self._mtd.parallel)
+        parallel_assert(self._mtd.parallel_size is None)
+        parallel_assert(self._mtd.parallel_rank is None)
+        parallel_assert(self._mtd.parallel_is_parent is None)
+        parallel_assert(self._mtd.is_reporter is True)
 
     @mark.parallel([1,2,3])
     def test_parse_method(self):
         f_euler = self._mtd.parse_method("euler")
-        assert f_euler is utils.parallel_euler
+        parallel_assert(f_euler is utils.parallel_euler)
 
         f_rk4 = self._mtd.parse_method("rk4")
-        assert f_rk4 is utils.parallel_rk4
+        parallel_assert(f_rk4 is utils.parallel_rk4)
 
         with raises(RuntimeError):
             self._mtd.parse_method("junk")

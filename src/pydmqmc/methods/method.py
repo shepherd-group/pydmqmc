@@ -141,12 +141,31 @@ class Iterative(Method):
             return None
 
     @property
-    def parallel_is_root(self) -> bool | None:
+    def parallel_is_parent(self) -> bool | None:
         """Whether the current processor is the root if running in parallel."""
         if self._parallel and self._ph is not None:
-            return self._ph.root
+            return self._ph.parent
         else:
             return None
+
+    @property
+    def is_reporter(self) -> bool:
+        """
+        Whether the current process is the designated reporter.
+
+        This process creates the iteration report and writes it to both
+        stdout and to file. If running in serial, the current process is
+        always designated as the reporter.
+        """
+        if self._parallel:
+            if self._ph is not None:
+                return self._ph.parent
+            else:
+                # ParallelHelper has not been initialized yet
+                # This case shouldn't really happen outside of the test suite
+                return True
+        else:
+            return True
 
     def reset_rng(self, rng_seed: None | int | ArrayLike = None) -> None:
         """
@@ -206,7 +225,7 @@ class Iterative(Method):
 
         self._report_data = []
 
-    def save_data(
+    def save_data(  # TODO test this function, ideally here but maybe in Child tests
         self,
         report_basename: str,
         report_filetype: str = "csv",
@@ -236,13 +255,14 @@ class Iterative(Method):
             Name of the quantity to put as the first column.
             Must be a key in the report.
         """
-        save_report(
-            self._report_data,
-            report_basename + "_report",
-            index_quant,
-            report_filetype,
-            pickle_protocol,
-        )
+        if self.is_reporter:
+            save_report(
+                self._report_data,
+                report_basename + "_report",
+                index_quant,
+                report_filetype,
+                pickle_protocol,
+            )
 
     def parse_method(self, method: str = "euler") -> Callable:
         """

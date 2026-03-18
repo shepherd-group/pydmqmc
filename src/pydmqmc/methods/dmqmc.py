@@ -298,12 +298,13 @@ class DensityMatrixQMC(Iterative):
         )
 
         # Do initial reporting
-        if not quiet:
-            header = f"{'beta':>14}"
-            for value in self._report_quants:
-                header += f" {value:>14}"
-            print(header)
-        self._do_report(0.0, quiet)
+        if self.is_reporter:
+            if not quiet:
+                header = f"{'beta':>14}"
+                for value in self._report_quants:
+                    header += f" {value:>14}"
+                print(header)
+            self._do_report(0.0, quiet)
 
         for shift in range(n_shifts):
             for cycle in range(cycles_per_shift):
@@ -343,7 +344,8 @@ class DensityMatrixQMC(Iterative):
             )
 
             # do periodic reporting
-            self._do_report((shift + 1) * cycles_per_shift * dbeta, quiet)
+            if self.is_reporter:
+                self._do_report((shift + 1) * cycles_per_shift * dbeta, quiet)
 
     def _do_report(self, current_beta: float, quiet: bool = False) -> None:
         """Put values for this current iteration into the self._data list."""
@@ -442,13 +444,14 @@ class DensityMatrixQMC(Iterative):
             Protocol version to use if either `filetype` is "pkl".
             If none, uses `pickle`'s default.
         """
-        super().save_data(basename, report_filetype, pickle_protocol, "beta")
-        save_array(
-            self._density_matrix,
-            basename + "_density_matrix",
-            matrix_filetype,
-            pickle_protocol,
-        )
+        if self.is_reporter:
+            super().save_data(basename, report_filetype, pickle_protocol, "beta")
+            save_array(
+                self._density_matrix,
+                basename + "_density_matrix",
+                matrix_filetype,
+                pickle_protocol,
+            )
 
 
 class AsymmetricBlochDMQMC(DensityMatrixQMC):

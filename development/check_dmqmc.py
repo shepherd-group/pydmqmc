@@ -16,6 +16,4 @@ mtd.run(dbeta=0.001,
         update_method="rk4"
         )
 
-print("Trace", mtd.density_matrix.trace())
-print("Energy", (mtd.density_matrix @ sys.hamiltonian).trace())
-#print((mtd.density_matrix @ mtd.system.hamiltonian).trace())
+mtd.save_data("test_run")

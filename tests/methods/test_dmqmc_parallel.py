@@ -51,7 +51,8 @@ class TestDMQMC_Parallel():
         parallel_assert(mtd.parallel)
         parallel_assert(self._mtd.parallel_size in [1, 2, 3])
         parallel_assert(self._mtd.parallel_rank in [0, 1, 2])
-        parallel_assert(self._mtd.parallel_is_root in [True, False])
+        parallel_assert(self._mtd.parallel_is_parent in [True, False])
+        parallel_assert(self._mtd.is_reporter in [True, False])
 
     @mark.parallel([1,2,3])
     def test_setup_determinitistic(self):
