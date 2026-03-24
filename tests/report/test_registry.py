@@ -3,9 +3,9 @@ from pytest_lazy_fixtures import lf
 from os.path import dirname, join
 
 from pydmqmc.systems import System, Integral
-from pydmqmc.methods import Method, AsymmetricBlochDMQMC
+from pydmqmc.methods import Method
 from pydmqmc import report_registry, enroll
-from pydmqmc.report.report_functions import trace
+from pydmqmc.report.report_functions import trace, energy_expectation
 
 default_enrolled =  [
     "trace", 
@@ -37,25 +37,38 @@ class TestReportRegistry():
     def test_keys(self):
         assert list(report_registry.keys()) == default_enrolled
 
+    def test_functions(self):
+        assert isinstance(report_registry.functions, dict)
+        assert report_registry.functions["energy expectation"] is energy_expectation
+        assert report_registry.functions["trace"] is trace
+
+    def test_requirements(self):
+        assert isinstance(report_registry.requirements, dict)
+        assert report_registry.requirements["energy expectation"] == ("hamiltonian",)
+        assert "trace" 
+
     def test_list_requirements(self):
         assert report_registry.list_requirements("energy expectation") == ("hamiltonian",)
 
     def test_list_requirements_none(self):
         assert report_registry.list_requirements("trace") is None
 
-    #@mark.parametrize("func", default_enrolled)
     def test_get_requirements(self, _setup):
         req_dict = report_registry.get_requirements("energy expectation", self._mtd)
         assert isinstance(req_dict, dict)
         assert "hamiltonian" in req_dict
 
-    def test_get_requirements_invalid(self):
+    def test_get_requirements_function_missing(self, _setup):
+        with raises(RuntimeError):
+            report_registry.get_requirements("non_existent_function", self._mtd)
+
+    def test_get_requirements_not_present(self):
         dummy_sys = System("/dummy/path")
         empty_mtd = Method(dummy_sys)
         with raises(RuntimeError):
             report_registry.get_requirements("energy expectation", empty_mtd)
 
-    def test_enroll_func(self, _setup):
+    def test_enroll(self, _setup):
         def test_func(method):
             p = method.density_matrix
             H = method.system.hamiltonian
@@ -67,6 +80,21 @@ class TestReportRegistry():
 
         assert report_registry["test"] is test_func
         assert report_registry.get_requirements("test", self._mtd)
+
+    def test_enroll_twice(self, _setup):
+        def test_func(method):
+            p = method.density_matrix
+            H = method.system.hamiltonian
+            return (p @ H).trace()
+        
+        report_registry.enroll("test2",
+                               test_func,
+                               ["hamiltonian"])
+        
+        with raises(RuntimeError):
+            report_registry.enroll("test2",
+                                   test_func,
+                                   ["hamiltonian"])
 
     def test_enroll_decorator_name_requires(self, _setup):
         @enroll(name="my_test", requires=["hamiltonian"])

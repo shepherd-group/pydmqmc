@@ -9,20 +9,6 @@ from mpi4py import MPI  # calls MPI_Init()
 from numpy.typing import ArrayLike
 
 
-def abort_on_exception(func):
-    """Aborts MPI process if wrapped function raises an exception."""
-
-    @functools.wraps(func)
-    def wrapper(self, *args, **kwargs):
-        try:
-            return func(self, *args, **kwargs)
-        except Exception as e:
-            self.print(f"Exception in {func.__name__}: {e}")
-            self.abort(1)
-
-    return wrapper
-
-
 class ParallelHelper:
     """
     Helper for coordinating parallel Methods.
