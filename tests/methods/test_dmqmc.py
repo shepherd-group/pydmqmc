@@ -66,8 +66,7 @@ class TestDMQMC():
                 45, 37, 23, 46, 41, 31, 27, 49, 17, 38]
 
         self._mtd.setup(1.0, "fixed", fixed_diagonal=diag)
-        assert np.allclose(np.diag(self._mtd.density_matrix),
-                        diag)
+        assert np.allclose(np.diag(self._mtd.density_matrix),  diag)
         assert self._mtd.density_matrix.size == 400
 
     def test_setup_fixed_invalid(self):

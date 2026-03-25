@@ -24,8 +24,13 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         See :func:`numpy.random.default_rng`
     """
 
-    def __init__(self, system: System, rng_seed: None | int | ArrayLike = None) -> None:
-        super().__init__(system, rng_seed)
+    def __init__(
+        self,
+        system: System,
+        rng_seed: None | int | ArrayLike = None,
+        parallel: bool = False,
+    ) -> None:
+        super().__init__(system, rng_seed, parallel)
         self._final_beta = None
         self._spawn_cutoff = None
 
@@ -116,22 +121,22 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         # Set values for use in run()
         self._final_beta = final_beta
 
-        if self._parallel and not self._ph.root:
+        if self._parallel and not self._ph.is_root:
             # Make an empty density matrix
             self._density_matrix = np.zeros(
                 (self.system.n_determinants, self.system.n_determinants),
                 dtype=np.float64,
             )
-
-        # Initialize density matrix
-        self._density_matrix = self._init_dm(
-            initialization,
-            final_beta,
-            n_particles,
-            gc_spawn_cutoff,
-            defined_thermal_weights,
-            fixed_diagonal,
-        )
+        else:
+            # Initialize density matrix
+            self._density_matrix = self._init_dm(
+                initialization,
+                final_beta,
+                n_particles,
+                gc_spawn_cutoff,
+                defined_thermal_weights,
+                fixed_diagonal,
+            )
 
         if self._parallel:
             self._density_matrix = self._ph.broadcast(self._density_matrix)

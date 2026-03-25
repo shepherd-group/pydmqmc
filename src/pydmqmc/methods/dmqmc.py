@@ -35,7 +35,7 @@ class DensityMatrixQMC(Iterative):
         rng_seed: None | int | ArrayLike = None,
         parallel: bool = False,
     ) -> None:
-        super().__init__(system, rng_seed, parallel)
+        super().__init__(system, parallel)
 
         # Prepare the system, if needed.
         if self.system.hamiltonian is None:
@@ -43,16 +43,14 @@ class DensityMatrixQMC(Iterative):
             self.system.generate_hamiltonian()
 
         self._density_matrix: Array | None = None
-        self._S: Array | None = None
+        self._shift: Array | None = None
 
         if parallel:
             self._ph = ParallelHelper(
                 shape=(self.system.n_determinants, self.system.n_determinants)
             )
 
-        self.reset_rng(rng_seed)
-
-        return
+        self.reset_rng(rng_seed)  # sets self._rng
 
     @property
     def density_matrix(self) -> None | Array:
@@ -124,17 +122,17 @@ class DensityMatrixQMC(Iterative):
         # Set values for use in run()
         self._final_beta = final_beta
 
-        if self._parallel and not self._ph.root:
+        if self._parallel and not self._ph.is_root:
             # Make an empty density matrix
             self._density_matrix = np.zeros(
                 (self.system.n_determinants, self.system.n_determinants),
                 dtype=np.float64,
             )
-
-        # Root (or singular process) will always execute
-        self._density_matrix = self._init_dm(
-            initialization, n_particles, fixed_diagonal
-        )
+        else:
+            # Root (or singular process) will always execute
+            self._density_matrix = self._init_dm(
+                initialization, n_particles, fixed_diagonal
+            )
 
         if self._parallel:
             self._density_matrix = self._ph.broadcast(self._density_matrix)
@@ -143,7 +141,7 @@ class DensityMatrixQMC(Iterative):
 
     def _setup_report(self, report_values: list[str]) -> None:
         super().setup(report_values)
-        self._S = np.zeros(self.system.n_determinants, dtype=np.float64)
+        self._shift = np.zeros(self.system.n_determinants, dtype=np.float64)
 
     def _init_dm(self, init: str, particles: int, diag: ArrayLike | None) -> Array:
         """
@@ -155,13 +153,15 @@ class DensityMatrixQMC(Iterative):
         into different classes seemed like a conceptually useful thing to do.
         """
         if init == "deterministic":
-            randomrows = np.ones(self.system.n_determinants)
+            randomrows = np.ones(self.system.n_determinants, dtype=np.float64)
 
         elif init == "random-uniform":
             randomrows = self._rng.choice(self.system.n_determinants, size=particles)
             randomrows = np.bincount(
-                randomrows, minlength=self.system.n_determinants
-            ).astype(np.float64)
+                randomrows,
+                minlength=self.system.n_determinants,
+            )
+
         elif init == "fixed":
             if len(diag) != self.system.n_determinants:
                 raise RuntimeError(
@@ -170,10 +170,11 @@ class DensityMatrixQMC(Iterative):
                     "determinants in the system."
                 )
             randomrows = diag
+
         else:
             raise RuntimeError(f"Unknown initalization method {init}")
 
-        f = np.diag(randomrows)
+        f = np.diag(randomrows).astype(np.float64)
         return f
 
     def run(
@@ -377,9 +378,11 @@ class DensityMatrixQMC(Iterative):
         if rbr:
             for i in range(p.shape[0]):
                 if npsip[i] != 0.0 and np_old[i] != 0.0:
-                    self._S[i] -= (zeta / (A * dbeta)) * np.log(npsip[i] / np_old[i])
+                    self._shift[i] -= (zeta / (A * dbeta)) * np.log(
+                        npsip[i] / np_old[i]
+                    )
         else:
-            self._S -= (zeta / (A * dbeta)) * np.log(npsip / np_old)
+            self._shift -= (zeta / (A * dbeta)) * np.log(npsip / np_old)
 
         return npsip
 
@@ -391,7 +394,7 @@ class DensityMatrixQMC(Iterative):
         Call signature is dictated by the "integrator" functions.
         """
         return self._propagate_core(
-            p, self.system.hamiltonian, self._S, self._rng, *args, **kwargs
+            p, self.system.hamiltonian, self._shift, self._rng, *args, **kwargs
         )
 
     def _propagate_core(self, p, *args, **kwargs):

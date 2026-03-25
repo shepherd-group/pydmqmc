@@ -45,6 +45,7 @@ ignore = ["E501"]
     "__init__.py" = ["F401"]  # import but unused
     "registry.py" = ["F821"]  # Undefined name
     "slater_condon.py" = ["F821"]  # Undefined name
+    "parallel_integrators.py" = ["F821"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"

@@ -1,7 +1,6 @@
 """Helpers for coordinating parallel Methods using MPI."""
 
 import numpy as np
-import functools
 from time import time
 
 from mpi4py import MPI  # calls MPI_Init()
@@ -24,7 +23,7 @@ class ParallelHelper:
     _rank = _comm.Get_rank()
     _size = _comm.Get_size()
     _root = 0
-    _parent = _rank == _root
+    _is_root = _rank == _root
     _parallel = _size > 1
 
     def __init__(self, shape: int | tuple[int, ...]) -> None:
@@ -67,9 +66,9 @@ class ParallelHelper:
         return self._root
 
     @property
-    def parent(self) -> bool:
+    def is_root(self) -> bool:
         """Whether this is the parent processor."""
-        return self._parent
+        return self._is_root
 
     @property
     def parallel(self) -> bool:
@@ -173,7 +172,7 @@ class ParallelHelper:
         text : str
             The text to print.
         """
-        if self._parent:
+        if self._is_root:
             print(text)
         return
 

@@ -17,5 +17,6 @@ dependencies:
   - sphinxcontrib-bibtex
   - sympy
   - pip:
+    - mpi4py
+    - mpi-pytest
     - pytest-lazy-fixtures
-prefix: /home/claire/miniforge3/envs/pydmqmc

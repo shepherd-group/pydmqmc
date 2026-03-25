@@ -77,10 +77,6 @@ class Iterative(Method):
     ----------
     system : System object
         The predefined System to run the model with.
-    rng_seed : int or array_like of ints, optional
-        Seed or sequence of seeds for the psuedo-random number generator.
-        See :func:`numpy.random.default_rng`. If using MPI parallelization,
-        each processor will have a unique seed based on this value.
     parallel : bool, default False
         Whether to use MPI to parallelize the calculation.
     """
@@ -88,7 +84,6 @@ class Iterative(Method):
     def __init__(
         self,
         system: systems.System,
-        rng_seed: None | int | ArrayLike = None,
         parallel: bool = False,
     ):
         super().__init__(system)
@@ -97,12 +92,12 @@ class Iterative(Method):
         self._report_reqs = None
         self._report_data = None
 
-        self._parallel: bool = parallel
-        self._ph: ParallelHelper | None = None
-
         # The ParallelHelper must be initialized by the child class
         # since the child method will know how to distribute the problem.
         # Initialization of the rng seed (i.e. a call to reset_rng) must follow.
+        self._parallel: bool = parallel
+        self._ph: ParallelHelper | None = None
+        self._rng = None
 
     @property
     def report_values(self) -> list[str] | None:
@@ -144,7 +139,7 @@ class Iterative(Method):
     def parallel_is_parent(self) -> bool | None:
         """Whether the current processor is the root if running in parallel."""
         if self._parallel and self._ph is not None:
-            return self._ph.parent
+            return self._ph.is_root
         else:
             return None
 
@@ -159,7 +154,7 @@ class Iterative(Method):
         """
         if self._parallel:
             if self._ph is not None:
-                return self._ph.parent
+                return self._ph.is_root
             else:
                 # ParallelHelper has not been initialized yet
                 # This case shouldn't really happen outside of the test suite
@@ -178,7 +173,8 @@ class Iterative(Method):
         ----------
         rng_seed : int or array_like of ints, optional
             Seed or sequence of seeds for the psuedo-random number generator.
-            See :func:`numpy.random.default_rng`
+            See :func:`numpy.random.default_rng`. If using MPI parallelization,
+            each processor will have a unique seed based on this value.
         """
         if self._parallel:
             seed = self._ph.get_rng_seed(rng_seed)

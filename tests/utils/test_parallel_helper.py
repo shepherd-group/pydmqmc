@@ -20,7 +20,7 @@ class TestParallelHelper_Parallel():
         parallel_assert(isinstance(self._ph.rank, int), msg=f"rank {self._ph.rank}: rank should be int")
         parallel_assert(isinstance(self._ph.size, int), msg=f"rank {self._ph.rank}: size should be int")
         parallel_assert(isinstance(self._ph.root, int), msg=f"rank {self._ph.rank}: root should be int")
-        parallel_assert(isinstance(self._ph.parent, bool), msg=f"rank {self._ph.rank}: parent should be bool")
+        parallel_assert(isinstance(self._ph.is_root, bool), msg=f"rank {self._ph.rank}: is_root should be bool")
         parallel_assert(isinstance(self._ph.parallel, bool), msg=f"rank {self._ph.rank}: parallel should be bool")
         parallel_assert(isinstance(self._ph.imin, int), msg=f"rank {self._ph.rank}: imin should be int")
         parallel_assert(isinstance(self._ph.imax, int), msg=f"rank {self._ph.rank}: imax should be int")
@@ -88,7 +88,7 @@ class TestParallelHelper_Parallel():
         answer = np.arange(self._matrix_size, dtype=float)
         answer = answer.reshape(self._matrix_shape)
         
-        if self._ph.parent:
+        if self._ph.is_root:
             array = np.arange(self._matrix_size, dtype=float)
             array = array.reshape(self._matrix_shape)
         else:

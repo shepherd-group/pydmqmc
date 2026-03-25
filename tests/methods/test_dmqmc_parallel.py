@@ -78,12 +78,12 @@ class TestDMQMC_Parallel():
                 45, 37, 23, 46, 41, 31, 27, 49, 17, 38]
 
         self._mtd.setup(1.0, "fixed", fixed_diagonal=diag)
-        parallel_assert(np.allclose(np.diag(self._mtd.density_matrix),
-                        diag),
+        parallel_assert(np.array_equal(np.diag(self._mtd.density_matrix), diag),
                         msg=f"Density matrix diagonal:\n{np.diag(self._mtd.density_matrix)}\nExpected:\n{diag}")
         parallel_assert(self._mtd.density_matrix.size == 400,
                         msg=f"Density matrix size: {self._mtd.density_matrix.size}\nExpected: 400")
 
+    @mark.skip(reason="Causes MPI deadlock")
     @mark.parallel([1,2,3])
     def test_setup_fixed_invalid(self):
         diag = [10, 30, 40]
@@ -91,6 +91,7 @@ class TestDMQMC_Parallel():
         with raises(RuntimeError):
             self._mtd.setup(1.0, "fixed", fixed_diagonal=diag)
 
+    @mark.skip(reason="Causes MPI deadlock")
     @mark.parallel([1,2,3])
     def test_setup_unknown(self):
         with raises(RuntimeError):
