@@ -124,7 +124,7 @@ supports the `FCIDUMP`_ file format.
 
 Likewise, the :ref:`Methods<ref-methods>` documentation reveals there is a
 :class:`~pydmqmc.methods.SymmetricBlochDMQMC` class that can perform a DMQMC
-simulation using the symmetric Bloch equation. This class is of the Iterative type.
+simulation using the symmetric Bloch equation. This class is of the :ref:`Iterative<methods-iterative>` type.
 
 All Method classes require a System object at initialization and have a
 :meth:`~pydmqmc.methods.SymmetricBlochDMQMC.run`
@@ -291,6 +291,43 @@ you'll need multiple objects:
 
         mtd.save_data(f"seed_{seed}")
 
+Can I Run a Calculation in Parallel?
+************************************
+
+You can run :ref:`Iterative<methods-iterative>` methods in parallel! Simply add ``parallel=True``
+to the method's constructor:
+
+.. code-block:: python
+    :emphasize-lines: 6
+
+    from pydmqmc.systems import Integral
+    from pydmqmc.methods import SymmetricBlochDMQMC
+
+    # Instantiate necessary objects
+    sys = Integral("tests/inputs/integrals/STRICT-STO3G-STR-H4.FCIDUMP")
+    mtd = SymmetricBlochDMQMC(sys, rng_seed=42, parallel=True)
+
+    # Setup and run the simulation
+    mtd.setup(
+        final_beta=25,
+        initialization="random-uniform",
+        n_particles=int(1e5)
+    )
+    mtd.run(
+        dbeta=0.001,
+        cycles_per_shift=1000,
+        shift_dampening=0.05,
+        spawn_cutoff=0.01,
+        shift_by_rows=False
+    )
+
+Note that pydmqmc uses MPI (and it's Python interface, 
+`mpi4py <https://mpi4py.readthedocs.io/en/stable/>`_) for parallelism.
+To run a script with e.g. four processes, you must use the following on the command line:
+
+.. code-block:: bash
+
+    mpirun -np 4 python my_script.py
 
 Navigating the Source Code
 --------------------------
@@ -314,5 +351,5 @@ Within the source code, search for the class's definition. This will look like:
 Within this class definition, look for a method called ``_propagate_core``.
 This will contain the code for actually performing an iterative update.
 
-Finding the math at the heart of Analytic methods is easier: simply look for the
+Finding the math at the heart of Analytic Methods is easier: simply look for the
 ``run`` method under the class definition.
