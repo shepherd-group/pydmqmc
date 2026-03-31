@@ -4,11 +4,19 @@ Generic ODE integrators for use in DMQMC and derivatives.
 Each function in this module must have the same call signature.
 """
 
-from collections.abc import Callable
+from typing import Callable
 
 
 def parallel_euler(
-    func: Callable, y: float, dt: float, ph: "ParallelHelper", *args, **kwargs
+    func: Callable[
+        [float, ...],
+        float,
+    ],
+    y: float,
+    dt: float,
+    ph: "ParallelHelper",
+    *args,
+    **kwargs,
 ) -> float:
     """
     Update `y` using Euler's method.
@@ -19,8 +27,9 @@ def parallel_euler(
 
     Parameters
     ----------
-    func : Callable
-        The function defining the ODE.
+    func : function
+        The function defining the ODE. It should take at least one float
+        as it's first argument.
     y : float
         The current value of the variable being integrated.
     dt : float
@@ -41,7 +50,15 @@ def parallel_euler(
 
 
 def parallel_rk4(
-    func: Callable, y: float, dt: float, ph: "ParallelHelper", *args, **kwargs
+    func: Callable[
+        [float, ...],
+        float,
+    ],
+    y: float,
+    dt: float,
+    ph: "ParallelHelper",
+    *args,
+    **kwargs,
 ) -> float:
     """
     Update `y` using the fourth-order Runge-Kutta method.
@@ -52,8 +69,9 @@ def parallel_rk4(
 
     Parameters
     ----------
-    func : Callable
-        The function defining the ODE.
+    func : function
+        The function defining the ODE. It should take at least one float
+        as it's first argument.
     y : float
         The current value of the variable being integrated.
     dt : float

@@ -98,7 +98,6 @@ class TestIPDMQMC_Parallel():
                         msg=f"Density matrix size: {self._mtd_sm.density_matrix.size}\nExpected: 4")
 
     @mark.parallel([1,2,3])
-    @mark.skip(reason="Causes MPI deadlock")
     def test_setup_fixed_invalid(self):
         diag = [10, 30, 40]
 
@@ -107,7 +106,6 @@ class TestIPDMQMC_Parallel():
                                "fixed", fixed_diagonal=diag)
 
     @mark.parallel([1,2,3])
-    @mark.skip(reason="Causes MPI deadlock")
     def test_setup_unknown(self):
         with raises(RuntimeError):
             self._mtd_sm.setup(self._final_beta,

@@ -121,11 +121,15 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         # Set values for use in run()
         self._final_beta = final_beta
 
-        if self._parallel and not self._ph.is_root:
-            # Make an empty density matrix
-            self._density_matrix = np.zeros(
-                (self.system.n_determinants, self.system.n_determinants),
-                dtype=np.float64,
+        if self._parallel:
+            self._density_matrix = self._ph.safe_noncollective(
+                self._init_dm,
+                initialization,
+                final_beta,
+                n_particles,
+                gc_spawn_cutoff,
+                defined_thermal_weights,
+                fixed_diagonal,
             )
         else:
             # Initialize density matrix
@@ -137,9 +141,6 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
                 defined_thermal_weights,
                 fixed_diagonal,
             )
-
-        if self._parallel:
-            self._density_matrix = self._ph.broadcast(self._density_matrix)
 
         super()._setup_report(report_quants)
 

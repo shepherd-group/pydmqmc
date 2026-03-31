@@ -5,7 +5,8 @@ from time import time
 
 from mpi4py import MPI  # calls MPI_Init()
 
-from numpy.typing import ArrayLike
+from typing import Callable, Any
+from numpy.typing import ArrayLike, NDArray as Array
 
 
 class ParallelHelper:
@@ -176,22 +177,59 @@ class ParallelHelper:
             print(text)
         return
 
-    def barrier(self) -> None:
-        """Wrap MPI Barrier."""
-        self._comm.Barrier()
-        return
-
-    def abort(self, errorcode: int) -> None:
+    def safe_noncollective(
+        self, func: Callable[[...], Array[tuple[int, int]]], *args, **kwargs
+    ) -> Any:
         """
-        Abort the MPI process.
+        Run a function that returns a 2D array on the root rank in a deadlock safe way.
+
+        If an exception is raised on the active rank then this is caught and
+        raised collectively.
 
         Parameters
         ----------
-        errorcode : int
-            The error code to return upon aborting.
+        func: function
+            The operation to be performed on a single rank. It must return a 2D array
+            when working correctly.
+        *args, **kwargs:
+            Arguments for the function.
+
+        Returns
+        -------
+        Any
+            The result of ``func``, broadcasted to all ranks.
+
         """
-        self._comm.Abort(errorcode=errorcode)
-        return
+        # Thanks to Connor J Ward of the Firedrake project for suggesting this function!
+        result = None
+        is_array = np.array([False], dtype=np.bool)
+        arr_shape = np.array((0, 0), dtype=int)
+
+        if self._is_root:
+            try:
+                self.print(func)
+                result = func(*args, **kwargs)
+                if isinstance(result, np.ndarray):
+                    is_array[0] = True
+                    arr_shape[:] = result.shape
+            except BaseException as e:
+                result = e
+
+        is_array = self.broadcast(is_array)
+        arr_shape = self.broadcast(arr_shape)
+
+        if is_array:
+            if result is None:  # prep non-root rank for broadcast
+                result = np.empty(arr_shape, dtype=float)
+            result = self.broadcast(result)
+        else:
+            # Use the generic pickle-based broadcast (slower)
+            result = self._comm.bcast(result, root=self._root)
+
+        if isinstance(result, BaseException):
+            raise result
+        else:
+            return result
 
     def broadcast(self, array: np.array) -> np.array:
         """Broadcast an array from the root processor.

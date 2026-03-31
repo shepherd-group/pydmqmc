@@ -7,7 +7,7 @@ from ..utils import save_report, ParallelHelper
 
 import numpy as np
 
-from collections.abc import Callable
+from typing import Callable
 from numpy.typing import ArrayLike
 
 
@@ -260,7 +260,11 @@ class Iterative(Method):
                 pickle_protocol,
             )
 
-    def parse_method(self, method: str = "euler") -> Callable:
+    def parse_method(
+        self, method: str = "euler"
+    ) -> Callable[
+        [Callable[[float, ...], float], float, float, ParallelHelper | None, ...], float
+    ]:
         """
         Parse the supplied string to return the corresponding function.
 

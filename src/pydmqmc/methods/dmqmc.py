@@ -122,20 +122,14 @@ class DensityMatrixQMC(Iterative):
         # Set values for use in run()
         self._final_beta = final_beta
 
-        if self._parallel and not self._ph.is_root:
-            # Make an empty density matrix
-            self._density_matrix = np.zeros(
-                (self.system.n_determinants, self.system.n_determinants),
-                dtype=np.float64,
+        if self._parallel:
+            self._density_matrix = self._ph.safe_noncollective(
+                self._init_dm, initialization, n_particles, fixed_diagonal
             )
         else:
-            # Root (or singular process) will always execute
             self._density_matrix = self._init_dm(
                 initialization, n_particles, fixed_diagonal
             )
-
-        if self._parallel:
-            self._density_matrix = self._ph.broadcast(self._density_matrix)
 
         self._setup_report(report_quants)
 
@@ -144,14 +138,6 @@ class DensityMatrixQMC(Iterative):
         self._shift = np.zeros(self.system.n_determinants, dtype=np.float64)
 
     def _init_dm(self, init: str, particles: int, diag: ArrayLike | None) -> Array:
-        """
-        CK Note: copied from functions.py::initialize_dm.
-
-        I separated all methods with "thermal" in the name to an `IP_DMQMC`
-        child class because based on the original docstring, those methods
-        seemed to be designed for IP-DMQMC. Separating DMQMC and IP-DMQMC
-        into different classes seemed like a conceptually useful thing to do.
-        """
         if init == "deterministic":
             randomrows = np.ones(self.system.n_determinants, dtype=np.float64)
 

@@ -7,7 +7,7 @@ from .report_functions import (
     von_neumann_numerator,
     von_neumann_expectation,
 )
-from collections.abc import Iterable, Callable
+from typing import Iterable, Callable, Any
 from functools import partial
 
 
@@ -29,7 +29,7 @@ class _ReportRegistry:
         }
 
     @property
-    def functions(self) -> dict[str, Callable]:
+    def functions(self) -> dict[str, Callable[[...], Any]]:
         """Dictionary of enrolled functions."""
         return self._registry
 
@@ -79,7 +79,10 @@ class _ReportRegistry:
         return req
 
     def enroll(
-        self, name: str, function: Callable, requires: str | Iterable[str] | None
+        self,
+        name: str,
+        function: Callable[[...], Any],
+        requires: str | Iterable[str] | None,
     ) -> None:
         """
         Include a new analysis function in the registry.
@@ -209,7 +212,7 @@ class enroll:
     def __init__(self, **kwargs) -> None:
         self._kwargs = kwargs
 
-    def __call__(self, f: Callable) -> Callable:
+    def __call__(self, f: Callable[[...], Any]) -> Callable[[...], Any]:
         """Enroll a function in the report registry."""
         if "name" not in self._kwargs:
             self._kwargs["name"] = f.__name__
