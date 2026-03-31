@@ -5,7 +5,7 @@ Writing New Systems
 
 This is a step-by-step guide for developing new classes in
 the :ref:`Systems submodule<ref-systems>`. We advise you
-read the :ref:`dev-philosophy` and the :ref:`dev-code-style` first.
+read the :ref:`dev-philosophy` first.
 
 When to Add a New System
 ------------------------
@@ -33,7 +33,7 @@ Each unique system should be defined in its own Python file located in the
 ``src/pydmqmc/systems/`` directory.
 The filename should be obviously connected to your new class. For example,
 the :class:`~pydmqmc.systems.MatrixHamiltonian` class is in ``hamiltonian.py``.
-The name should be written in lowercase letters and use underscores to separate words.
+The file name should be written in lowercase letters and use underscores to separate words.
 
 For this example, we'll create ``src/pydmqmc/systems/demo.py`` and open it for editing.
 
@@ -47,7 +47,7 @@ method, and what other methods (public or private) you may wish to add.
 Import Statements
 +++++++++++++++++
 
-**At minimum,** you must import the base :class:`~pydmqmc.systems.System`
+**At minimum,** you must import the base :class:`pydmqmc.systems.System`
 class for inheritance:
 
 .. code-block:: python
@@ -71,7 +71,7 @@ All utility functions will be available in your code as ``utils.function_name``.
     importing from the ``pydmqmc`` package 
     (e.g., ``from pydmqmc.systems import System``) helps prevent circular imports.
 
-**For good type hinting** (as covered in the :ref:`dev-code-style`), you may also
+**For good type hinting**, you may also
 wish to import the following NumPy types depending on your needs:
 
 .. code-block:: python
@@ -94,7 +94,8 @@ After you've set up your imports, its time to define your new class.
 We'll go ahead and define the ``Demo`` class.
 This definition will include our inheritance of the base
 :class:`~pydmqmc.systems.System` class, an example docstring following
-the `numpydoc`_ standard, and the standard ``__init__`` initialization function:
+the `numpydoc`_ standard, and the standard ``__init__`` initialization function
+Note that the ``input_file`` and ``is_complex`` parameters are required for all Systems:
 
 .. _numpydoc: https://numpydoc.readthedocs.io/en/latest/format.html#documenting-classes
 
@@ -127,13 +128,16 @@ the `numpydoc`_ standard, and the standard ``__init__`` initialization function:
             Set of eigenvalues for the system.
         """
 
-        def __init__(self, 
-                     input_file: str,  # type hints
-                     n_orbitals: int,
-                     is_complex: bool = False,
-                     eigenvalues: ArrayLike | None = None) -> None:
-            # No docstring is needed
-            # because we wrote the docstring under the class definition
+        def __init__(
+            self, 
+            input_file: str,  # type hints
+            n_orbitals: int,
+            is_complex: bool = False,
+            eigenvalues: ArrayLike | None = None
+        ) -> None:
+        # No docstring is needed
+        # because we wrote the docstring under the class definition
+
 
 .. important::
     Notice that the parameters for ``__init__`` are documented in the ``Parameters``
@@ -287,41 +291,35 @@ the new ``Demo`` class will be available instantly. If not,
 you'll need to reinstall pydmqmc.
 
 Either way, you can access your new class is now accessible via the
-System's submodule:
+Systems submodule:
 
 .. code-block:: python
 
     from pydmqmc.systems import Demo
 
-Run the Linter
---------------
+Linting and Formatting
+----------------------
 
-.. todo::
+Python developers will use software called "linters" and "formatters" to help
+keep their code clean. This improves readability for all developers
+on a project---including your future self. Linting focuses on the quality of
+your code itself while formatting fixes the visual style of the source code.
 
-    I've replaced flake8 with ruff. Update these instructions.
+The pydmqmc library uses `Ruff`_ for both linting and formatting.
+From the top level directory of the pydmqmc package, run:
 
-Python developers will use software called "linters" to help
-keep their code clean (like removing lint from a wool sweater).
-The pydmqmc library uses `flake8`_ as its linter to help enforce
-its :ref:`dev-code-style`.
-
-.. _flake8: https://flake8.pycqa.org/en/latest/
-
-From the top level directory of the pydmqmc package, simply run:
+.. _Ruff: https://docs.astral.sh/ruff/
 
 .. code-block:: bash
 
-    flake8
+    ruff format
+    ruff check
 
-You'll see a bunch of formatting issues print out on your terminal.
-Kindly address all of them to keep the code base clean and consistent!
-
-.. note::
-
-    You may wish to work with a "formatter," an automatic style enforcer,
-    such as autopep8 to automatically take care of style issues like trailing
-    spaces at the end of lines. If using an IDE like VS Code, autopep8 is available
-    as an extension.
+The first command will automatically clean up any formatting inconsistencies.
+The second will return a report with fixes you should make yourself, such as
+removing unused import statements. Some of these may be automatically fixable
+with ``ruff check --fix``. Others may need to be ignored; you can add known, ignorable
+issues to the ``tool.ruff.lint.per-file-ignores`` of the ``pyproject.toml``.
 
 Writing Tests
 -------------
@@ -401,7 +399,7 @@ in the following example with your own class name:
 The ``autoclass`` directive means that API documentation will be automatically generated
 from the class's source code (including it's docstring!) when the documentation is built.
 
-With the individual page created, open ``docs/source/api/systems/system.rst``.
+With the individual page created, open ``docs/source/api/systems/index.rst``.
 Near the top of this file is the ``toctree`` directive, which is short for
 "table of contents tree." Individual filenames can be added to this block
 in order to create a table of contents on the page. Without modifying anything
