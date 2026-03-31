@@ -118,6 +118,9 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             Takes the optional parameter `fixed_diagonal` which is used as the
             diagonal of the density matrix.
         """
+        # Access Iterative's setup method
+        super(DensityMatrixQMC, self).setup(report_quants)
+
         # Set values for use in run()
         self._final_beta = final_beta
 
@@ -142,7 +145,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
                 fixed_diagonal,
             )
 
-        super()._setup_report(report_quants)
+        self._shift = np.zeros(self.system.n_determinants, dtype=np.float64)
 
     def _init_dm(
         self,

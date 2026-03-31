@@ -15,8 +15,8 @@ class ParallelHelper:
 
     Parameters
     ----------
-    vector_size : int
-        The size of the vectors to be distributed among processors.
+    shape : int or tuple of ints
+        The size of the arrays to be distributed among processors.
     """
 
     # Shared class attributes

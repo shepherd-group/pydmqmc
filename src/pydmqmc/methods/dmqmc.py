@@ -42,6 +42,7 @@ class DensityMatrixQMC(Iterative):
             print("Generating Hamiltonian.")
             self.system.generate_hamiltonian()
 
+        self._final_beta: float | None = None
         self._density_matrix: Array | None = None
         self._shift: Array | None = None
 
@@ -119,7 +120,12 @@ class DensityMatrixQMC(Iterative):
             Takes the optional parameter `fixed_diagonal` which is used as the
             diagonal of the density matrix.
         """
+        super().setup(report_quants)
+
         # Set values for use in run()
+        # We set final_beta here to keep things consistent with IP-DMQMC,
+        # which inherits this class. Some init methods in IP-DMQMC need to
+        # know the final beta ahead of time.
         self._final_beta = final_beta
 
         if self._parallel:
@@ -131,10 +137,6 @@ class DensityMatrixQMC(Iterative):
                 initialization, n_particles, fixed_diagonal
             )
 
-        self._setup_report(report_quants)
-
-    def _setup_report(self, report_values: list[str]) -> None:
-        super().setup(report_values)
         self._shift = np.zeros(self.system.n_determinants, dtype=np.float64)
 
     def _init_dm(self, init: str, particles: int, diag: ArrayLike | None) -> Array:
@@ -278,7 +280,7 @@ class DensityMatrixQMC(Iterative):
         rbr = 1 if shift_by_rows else None
 
         # set initial shift
-        # np will not be altered in this instance
+        # npsip will not be altered in this instance
         npsip = np.sum(self._density_matrix, axis=rbr)
         npsip = self._update_shift(
             self._density_matrix, npsip, cycles_per_shift, shift_dampening, dbeta, rbr
@@ -291,7 +293,7 @@ class DensityMatrixQMC(Iterative):
                 for value in self._report_quants:
                     header += f" {value:>14}"
                 print(header)
-            self._do_report(0.0, quiet)
+        self.do_report("beta", 0.0, quiet)
 
         for shift in range(n_shifts):
             for cycle in range(cycles_per_shift):
@@ -331,25 +333,7 @@ class DensityMatrixQMC(Iterative):
             )
 
             # do periodic reporting
-            if self.is_reporter:
-                self._do_report((shift + 1) * cycles_per_shift * dbeta, quiet)
-
-    def _do_report(self, current_beta: float, quiet: bool = False) -> None:
-        """Put values for this current iteration into the self._data list."""
-        current_data = {"beta": current_beta}
-        rep_str = f"{current_beta:>14e}"
-        for value in self._report_quants:
-            data = report_registry[value](
-                self._density_matrix, **self._report_reqs[value]
-            )
-
-            current_data[value] = data
-            rep_str += f" {data:>14e}"
-
-        if not quiet:
-            print(rep_str)
-
-        self._report_data.append(current_data)
+            self.do_report("beta", (shift + 1) * cycles_per_shift * dbeta, quiet)
 
     def _update_shift(
         self,

@@ -162,6 +162,45 @@ class Iterative(Method):
         else:
             return True
 
+    def do_report(
+        self, itr_var_name: str, itr_var_value: float, quiet: bool = False
+    ) -> None:
+        """
+        Store information about the current iteration in self.report.
+
+        The iteration variable (that is, the variable being
+        monotonically changed as the iteration progresses)
+        must be supplied to provide context about the data being stored.
+
+        Only one process (the root, if in parallel) will actually execute
+        this function.
+
+        Parameters
+        ----------
+        itr_var_name : str
+            Name of the iteration variable as it should be recorded.
+        itr_var_value : float
+            Current value of the iteration variable.
+        quiet : bool, default False
+            Silence printing the current report.
+            Report will still be saved internally.
+        """
+        if self.is_reporter:
+            current_data = {itr_var_name: itr_var_value}
+            rep_str = f"{itr_var_value:>14e}"
+            for value in self._report_quants:
+                data = report_registry[value](
+                    self._density_matrix, **self._report_reqs[value]
+                )
+
+                current_data[value] = data
+                rep_str += f" {data:>14e}"
+
+            if not quiet:
+                print(rep_str)
+
+            self._report_data.append(current_data)
+
     def reset_rng(self, rng_seed: None | int | ArrayLike = None) -> None:
         """
         Create a new psuedo-random number generator with the given seed.
