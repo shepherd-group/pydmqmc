@@ -227,6 +227,9 @@ class DensityMatrixQMC(Iterative):
         .. [1] N. S. Blunt et al., "Density-matrix quantum Monte Carlo method,"
                Physical Review B, 89, 24, 2014
         """
+        # Run super()'s run method to ensure data safety.
+        super().run()
+
         # Perform sanity checks
         if self._density_matrix is None:
             raise RuntimeError("You must first run the setup() method!")
@@ -236,9 +239,6 @@ class DensityMatrixQMC(Iterative):
                 "Parameter ilevel must be type int; "
                 f"supplied value is type {type(ilevel)}."
             )
-
-        # Run super()'s run method to ensure data safety.
-        super().run()
 
         if self._parallel:
             self._ph.allocate_reduce_buffers()
