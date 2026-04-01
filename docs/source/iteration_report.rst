@@ -56,7 +56,8 @@ have no physical meaning but are useful for tracking the progress of a calculati
 The list of standard, pre-defined quantities are listed along with a brief
 description in the following table:
 
-*TODO* pull this table from the API docs
+.. include:: api/report/_report_functions_autosummary.rst
+
 
 Accessing the Iteration Report
 ------------------------------

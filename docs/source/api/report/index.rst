@@ -33,11 +33,4 @@ Functions for Standard Quantities
 These functions are already enrolled in the :data:`~pydmqmc.report_registry`
 for use as detailed in the page on :ref:`iteration-report`.
 
-.. autosummary::
-    :toctree: stubs
-
-    pydmqmc.report.trace
-    pydmqmc.report.energy_numerator
-    pydmqmc.report.energy_expectation
-    pydmqmc.report.von_neumann_numerator
-    pydmqmc.report.von_neumann_expectation
+.. include:: _report_functions_autosummary.rst

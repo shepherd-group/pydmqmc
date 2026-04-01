@@ -1,4 +1,4 @@
-.. _methods_fci:
+.. _methods-fci:
 
 Full Configuration Interaction
 ------------------------------

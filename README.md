@@ -1,6 +1,6 @@
 # pydmqmc
 
-The `pydmqmc` package let’s you quickly assemble finite-temperature many-electron calculations (is that a suitable name for the range of calculations spanned by DMQMC, FCI and others?). It serves as library with which your own scripts can be written and executed.
+The `pydmqmc` package let’s you quickly assemble finite-temperature many-electron calculations *(is that a suitable name for the range of calculations spanned by DMQMC, FCI and others?)*. It serves as library with which your own scripts can be written and executed.
 
 ## Installation
 
@@ -86,11 +86,9 @@ in the `Integral` class need unit tests.
 `_set_symmetry`, and `_symmetry_check` still need
 verification.
 * The `report_registry` could have more functions available to it.
-* Development documentation needs stub pages to be filled out.
 
 ### Future Work
 
-* Implement Will's MPI
 * Create a speed/scaling page that also compares with HANDE
 * Add more `Methods` from Will's original code.
 

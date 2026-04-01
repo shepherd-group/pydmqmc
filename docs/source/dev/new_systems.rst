@@ -262,7 +262,7 @@ Such functions may be used by Method classes to accomplish tasks that are comput
 expensive to perform at initialization. The DMQMC methods, for instance, count on the
 presence of a ``generate_hamiltonian`` method if the ``hamiltonian`` attribute is ``None``.
 
-TODO point to other documentation about what generator methods may be expected.
+.. As more methods get added we should probably make a section about what generators are needed.
 
 .. note::
     Functions should be named following the "lower with under" convention
