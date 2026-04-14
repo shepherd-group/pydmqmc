@@ -42,7 +42,13 @@ class FullConfigurationInteraction(Analytic):
         return self._wavefunctions
 
     def run(self) -> None:
-        """TODO: Write start docstring here."""
+        """
+        Find the exact solution to the Schrodinger equation.
+
+        Internally, uses numpy.linalg.eigh. The eigenvalues
+        and eigenvectors are stored as the `energies`
+        and `wavefunctions` attributes, respectively.
+        """
         self._energies, self._wavefunctions = eigh(self.system.hamiltonian)
         return
 

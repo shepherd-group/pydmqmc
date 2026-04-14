@@ -15,6 +15,15 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
     """
     Interaction-picture density matrix quantum Monte Carlo.
 
+    Density matrix quantum Monte Carlo propagates an ensemble of
+    stochastic psi particles (psips). Each psip carries a weight and occupies a
+    specific (i,j) site in the density matrix. During propagation,
+    psips spawn, die, or change weight based on Hamiltonian matrix
+    elements, implementing a Monte Carlo sampling of the density matrix
+    evolution.
+
+    This formulation take place in the interaction picture.
+
     Parameters
     ----------
     system : System object
@@ -112,11 +121,20 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             elements. Then occupies that determinant with 1 walker.
 
         random-grand-canonical:
-            TODO
+            Use knowledge of the grand canonical density matrix
+            correspdongind to the non-interacting Hamiltonian operator
+            :math:`\hat{H}^0` to set the initial density matrix.
+            See [1]_ for more.
 
         fixed:
             Takes the optional parameter `fixed_diagonal` which is used as the
             diagonal of the density matrix.
+
+        References
+        ----------
+        .. [1] Fionne D. Malone, et. al., "Interaction picture density
+            matrix quantum Monte Carlo," Journal of Chemical Physics,
+            143(4):044116, 2015
         """
         # Access Iterative's setup method
         super(DensityMatrixQMC, self).setup(report_quants)

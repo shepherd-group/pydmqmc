@@ -1,11 +1,4 @@
-"""
-System-derived class for using HANDE-created integrals (FCIDUMP files).
-
-Notes
------
-TODO I pulled `parallel_hamiltonian` out of this class for now
-for ease of development.
-"""
+"""System-derived class for using HANDE-created integrals (FCIDUMP files)."""
 
 from .. import utils
 from .system import System

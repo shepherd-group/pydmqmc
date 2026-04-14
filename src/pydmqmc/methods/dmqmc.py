@@ -178,10 +178,11 @@ class DensityMatrixQMC(Iterative):
         quiet: bool = False,
     ):
         r"""
-        Run a DMQMC realization.
+        Run a Density Matrix Quantum Monte Carlo realization.
 
-        TODO: What are psips? Initiator & free level approximations?
-        Comment on rounding below `|p_ij| > 1.0`
+        If a site (i,j) has a absolute psip weight less than one,
+        it is stochastically rounded. The Hamiltonian is periodically shifted
+        in order to stabilize the psip population.
 
         Parameters
         ----------
@@ -224,8 +225,8 @@ class DensityMatrixQMC(Iterative):
 
         References
         ----------
-        .. [1] N. S. Blunt et al., "Density-matrix quantum Monte Carlo method,"
-               Physical Review B, 89, 24, 2014
+        .. [1] N. S. Blunt, et al., "Density-matrix quantum Monte Carlo method,"
+            Physical Review B, 89:245124, 2014
         """
         # Run super()'s run method to ensure data safety.
         super().run()
@@ -428,10 +429,24 @@ class DensityMatrixQMC(Iterative):
 
 
 class AsymmetricBlochDMQMC(DensityMatrixQMC):
-    """
+    r"""
     Density matrix quantum Monte Carlo using the assymetric Bloch equation.
 
-    TODO: write math here
+    Density matrix quantum Monte Carlo propagates an ensemble of
+    stochastic psi particles (psips). Each psip carries a weight and occupies a
+    specific (i,j) site in the density matrix. During propagation,
+    psips spawn, die, or change weight based on Hamiltonian matrix
+    elements, implementing a Monte Carlo sampling of the density matrix
+    evolution.
+
+    In this forumulation, the density matrix starts at an inverse temperature
+    :math:`\beta = 0` and is evolved towards the target :math:`\beta` according
+    to the Bloch equation:
+
+    .. math:: d\hat{\rho} / d\beta = -\hat{H} \hat{rho}
+
+    where :math:`\hat{\rho}(\beta) = \exp(-\beta \hat{H})` is the unnormalized
+    thermal density matrix and :math:`\hat{H}` is the Hamiltonian operator [1]_.
 
     Parameters
     ----------
@@ -442,6 +457,11 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
         See :func:`numpy.random.default_rng`
     parallel : bool, default False
         Whether to use MPI to parallelize the calculation.
+
+    References
+    ----------
+    .. [1] N. S. Blunt, et al., "Density-matrix quantum Monte Carlo method,"
+        Physical Review B, 2014, 89, 245124
     """
 
     def __init__(
@@ -503,10 +523,24 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
 
 
 class SymmetricBlochDMQMC(DensityMatrixQMC):
-    """
+    r"""
     Density matrix quantum Monte Carlo using the assymetric Bloch equation.
 
-    TODO: write math here
+    Density matrix quantum Monte Carlo propagates an ensemble of
+    stochastic psi particles (psips). Each psip carries a weight and occupies a
+    specific (i,j) site in the density matrix. During propagation,
+    psips spawn, die, or change weight based on Hamiltonian matrix
+    elements, implementing a Monte Carlo sampling of the density matrix
+    evolution.
+
+    In this forumulation, the density matrix starts at an inverse temperature
+    :math:`\beta = 0` and is evolved towards the target :math:`\beta` according
+    to the symmetrized Bloch equation:
+
+    .. math:: d\hat{\rho} / d\beta = -1/2(\hat{H} \hat{rho} + \hat{rho} \hat{H})
+
+    where :math:`\hat{\rho}(\beta) = \exp(-\beta \hat{H})` is the unnormalized
+    thermal density matrix and :math:`\hat{H}` is the Hamiltonian operator [1]_.
 
     Parameters
     ----------
@@ -517,6 +551,11 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
         See :func:`numpy.random.default_rng`
     parallel : bool, default False
         Whether to use MPI to parallelize the calculation.
+
+    References
+    ----------
+    .. [1] N. S. Blunt, et al., "Density-matrix quantum Monte Carlo method,"
+        Physical Review B, 2014, 89, 245124
     """
 
     def __init__(
