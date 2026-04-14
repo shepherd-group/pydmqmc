@@ -1,6 +1,8 @@
+[![Documentation Status](https://readthedocs.org/projects/pydmqmc/badge/?version=latest)](https://pydmqmc.readthedocs.io/en/latest/?badge=latest)
+
 # pydmqmc
 
-The `pydmqmc` package let’s you quickly assemble finite-temperature many-electron calculations *(is that a suitable name for the range of calculations spanned by DMQMC, FCI and others?)*. It serves as library with which your own scripts can be written and executed.
+The `pydmqmc` package let’s you quickly assemble finite-temperature many-electron calculations. It serves as library with which your own scripts can be written and executed.
 
 ## Installation
 
@@ -11,7 +13,6 @@ First, clone this repository and set the branch:
 ``` bash
 git clone https://github.com/shepherd-group/pydmqmc.git
 cd pydmqmc
-git switch release_alpha
 ```
 
 Next, set up a Python environment. If you use Conda to manage your Python environments, you can set up a full development environment using the provided `environment.yml`:
