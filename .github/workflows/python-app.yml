@@ -42,9 +42,12 @@ jobs:
         use-only-tar-bz2: true
 
     - name: Install pydmqmc
-      run: pip install .
+      run: |
+        conda activate pydmqmc
+        which pip
+        pip install .
 
     - name: Test pydmqmc
-      run:
+      run: |
         pytest
         ./tests/run_parallel_tests.sh
