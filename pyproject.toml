@@ -12,21 +12,11 @@ authors = [
 description = "Python library for density matrix quantum Monte Carlo"
 # classifiers
 # requires-python >= 3.10
-dependencies = [  # TODO separate out development dependencies
-    "coverage",
+dependencies = [
     "mpi4py",  # recommend installing with pip
-    "mpi-pytest",  # not available with conda
     "numba",
     "numpy",
-    "numpydoc",
-    "pandas",
-    "pytest",
-    "pytest-lazy-fixtures",  # not available with conda
-    "ruff",
     "scipy",
-    "sphinx",
-    "sphinx_rtd_theme",
-    "sphinxcontrib-bibtex",
     "sympy"
 ]
 

@@ -15,9 +15,6 @@ documentation.
 Note that pydmqmc uses the object oriented programming design paradigm. If you are
 unfamiliar with object oriented programming, check out the :ref:`oop-primer`.
 
-This page covers conceptual design choices but aspiring developers should also read the
-:ref:`dev-code-style` for suggestions on writing their actual code.
-
 Overview: Design Principles of pydmqmc
 --------------------------------------
 

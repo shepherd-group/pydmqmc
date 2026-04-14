@@ -1,0 +1,14 @@
+name: pydmqmc-docs
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - mpi4py
+  - numba
+  - numpydoc
+  - numpy
+  - scipy
+  - sympy
+  - sphinx
+  - sphinx_rtd_theme
+  - sphinxcontrib-bibtex

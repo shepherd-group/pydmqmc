@@ -14,8 +14,7 @@ cd pydmqmc
 git switch release_alpha
 ```
 
-Next, set up a Python environment. If you use Conda to manage your Python
-environments, you can set one up using the provided `environment.yml`:
+Next, set up a Python environment. If you use Conda to manage your Python environments, you can set up a full development environment using the provided `environment.yml`:
 
 ``` bash
 conda env create -f environment.yml
@@ -54,16 +53,18 @@ pytest  # serial tests
 pytest -m parallel  # parallel tests
 ```
 
-## Building the Documentation
+### Building the Documentation
 
-The dependencies for `pydmqmc` include everything you need to build the documentation yourself. To do so, run the following:
+The `environment.yml` file includes everything you need to build the documentation yourself.
+To do so, run the following:
 
 ``` bash
 cd docs
 make html
 ```
 
-The documentation will then be available in `pydmqmc/docs/build/html`. Open `pydmqmc/docs/build/html/index.html` to browse the
+The documentation will then be available in `pydmqmc/docs/build/html`.
+Open `pydmqmc/docs/build/html/index.html` to browse the
 documentation like a webpage!
 
 Navigate to the Quickstart page to get started with `pydmqmc`!

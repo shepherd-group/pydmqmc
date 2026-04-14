@@ -4,10 +4,10 @@ channels:
   - defaults
 dependencies:
   - coverage
+  - mpi4py
   - numba
   - numpydoc
   - numpy
-  - pandas
   - pip
   - pytest
   - ruff
@@ -17,6 +17,5 @@ dependencies:
   - sphinxcontrib-bibtex
   - sympy
   - pip:
-    - mpi4py
     - mpi-pytest
     - pytest-lazy-fixtures
