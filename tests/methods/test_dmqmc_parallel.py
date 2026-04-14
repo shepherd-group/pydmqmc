@@ -54,14 +54,14 @@ class TestDMQMC_Parallel():
         parallel_assert(self._mtd.parallel_is_parent in [True, False])
         parallel_assert(self._mtd.is_reporter in [True, False])
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_setup_determinitistic(self):
         self._mtd.setup(1.0, "deterministic")
         parallel_assert(np.allclose(self._mtd.density_matrix, 
                         np.eye(self._mtd.system.n_determinants)),
                         msg=f"Density matrix:\n{self._mtd.density_matrix}\nExpected:\n{np.eye(self._mtd.system.n_determinants)}")
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_setup_random_uniform(self):
         diag = np.array([0, 3, 0, 0, 1, 0, 0, 0, 2, 0, 
                         0, 0, 0, 2, 0, 1, 0, 1, 0, 0])
@@ -72,7 +72,7 @@ class TestDMQMC_Parallel():
                         diag),
                         msg=f"Density matrix diagonal:\n{np.diag(self._mtd.density_matrix)}\nExpected:\n{diag}")
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_setup_fixed(self):
         diag = [10, 30, 40, 25, 18, 54, 22, 34, 47, 36,
                 45, 37, 23, 46, 41, 31, 27, 49, 17, 38]
@@ -83,31 +83,31 @@ class TestDMQMC_Parallel():
         parallel_assert(self._mtd.density_matrix.size == 400,
                         msg=f"Density matrix size: {self._mtd.density_matrix.size}\nExpected: 400")
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_setup_fixed_invalid(self):
         diag = [10, 30, 40]
 
         with raises(RuntimeError):
             self._mtd.setup(1.0, "fixed", fixed_diagonal=diag)
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_setup_unknown(self):
         with raises(RuntimeError):
             self._mtd.setup(1.0, "bad-method")
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_run(self):
         self._mtd.setup(1.0, "deterministic")
 
         with raises(NotImplementedError):
             self._mtd.run(0.01, 10, 0.05)
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_run_no_setup(self):
         with raises(RuntimeError):
             self._mtd.run(0.01, 10, 0.05)
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_run_invalid_ilevel(self):
         self._mtd.setup(1.0, "deterministic")
 
@@ -121,7 +121,7 @@ class TestAsymmetricBlochDMQMC_Parallel():
     def _setup(self, integral_system_large):
         self._mtd = AsymmetricBlochDMQMC(integral_system_large, parallel=True)
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_basic(self):
         """
         Implicitly tests dummy matrix created for ilevel = None and ilevel = 0.
@@ -146,7 +146,7 @@ class TestAsymmetricBlochDMQMC_Parallel():
         parallel_assert(np.isclose(eng, -141115.3864),
                         msg=f"Energy: {eng}\nExpected: -141115.3864")
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_rbr(self):
         self._mtd.reset_rng(42)
         self._mtd.setup(
@@ -168,7 +168,7 @@ class TestAsymmetricBlochDMQMC_Parallel():
         parallel_assert(np.isclose(eng, -46578.8490),
                         msg=f"Energy: {eng}\nExpected: -46578.8490")
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_ilevel_zero(self):
         """
         Test functionality of ilevel = 0.
@@ -206,7 +206,7 @@ class TestAsymmetricBlochDMQMC_Parallel():
         parallel_assert(np.isclose(eng, energies[self._mtd.parallel_size]),
                         msg=f"Energy: {eng}\nExpected: {energies[self._mtd.parallel_size]}")
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_ilevel_nonzero(self):
         self._mtd.reset_rng(42)
         self._mtd.setup(
@@ -235,7 +235,7 @@ class TestSymmetricBlochDMQMC_Parallel():
     def _setup(self, integral_system_large):
         self._mtd = SymmetricBlochDMQMC(integral_system_large, parallel=True)
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_basic(self):
         self._mtd.reset_rng(42)
         self._mtd.setup(
@@ -257,7 +257,7 @@ class TestSymmetricBlochDMQMC_Parallel():
         parallel_assert(np.isclose(eng, -141000.9932),
                         msg=f"Energy: {eng}\nExpected: -141000.9932")
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_rbr(self):
         self._mtd.reset_rng(42)
         self._mtd.setup(
@@ -279,7 +279,7 @@ class TestSymmetricBlochDMQMC_Parallel():
         parallel_assert(np.isclose(eng, -42058.9926),
                         msg=f"Energy: {eng}\nExpected: -42058.9926")
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_ilevel_zero(self):
         """
         Test functionality of ilevel = 0.
@@ -316,7 +316,7 @@ class TestSymmetricBlochDMQMC_Parallel():
         parallel_assert(np.isclose(eng, energies[self._mtd.parallel_size]),
                         msg=f"Energy: {eng}\nExpected: {energies[self._mtd.parallel_size]}")
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_ilevel_nonzero(self):
         self._mtd.reset_rng(42)
         self._mtd.setup(

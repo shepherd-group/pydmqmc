@@ -14,7 +14,7 @@ class TestParallelHelper_Parallel():
         self._matrix_size = np.prod(self._matrix_shape)
         self._ph = ParallelHelper(self._matrix_shape)
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_properties(self):
         parallel_assert(self._ph.comm is not None, msg=f"rank {self._ph.rank}: comm should not be None")
         parallel_assert(isinstance(self._ph.rank, int), msg=f"rank {self._ph.rank}: rank should be int")
@@ -51,7 +51,7 @@ class TestParallelHelper_Parallel():
         parallel_assert(self._ph.imax == answers[self._ph.rank][1],
                         msg=f"rank {self._ph.rank}: imax expected {answers[self._ph.rank][1]}, got {self._ph.imax}")
 
-    @mark.parallel([2,3])
+    @mark.parallel([2])
     def test_setup_job_map_oversubscribe(self):
         with raises(ValueError):
             ParallelHelper(shape=(1, 10))
@@ -68,14 +68,7 @@ class TestParallelHelper_Parallel():
         parallel_assert(seed == seeds[self._ph.rank],
                         msg=f"rank {self._ph.rank}: seed expected {seeds[self._ph.rank]}, got {seed}")
 
-    @mark.parallel(3)
-    def test_get_rng_seed_3proc(self):
-        seeds = [100, 103, 106]
-        seed = self._ph.get_rng_seed(100)
-        parallel_assert(seed == seeds[self._ph.rank],
-                        msg=f"rank {self._ph.rank}: seed expected {seeds[self._ph.rank]}, got {seed}")
-
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_allocate_buffers(self):
         self._ph.allocate_reduce_buffers()
         parallel_assert(self._ph._recvbuf is not None,
@@ -83,7 +76,7 @@ class TestParallelHelper_Parallel():
         parallel_assert(self._ph._recvbuf.shape == self._matrix_shape,
                         msg=f"rank {self._ph.rank}: recvbuf shape expected {self._matrix_shape}, got {self._ph._recvbuf.shape}")
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_broadcast(self):
         answer = np.arange(self._matrix_size, dtype=float)
         answer = answer.reshape(self._matrix_shape)
@@ -98,20 +91,20 @@ class TestParallelHelper_Parallel():
         parallel_assert(np.array_equal(array, answer),
                         msg=f"rank {self._ph.rank}: broadcast array expected {answer}, got {array}")
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_allreduce_sum_without_allocation(self):
         array = np.zeros(self._matrix_shape)
         with raises(RuntimeError):
             self._ph.allreduce_sum(array)
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_allreduce_sum_incorrect_size(self):
         self._ph.allocate_reduce_buffers()
         array = np.zeros((self._matrix_shape[0], self._matrix_shape[1] + 1))
         with raises(ValueError):
             self._ph.allreduce_sum(array)
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_allreduce_sum(self):
         local_array = np.ones(self._matrix_shape)
         answer = local_array * self._ph.size

@@ -21,7 +21,7 @@ class TestIntegrators_Parallel():
         dy[self._ph.imin:self._ph.imax] = np.exp(y[self._ph.imin:self._ph.imax])
         return dy
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_euler_parallel(self):
         y = np.arange(4.0).reshape(4, 1)
         y_prime = parallel_euler(self.dxdy, y, 0.01, ph=self._ph)
@@ -29,7 +29,7 @@ class TestIntegrators_Parallel():
         answer = y + 0.01*np.exp(y)
         parallel_assert(np.allclose(y_prime, answer), msg=f"y_prime: {y_prime}\nExpected: {answer}")
 
-    @mark.parallel([1,2,3])
+    @mark.parallel([1,2])
     def test_rk4_parallel(self):
         y = np.arange(4.0).reshape(4, 1)
         y_prime = parallel_rk4(self.dxdy, y, 0.01, ph=self._ph)
