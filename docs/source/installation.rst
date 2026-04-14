@@ -3,7 +3,15 @@
 Installation
 ============
 
-At this time, pydmqmc is only buildable from source.
+
+.. _install-pypi:
+
+Installing with pip
+-------------------
+
+Stable releases of pydmqmc are available via pip: ::
+
+    $ pip install pydmqmc
 
 .. _build-source:
 
