@@ -36,18 +36,21 @@ jobs:
     - uses: conda-incubator/setup-miniconda@v3
       with:
         miniforge-version: latest
+        use-mamba: true
+        mamba-version: "*"
         python-version: ${{ matrix.python-version }}
-        activate-environment: pydmqmc
         environment-file: environment.yml
+        activate-environment: pydmqmc
         use-only-tar-bz2: true
 
     - name: Install pydmqmc
+      shell: bash -el {0}
       run: |
-        conda activate pydmqmc
         which pip
         pip install .
 
     - name: Test pydmqmc
+      shell: bash -el {0}
       run: |
         pytest
         ./tests/run_parallel_tests.sh
