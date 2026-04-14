@@ -1,3 +1,4 @@
+[![Test Status](https://github.com/shepherd-group/pydmqmc/actions/workflows/python-app.yml/badge.svg)](https://github.com/shepherd-group/pydmqmc/actions/workflows/python-app.yml)
 [![Documentation Status](https://readthedocs.org/projects/pydmqmc/badge/?version=latest)](https://pydmqmc.readthedocs.io/en/latest/?badge=latest)
 
 # pydmqmc
