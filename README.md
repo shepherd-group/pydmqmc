@@ -7,7 +7,15 @@ The `pydmqmc` package let’s you quickly assemble finite-temperature many-elect
 
 ## Installation
 
-At this time, `pydmqmc` is only buildable from source.
+The `pydmqmc` package is available via PyPI:
+
+``` bash
+pip install pydmqmc
+```
+
+Any necessary dependencies will be installed automatically!
+
+### Development Version
 
 First, clone this repository and set the branch:
 
@@ -37,7 +45,7 @@ You can test your installation is working by running the test suite:
 pytest
 ```
 
-### Parallel Tests
+#### Parallel Tests
 
 Note that, by default, `pytest` is configured to skip tests for the parallel (MPI) infrastructure.
 This is because the way `pytest` prefers to natively run these tests (i.e., using forking) fails on some version
@@ -55,7 +63,7 @@ pytest  # serial tests
 pytest -m parallel  # parallel tests
 ```
 
-### Building the Documentation
+#### Building the Documentation
 
 The `environment.yml` file includes everything you need to build the documentation yourself.
 To do so, run the following:

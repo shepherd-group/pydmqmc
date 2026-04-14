@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pydmqmc"
-version = "0.0.1"
+version = "0.1.0"
 authors = [
     { name="Claire Kopenhafer", email="kopenhaf@msu.edu"},
     { name="William Van Benschoten", email="vanwill2@msu.edu" },
