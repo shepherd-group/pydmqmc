@@ -18,7 +18,7 @@ Stable releases of pydmqmc are available via pip: ::
 Building from Source
 --------------------
 
-First, clone the repository: ::
+First, clone the `repository <https://github.com/shepherd-group/pydmqmc>`_: ::
 
     $ git clone https://github.com/shepherd-group/pydmqmc.git
     $ cd pydmqmc

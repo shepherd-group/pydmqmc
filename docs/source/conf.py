@@ -7,9 +7,9 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'pydmqmc'
-copyright = '2025, William Van Benschoten, Claire Kopenhafer'
 author = 'William Van Benschoten, Claire Kopenhafer'
-release = 'alpha'
+copyright = f'2025, {author}'
+release = '0.1.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
