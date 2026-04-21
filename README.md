@@ -2,7 +2,7 @@
 [![Test Status](https://github.com/shepherd-group/pydmqmc/actions/workflows/python-app.yml/badge.svg)](https://github.com/shepherd-group/pydmqmc/actions/workflows/python-app.yml)
 ![Coverage Status](.coverage-badge.svg?dummy=8484744)
 [![Documentation Status](https://readthedocs.org/projects/pydmqmc/badge/?version=latest)](https://pydmqmc.readthedocs.io/en/latest/?badge=latest)
-[![DOI](https://zenodo.org/badge/19614801.svg)](https://zenodo.org/badge/latestdoi/19614801)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19614801.svg)](https://doi.org/10.5281/zenodo.19614801)
 
 # pydmqmc
 
