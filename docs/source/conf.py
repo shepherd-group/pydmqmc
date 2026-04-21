@@ -8,7 +8,7 @@
 
 from datetime import datetime
 project = 'pydmqmc'
-author = 'William Van Benschoten, Claire Kopenhafer'
+author = 'Claire Kopenhafer, William Van Benschoten, James J Shepherd'
 current_year = datetime.today().strftime("%Y")
 copyright = f'2021-{current_year}, {author}'
 release = '0.1.0'

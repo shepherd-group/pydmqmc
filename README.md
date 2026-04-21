@@ -1,9 +1,14 @@
+<!-- The coverage badge was generated using the genbadge package: https://smarie.github.io/python-genbadge/ -->
 [![Test Status](https://github.com/shepherd-group/pydmqmc/actions/workflows/python-app.yml/badge.svg)](https://github.com/shepherd-group/pydmqmc/actions/workflows/python-app.yml)
+![Coverage Status](.coverage-badge.svg?dummy=8484744)
 [![Documentation Status](https://readthedocs.org/projects/pydmqmc/badge/?version=latest)](https://pydmqmc.readthedocs.io/en/latest/?badge=latest)
+[![DOI](https://zenodo.org/badge/19614801.svg)](https://zenodo.org/badge/latestdoi/19614801)
 
 # pydmqmc
 
 The `pydmqmc` package let’s you quickly assemble finite-temperature many-electron calculations. It serves as library with which your own scripts can be written and executed.
+
+`pydmqmc` was inspired by the [HANDE](https://github.com/hande-qmc/hande) code.
 
 ## Installation
 
@@ -79,6 +84,14 @@ documentation like a webpage!
 
 Navigate to the Quickstart page to get started with `pydmqmc`!
 
+## Citing this software
+
+Please cite this software using the following DOI: [10.5281/zenodo.19614801](https://zenodo.org/records/19614801).
+
+Depending on the methods used in your work, please also cite the following method papers (DOIs provided):
+
+* DMQMC: [10.1103/PhysRevB.89.245124](https://journals.aps.org/prb/abstract/10.1103/PhysRevB.89.245124)
+* IP-DMQMC: [10.1063/1.4927434](https://pubs.aip.org/aip/jcp/article/143/4/044116/71857/Interaction-picture-density-matrix-quantum-Monte)
 
 ## Developer Notes
 
