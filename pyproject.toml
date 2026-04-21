@@ -9,6 +9,7 @@ authors = [
     { name="Claire Kopenhafer", email="kopenhaf@msu.edu"},
     { name="William Van Benschoten", email="vanwill2@msu.edu" },
 ]
+readme = "README.md"
 description = "Python library for density matrix quantum Monte Carlo"
 # classifiers
 # requires-python >= 3.10
