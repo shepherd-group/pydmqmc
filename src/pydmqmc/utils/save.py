@@ -40,10 +40,8 @@ def save_array(
     --------
     save_report : Save lists of dictionaries as a chosen file type.
     """
-    if data is None:
-        raise RuntimeError(
-            "Provided data is None! Did you remember to run the simulation?"
-        )
+    if data is None or data.size == 0:
+        raise RuntimeError("No data provided! Did you remember to run the simulation?")
 
     if filetype == "txt":
         # delimit with tabs instead of spaces
@@ -58,7 +56,7 @@ def save_array(
         with open(filename, "wb") as f:
             pickle.dump(data, f, protocol=pickle_protocol)
     else:
-        raise RuntimeError(f"File type {filetype} is not recognized!")
+        raise ValueError(f"File type {filetype} is not recognized!")
 
 
 def save_report(
@@ -129,4 +127,4 @@ def save_report(
         with open(filename, "wb") as f:
             pickle.dump(list_of_dicts, f, protocol=pickle_protocol)
     else:
-        raise RuntimeError(f"File type {filetype} is not recognized!")
+        raise ValueError(f"File type {filetype} is not recognized!")
