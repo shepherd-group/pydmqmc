@@ -260,12 +260,12 @@ class Iterative(Method):
 
         self._report_data = []
 
-    def save_data(  # TODO test this function, ideally here but maybe in Child tests
+    def save_data(
         self,
         report_basename: str,
+        index_quant: str | None = None,
         report_filetype: str = "csv",
         pickle_protocol: int | None = None,
-        index_quant: str | None = None,
     ):
         """
         Save the iteration report to file.
@@ -275,6 +275,9 @@ class Iterative(Method):
         report_basename : str
             Base filename for saving the iteration report. Will automatically
             be combined with the extension specified by ``report_filetype``.
+        index_quant : string, optional
+            Name of the quantity to put as the first column.
+            Must be a key in the report.
         report_filetype : str, default "csv"
             File type (aka extension) with which to save the report.
             Supported types are:
@@ -286,9 +289,6 @@ class Iterative(Method):
         pickle_protocol : unt, optional
             Protocol version to use if either `filetype` is "pkl".
             If none, uses `pickle`'s default.
-        index_quant : string, optional
-            Name of the quantity to put as the first column.
-            Must be a key in the report.
         """
         if self.is_reporter:
             save_report(

@@ -419,7 +419,7 @@ class DensityMatrixQMC(Iterative):
             If none, uses `pickle`'s default.
         """
         if self.is_reporter:
-            super().save_data(basename, report_filetype, pickle_protocol, "beta")
+            super().save_data(basename, "beta", report_filetype, pickle_protocol)
             save_array(
                 self._density_matrix,
                 basename + "_density_matrix",
