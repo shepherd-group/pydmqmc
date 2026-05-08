@@ -265,6 +265,8 @@ class System:
                 ba[np.arange(0, self._norb, 2)] = aba
                 ba[np.arange(1, self._norb, 2)] = bba
 
+                # I don't currently see an instance where use_symmetry_block
+                # is every *not* True so hard code it for now.
                 use_symmetry_block = True
                 if sym == self._sym:
                     bas.append(ba)
