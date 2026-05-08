@@ -1,6 +1,6 @@
 import numpy as np
 from pytest import fixture
-from os.path import dirname, join
+from os.path import dirname, join, exists
 
 from pydmqmc.methods import FullConfigurationInteraction
 from pydmqmc.systems import MatrixHamiltonian, Integral
@@ -60,3 +60,18 @@ def test_FCI_run_Integral(integral_system):
 
     assert np.allclose(mtd.energies, ref_eng)
     assert np.allclose(mtd.wavefunctions, ref_wav)
+
+
+def test_FCI_save_data_MatrixHamiltonian(matrix_system):
+    mtd = FullConfigurationInteraction(matrix_system)
+    mtd.run()
+    mtd.save_data("test_fci_matrix")
+
+    assert exists("test_fci_matrix_energies.csv")
+    assert exists("test_fci_matrix_wavefunctions.csv")
+
+    loaded_energies = np.genfromtxt("test_fci_matrix_energies.csv", delimiter=',')
+    loaded_wavefunctions = np.genfromtxt("test_fci_matrix_wavefunctions.csv", delimiter=',')
+
+    assert np.allclose(loaded_energies, mtd.energies)
+    assert np.allclose(loaded_wavefunctions, mtd.wavefunctions)

@@ -1,7 +1,7 @@
 import numpy as np
 from pytest import fixture, raises, mark
 from pytest_lazy_fixtures import lf
-from os.path import dirname, join
+from os.path import dirname, join, exists
 from pytest_mpi import parallel_assert
 
 from pydmqmc.systems import MatrixHamiltonian, Integral
@@ -228,6 +228,44 @@ class TestAsymmetricBlochDMQMC_Parallel():
         parallel_assert(np.isclose(eng, -141115.3875),
                         msg=f"Energy: {eng}\nExpected: -141115.3875")
 
+    @mark.parallel([1,2])
+    def test_save_data(self):
+        """
+        Implicitly tests dummy matrix created for ilevel = None and ilevel = 0.
+        """
+        self._mtd.reset_rng(42)
+        self._mtd.setup(
+            final_beta=25,
+            initialization="random-uniform",
+            n_particles=int(1e5)
+        )
+        self._mtd.run(
+            dbeta=0.001,
+            cycles_per_shift=1000,
+            shift_dampening=0.05,
+            spawn_cutoff=0.01,
+            shift_by_rows=False
+        )
+        self._mtd.save_data("test_asymmetric_bloch_dmqmc",
+                            matrix_filetype="csv",
+                            report_filetype="csv")
+
+        assert exists("test_asymmetric_bloch_dmqmc_density_matrix.csv")
+        assert exists("test_asymmetric_bloch_dmqmc_report.csv")
+
+        if self._mtd.is_reporter:
+
+            loaded_matrix = np.genfromtxt("test_asymmetric_bloch_dmqmc_density_matrix.csv",
+                                        delimiter=',')
+            assert np.allclose(loaded_matrix.shape, self._mtd.density_matrix.shape)
+
+            loaded_report = np.genfromtxt("test_asymmetric_bloch_dmqmc_report.csv",
+                                        delimiter=',', names=True)
+            assert loaded_report.shape[0] == len(self._mtd.report)
+            assert loaded_report['beta'][0] == self._mtd.report[0]['beta']
+            # Numpy converts spaces to underscores
+            assert loaded_report['energy_expectation'][1] == self._mtd.report[1]['energy expectation']
+
 
 class TestSymmetricBlochDMQMC_Parallel():
 
@@ -337,3 +375,41 @@ class TestSymmetricBlochDMQMC_Parallel():
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
         parallel_assert(np.isclose(eng, -141000.9942),
                         msg=f"Energy: {eng}\nExpected: -141000.9942")
+
+    @mark.parallel([1,2])
+    def test_save_data(self):
+        """
+        Implicitly tests dummy matrix created for ilevel = None and ilevel = 0.
+        """
+        self._mtd.reset_rng(42)
+        self._mtd.setup(
+            final_beta=25,
+            initialization="random-uniform",
+            n_particles=int(1e5)
+        )
+        self._mtd.run(
+            dbeta=0.001,
+            cycles_per_shift=1000,
+            shift_dampening=0.05,
+            spawn_cutoff=0.01,
+            shift_by_rows=False
+        )
+        self._mtd.save_data("test_symmetric_bloch_dmqmc",
+                            matrix_filetype="csv",
+                            report_filetype="csv")
+
+        if self._mtd.is_reporter:
+
+            assert exists("test_symmetric_bloch_dmqmc_density_matrix.csv")
+            assert exists("test_symmetric_bloch_dmqmc_report.csv")
+
+            loaded_matrix = np.genfromtxt("test_symmetric_bloch_dmqmc_density_matrix.csv",
+                                        delimiter=',')
+            assert np.allclose(loaded_matrix.shape, self._mtd.density_matrix.shape)
+
+            loaded_report = np.genfromtxt("test_symmetric_bloch_dmqmc_report.csv",
+                                        delimiter=',', names=True)
+            assert loaded_report.shape[0] == len(self._mtd.report)
+            assert loaded_report['beta'][0] == self._mtd.report[0]['beta']
+            # Numpy converts spaces to underscores
+            assert loaded_report['energy_expectation'][1] == self._mtd.report[1]['energy expectation']

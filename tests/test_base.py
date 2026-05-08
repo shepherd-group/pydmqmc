@@ -132,6 +132,12 @@ class TestIterative():
         with raises(RuntimeError):
             self._mtd.parse_method("junk")
 
+    def test_save_data(self):
+        self._mtd.setup(["trace"])
+        with raises(RuntimeError):
+            self._mtd.save_data("dummy")
+
+
 class TestIterative_Parallel():
 
     @fixture(autouse=True)

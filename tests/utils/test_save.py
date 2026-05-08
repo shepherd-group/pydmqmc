@@ -1,6 +1,6 @@
 import pickle
 import numpy as np
-from pytest import fixture
+from pytest import fixture, raises
 from os.path import join, exists
 
 from pydmqmc.utils import save_array, save_report
@@ -57,6 +57,21 @@ class TestSave():
             loaded = pickle.load(f)
         assert np.array_equal(arr, loaded)
 
+    def test_save_array_unsupported_filetype(self):
+        arr = np.arange(10)
+        with raises(ValueError):
+            save_array(arr,
+                       join(self._tmpdir, "array"),
+                       filetype="unsupported")
+    
+    def test_save_array_no_data(self):
+        arr = np.array([])
+        with raises(RuntimeError):
+            save_array(arr,
+                    join(self._tmpdir, "array"),
+                    filetype="csv")
+
+        
 class TestSaveReport():
     """Test save_report."""
 
@@ -104,3 +119,17 @@ class TestSaveReport():
         assert len(loaded) == 2
         assert loaded[0]['a'] == 1
         assert loaded[1]['b'] == 4
+
+    def test_save_report_unsupported_filetype(self):
+        with raises(ValueError):
+            save_report(self._data,
+                        join(self._tmpdir, "report"),
+                        index_col='a',
+                        filetype="unsupported")
+
+    def test_save_report_no_data(self):
+        with raises(RuntimeError):
+            save_report([],
+                        join(self._tmpdir, "report"),
+                        index_col='a',
+                        filetype="csv")
