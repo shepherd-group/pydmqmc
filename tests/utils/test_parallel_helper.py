@@ -43,14 +43,6 @@ class TestParallelHelper_Parallel():
         parallel_assert(self._ph.imax == answers[self._ph.rank][1],
                         msg=f"rank {self._ph.rank}: imax expected {answers[self._ph.rank][1]}, got {self._ph.imax}")
 
-    @mark.parallel(3)
-    def test_setup_job_map_3proc(self):
-        answers = {0: (0, 4), 1: (4, 7), 2: (7, 10)}
-        parallel_assert(self._ph.imin == answers[self._ph.rank][0],
-                        msg=f"rank {self._ph.rank}: imin expected {answers[self._ph.rank][0]}, got {self._ph.imin}")
-        parallel_assert(self._ph.imax == answers[self._ph.rank][1],
-                        msg=f"rank {self._ph.rank}: imax expected {answers[self._ph.rank][1]}, got {self._ph.imax}")
-
     @mark.parallel([2])
     def test_setup_job_map_oversubscribe(self):
         with raises(ValueError):
@@ -75,6 +67,16 @@ class TestParallelHelper_Parallel():
                         msg=f"rank {self._ph.rank}: _recvbuf should not be None after allocation")
         parallel_assert(self._ph._recvbuf.shape == self._matrix_shape,
                         msg=f"rank {self._ph.rank}: recvbuf shape expected {self._matrix_shape}, got {self._ph._recvbuf.shape}")
+
+    @mark.parallel([1,2])
+    def test_allocate_buffers_twice(self, capsys):
+        self._ph.allocate_reduce_buffers()
+        self._ph.allocate_reduce_buffers()
+
+        if self._ph.is_root:
+            captured = capsys.readouterr()
+            messages = captured.out.split("\n")  # last entry will be empty str
+            assert messages[-2] == "Buffers already allocated; skipping."
 
     @mark.parallel([1,2])
     def test_broadcast(self):

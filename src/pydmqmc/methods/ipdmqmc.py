@@ -41,12 +41,6 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
     ) -> None:
         super().__init__(system, rng_seed, parallel)
         self._final_beta = None
-        self._spawn_cutoff = None
-
-    @property
-    def spawn_cutoff(self) -> float | None:
-        """Cutoff for psip spawning."""
-        return self._spawn_cutoff
 
     def setup(
         self,

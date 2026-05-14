@@ -39,6 +39,7 @@ class TestIPDMQMC():
                            "deterministic")
 
         assert np.allclose(self._mtd_sm.density_matrix, ref)
+        assert self._mtd_sm.final_beta == self._final_beta
 
     def test_setup_random_uniform(self):
         ref = np.array([[41382.0252,  0.       ],
@@ -50,6 +51,7 @@ class TestIPDMQMC():
                            n_particles=self._nparticle)
 
         assert np.allclose(self._mtd_sm.density_matrix, ref)
+        assert self._mtd_sm.final_beta == self._final_beta
 
     def test_setup_random_thermal(self):
         ref = np.array([[82945.,     0.],
@@ -61,6 +63,7 @@ class TestIPDMQMC():
                            n_particles=self._nparticle)
 
         assert np.allclose(self._mtd_sm.density_matrix, ref)
+        assert self._mtd_sm.final_beta == self._final_beta
 
     def test_setup_random_grand_canonical(self):
         ref = np.array([11521.,  7595.,  7687.,  6636.,  6635.,  6528.,  4917.,  4973.,
@@ -75,6 +78,7 @@ class TestIPDMQMC():
 
         assert np.allclose(np.diag(self._mtd_lg.density_matrix),
                            ref)
+        assert self._mtd_lg.final_beta == self._final_beta
 
     def test_setup_fixed(self):
         diag = [10, 30]
@@ -84,6 +88,7 @@ class TestIPDMQMC():
         assert np.allclose(np.diag(self._mtd_sm.density_matrix),
                            diag)
         assert self._mtd_sm.density_matrix.size == 4
+        assert self._mtd_sm.final_beta == self._final_beta
 
     def test_setup_fixed_invalid(self):
         diag = [10, 30, 40]

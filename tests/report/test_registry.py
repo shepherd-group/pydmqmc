@@ -17,7 +17,7 @@ default_enrolled =  [
 
 class TestReportRegistry():
 
-    @fixture
+    @fixture(autouse=True)
     def _setup(self, request):
         file = join(dirname(request.path),
                 "..", "inputs", "integrals", "H2-STO-3G-0.74Ang.fcidump")
