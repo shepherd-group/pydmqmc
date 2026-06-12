@@ -31,6 +31,8 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
     rng_seed : int or array_like of ints, optional
         Seed or sequence of seeds for the psuedo random number generator.
         See :func:`numpy.random.default_rng`
+    parallel : bool, default False
+        Whether to use MPI to parallelize the calculation.
 
     References
     ----------
@@ -46,7 +48,6 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         parallel: bool = False,
     ) -> None:
         super().__init__(system, rng_seed, parallel)
-        self._final_beta = None
 
     def setup(
         self,
