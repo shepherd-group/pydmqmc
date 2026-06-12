@@ -4,7 +4,7 @@ from os.path import dirname, join
 from pytest_mpi import parallel_assert
 
 from pydmqmc.systems import Integral
-from pydmqmc.methods import InteractionPictureDMQMC
+from pydmqmc.methods import InteractionPictureDMQMC, PiecewiseIPDMQMC
 
 
 @fixture(scope="module")
@@ -195,3 +195,33 @@ class TestIPDMQMC_Parallel():
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
         parallel_assert(np.isclose(eng, -0.69688129),
                         msg=f"Energy: {eng}\nExpected: -0.69688129")
+
+@mark.parallel([1,2])
+def test_PiecewiseIPDMQMC_switching_parallel(integral_system_small, capsys):
+    mtd = PiecewiseIPDMQMC(integral_system_small, rng_seed=42)
+    mtd.setup(final_beta=5, initialization="random-uniform",  n_particles=int(1e5))
+    mtd.run(
+        switch_beta=3.0,
+        dbeta=0.001,
+        cycles_per_shift=20,
+        shift_dampening=0.05,
+        spawn_cutoff=0.01,
+        shift_by_rows=False,
+        update_method="euler",
+    )
+
+    captured = capsys.readouterr()
+    messages = captured.out.split("\n")
+
+    switched = False
+    for line in messages:
+        if "switching to DMQMC" in line:
+            switched = True
+            beta = float(line.split(' ')[1].strip(';'))
+
+    assert switched
+    assert np.isclose(beta, 3.001)  # first beta that is strictly greater than 3.0
+
+    assert np.isclose(mtd.density_matrix.trace(), 4.501423e+04)
+    eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
+    assert np.isclose(eng, -51192.734)

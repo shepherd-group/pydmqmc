@@ -610,7 +610,8 @@ class PiecewiseIPDMQMC(InteractionPictureDMQMC, AsymmetricBlochDMQMC):
         # Update beta
         self._current_beta += self._dbeta
         if (
-            self._current_beta > self._switch_beta
+            self.is_reporter
+            and self._current_beta > self._switch_beta
             and self._current_beta - self._dbeta < self._switch_beta
         ):
             print(f"Beta {self._current_beta}; switching to DMQMC")
