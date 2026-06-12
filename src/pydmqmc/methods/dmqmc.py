@@ -225,8 +225,8 @@ class DensityMatrixQMC(Iterative):
 
         References
         ----------
-        .. [1] N. S. Blunt, et al., "Density-matrix quantum Monte Carlo method,"
-            Physical Review B, 89:245124, 2014
+        .. [1] Blunt, N. S., et al. (2014). Density-matrix quantum Monte Carlo method.
+            Physical Review B, 89, 245124.
         """
         # Run super()'s run method to ensure data safety.
         super().run()
@@ -460,8 +460,8 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
 
     References
     ----------
-    .. [1] N. S. Blunt, et al., "Density-matrix quantum Monte Carlo method,"
-        Physical Review B, 2014, 89, 245124
+    .. [1] Blunt, N. S., et al. (2014). Density-matrix quantum Monte Carlo method.
+        Physical Review B, 89, 245124.
     """
 
     def __init__(
@@ -554,8 +554,8 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
 
     References
     ----------
-    .. [1] N. S. Blunt, et al., "Density-matrix quantum Monte Carlo method,"
-        Physical Review B, 2014, 89, 245124
+    .. [1] Blunt, N. S., et al. (2014). Density-matrix quantum Monte Carlo method.
+        Physical Review B, 89, 245124.
     """
 
     def __init__(

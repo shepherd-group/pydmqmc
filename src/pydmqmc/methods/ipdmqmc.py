@@ -13,7 +13,7 @@ from numpy.typing import ArrayLike, NDArray as Array
 
 class InteractionPictureDMQMC(DensityMatrixQMC):
     """
-    Interaction-picture density matrix quantum Monte Carlo.
+    Interaction-picture density matrix quantum Monte Carlo [1]_.
 
     Density matrix quantum Monte Carlo propagates an ensemble of
     stochastic psi particles (psips). Each psip carries a weight and occupies a
@@ -31,6 +31,12 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
     rng_seed : int or array_like of ints, optional
         Seed or sequence of seeds for the psuedo random number generator.
         See :func:`numpy.random.default_rng`
+
+    References
+    ----------
+    .. [1] Malone, F. D., et al. (2015). Interaction picture density
+        matrix quantum Monte Carlo. Journal of Chemical Physics, 143(4),
+        044116
     """
 
     def __init__(
@@ -126,9 +132,9 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
 
         References
         ----------
-        .. [1] Fionne D. Malone, et. al., "Interaction picture density
-            matrix quantum Monte Carlo," Journal of Chemical Physics,
-            143(4):044116, 2015
+        .. [1] Malone, F. D., et al. (2015). Interaction picture density
+            matrix quantum Monte Carlo. Journal of Chemical Physics, 143(4),
+            044116
         """
         # Access Iterative's setup method
         super(DensityMatrixQMC, self).setup(report_quants)
@@ -395,8 +401,8 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
 
         References
         ----------
-        .. [1] N. S. Blunt et al., "Density-matrix quantum Monte Carlo method,"
-               Physical Review B, 89, 24, 2014
+        .. [1] Blunt, N. S., et al. (2014). Density-matrix quantum Monte Carlo
+               method. Physical Review B, 89, 245124
         """
         return super().run(
             dbeta,
@@ -428,7 +434,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         dp = np.zeros_like(p, dtype=np.float64)
 
         for i in range(start, end):  # only loop over assigned rows in parallel
-            for j in range(dets):
+            for j in range(dets):  # asymetric??
                 dp[i, j] = p[i, j] * (H[i, i] - H[j, j] + S[i])
 
                 p_ij = abs(p[i, j])
@@ -457,3 +463,29 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
                         dp[i, j] -= pr
 
         return dp
+
+
+class PiecewiseIPDMQMC(InteractionPictureDMQMC):
+    """
+    Piecewise IP-DMQMC (also called Adaptive DMQMC).
+
+    This method performs IP-DMQMC propagation until a specified
+    inverse temperature, then switches to DMQMC propagation for the
+    remainder of the simulation. See [1]_ for more.
+
+    Parameters
+    ----------
+    system : System object
+        The predefined System to run the model with.
+    rng_seed : int or array_like of ints, optional
+        Seed or sequence of seeds for the psuedo random number generator.
+        See :func:`numpy.random.default_rng`
+
+    References
+    ----------
+    .. [1] Van Benschoten, W. Z., & Shepherd, J. J. (2022). Piecewise
+        interaction picture density matrix quantum Monte Carlo. Journal of
+        Chemical Physics, 156(4), 044116
+    """
+
+    pass

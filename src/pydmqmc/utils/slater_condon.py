@@ -46,9 +46,9 @@ def sc0(ba: ArrayLike, sys: "Integral") -> float:
 
     References
     ----------
-    .. [1] Attila Szabo and Neil S. Ostlund, "Modern Quantum Chemistry:
-        Introduction to Advanced Electronic Structure Theory," Dover Books
-        on Chemistry, 1996
+    .. [1] Szabo, A., & Ostlund, N. S. (1996). Modern quantum chemistry:
+        Introduction to advanced electronic structure theory. Dover
+        Publications, Inc., New York.
     """
     E = sys.h0e
     E += np.einsum("a,aa->", ba, sys.h1e)
@@ -99,9 +99,9 @@ def sc1(ba: ArrayLike, a: int, r: int, perms: int, sys: "Integral") -> float:
 
     References
     ----------
-    .. [1] Attila Szabo and Neil S. Ostlund, "Modern Quantum Chemistry:
-        Introduction to Advanced Electronic Structure Theory," Dover Books
-        on Chemistry, 1996
+    .. [1] Szabo, A., & Ostlund, N. S. (1996). Modern quantum chemistry:
+        Introduction to advanced electronic structure theory. Dover
+        Publications, Inc., New York.
     """
     ba1 = np.copy(ba)
     ba1[[a, r]] = 0
@@ -154,9 +154,9 @@ def sc2(a: int, b: int, r: int, s: int, perms: int, sys: "Integral") -> float:
 
     References
     ----------
-    .. [1] Attila Szabo and Neil S. Ostlund, "Modern Quantum Chemistry:
-        Introduction to Advanced Electronic Structure Theory," Dover Books
-        on Chemistry, 1996
+    .. [1] Szabo, A., & Ostlund, N. S. (1996). Modern quantum chemistry:
+        Introduction to advanced electronic structure theory. Dover
+        Publications, Inc., New York.
     """
     E = sys.h2e[a, b, r, s]
     E -= sys.h2e[a, b, s, r]

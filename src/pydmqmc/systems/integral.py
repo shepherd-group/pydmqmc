@@ -50,9 +50,9 @@ class Integral(System):
 
     References
     ----------
-    .. [1] Attila Szabo and Neil S. Ostlund, "Modern Quantum Chemistry:
-        Introduction to Advanced Electronic Structure Theory," Dover Books
-        on Chemistry, 1996
+    .. [1] Szabo, A., & Ostlund, N. S. (1996). Modern quantum chemistry:
+        Introduction to advanced electronic structure theory. Dover
+        Publications, Inc., New York.
     """
 
     def __init__(
@@ -288,9 +288,9 @@ class Integral(System):
 
         References
         ----------
-        .. [1] Attila Szabo and Neil S. Ostlund, "Modern Quantum Chemistry:
-           Introduction to Advanced Electronic Structure Theory," Dover Books
-           on Chemistry, 1996
+        .. [1] Szabo, A., & Ostlund, N. S. (1996). Modern quantum chemistry:
+           Introduction to advanced electronic structure theory. Dover
+           Publications, Inc., New York.
         """
         for a in range(self._norb):
             self._eig[a] = self._h1e[a, a]
