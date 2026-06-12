@@ -1,6 +1,6 @@
 """Iterative IP-DMQMC method."""
 
-from .dmqmc import DensityMatrixQMC
+from .dmqmc import DensityMatrixQMC, AsymmetricBlochDMQMC
 from ..systems import System
 
 import numpy as np
@@ -395,7 +395,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
 
         Notes
         -----
-        The shift update follows Equation 16 in Blunt et al. 2014 [1]_.
+        The shift update follows Equation 16 in [1]_.
         For more about the various approximations available, see
         :ref:`initiator-approximations`.
 
@@ -465,13 +465,14 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         return dp
 
 
-class PiecewiseIPDMQMC(InteractionPictureDMQMC):
+class PiecewiseIPDMQMC(InteractionPictureDMQMC, AsymmetricBlochDMQMC):
     """
     Piecewise IP-DMQMC (also called Adaptive DMQMC).
 
     This method performs IP-DMQMC propagation until a specified
     inverse temperature, then switches to DMQMC propagation for the
-    remainder of the simulation. See [1]_ for more.
+    remainder of the simulation. Both methods use the
+    asymetric Bloch equation. See [1]_ for more.
 
     Parameters
     ----------
@@ -488,4 +489,139 @@ class PiecewiseIPDMQMC(InteractionPictureDMQMC):
         Chemical Physics, 156(4), 044116
     """
 
-    pass
+    def __init__(
+        self,
+        system: System,
+        rng_seed: None | int | ArrayLike = None,
+        parallel: bool = False,
+    ) -> None:
+        super().__init__(system, rng_seed, parallel)
+        self._switch_beta = None
+        self._current_beta = 0.0
+        self._propagation_count = 0
+        self._dbeta = None
+
+    # Python MRO means the setup() method will be pulled from InteractionPictureDMQMC
+
+    def run(
+        self,
+        switch_beta: float,
+        dbeta: float,
+        cycles_per_shift: int,
+        shift_dampening: float,
+        shift_by_rows: bool = False,
+        spawn_cutoff: float = 0.01,
+        n_add: float | None = None,
+        ilevel: int | None = None,
+        update_method: str = "euler",
+        quiet: bool = False,
+    ):
+        r"""
+        Run a Piecewise IP-DMQMC realization [1]_.
+
+        Uses IP-DMQMC propagation [2]_ until `switch_beta` is reached,
+        then switches to asymmetric Bloch DMQMC propagation [3]_ for the
+        remainder of the simulation.
+
+        Parameters
+        ----------
+        switch_beta : float
+            Inverse temperature at which to switch from IP-DMQMC
+            to asymmetric Bloch DMQMC propagation.
+        dbeta : float
+            Size of a single update step in inverse temperature :math:`\beta`.
+        cycles_per_shift : int
+            Number of updates to :math:`\beta` made before updating
+            the Hamiltonian shift.
+        shift_dampening : float
+            Affects how much the Hamiltonian shift varies as it updates
+            every ``cycles_per_shift`` steps.
+        shift_by_rows : bool, default false
+            If True, calculate a shift for each row of the Hamiltonian.
+            If False, calculate one shift for the entire Hamiltonian.
+        spawn_cutoff : float, default 0.01
+            Only accumulate psips if the change in a density matrix
+            site :math:`|\partial p_{ik}| > \mathtt{spawn\_cutoff}`.
+        n_add : float, default None
+            If not ``None``, utilize the initiator approximation
+            and only allow spawning from sites :math:`p_{ij}` to empty
+            sites :math:`p_{ik}` if :math:`|p_{ij}| > \mathtt{n_add}`.
+        ilevel : int, default None
+            If not ``None``, utilize the initiator level approximation,
+            allowing sites :math:`p_{ij}` to spawn if
+            the difference in number of excitations between :math:`i`
+            and :math:`j` is less than ``ilevel``. Requires the system's
+            ``excitation_matrix`` to be defineable
+            if :math:`\texttt{ilevel} > 0`.
+        update_method : str, default "euler"
+            One of the supported update methods from
+            :meth:`pydmqmc.methods.Iterative.parse_method()`
+        quiet : boolean, default False
+            Silence printing the iteration report as the simulation runs.
+
+        Notes
+        -----
+        The switch_beta parameter should be chosen based on the characteristics
+        of the system and is typically determined empirically. See [1]_ for
+        more details on choosing appropriate switch points.
+
+        The shift update follows Equation 16 in [3]_.
+        For more about the various approximations available, see
+        :ref:`initiator-approximations`.
+
+        References
+        ----------
+        .. [1] Van Benschoten, W. Z., & Shepherd, J. J. (2022). Piecewise
+            interaction picture density matrix quantum Monte Carlo. Journal of
+            Chemical Physics, 156(4), 044116
+        .. [2] Malone, F. D., et al. (2015). Interaction picture density
+            matrix quantum Monte Carlo. Journal of Chemical Physics, 143(4),
+            044116
+        .. [3] Blunt, N. S., et al. (2014). Density-matrix quantum Monte Carlo
+               method. Physical Review B, 89, 245124
+        """
+        # Attributs for tracking when to switch propagation methods
+        self._switch_beta = switch_beta
+        self._current_beta = 0.0
+        self._dbeta = dbeta
+
+        # Call the parent run method (uses DensityMatrixQMC's run logic)
+        return super().run(
+            dbeta,
+            cycles_per_shift,
+            shift_dampening,
+            shift_by_rows,
+            spawn_cutoff,
+            n_add,
+            ilevel,
+            update_method,
+            quiet,
+        )
+
+    def _propagate(self, p, *args, **kwargs) -> Array:
+        """
+        Wrap `_propagate_core` and dispatch based on current beta.
+
+        Routes to InteractionPictureDMQMC._propagate_core when
+        current_beta < switch_beta, otherwise routes to
+        AsymmetricBlochDMQMC._propagate_core.
+        """
+        # Update beta
+        self._current_beta += self._dbeta
+        if (
+            self._current_beta > self._switch_beta
+            and self._current_beta - self._dbeta < self._switch_beta
+        ):
+            print(f"Beta {self._current_beta}; switching to DMQMC")
+
+        # Choose appropriate _propagate_core method based on switch_beta
+        if self._current_beta < self._switch_beta:
+            # Use IP-DMQMC propagation
+            return InteractionPictureDMQMC._propagate_core(
+                p, self.system.hamiltonian, self._shift, self._rng, *args, **kwargs
+            )
+        else:
+            # Use AsymmetricBlochDMQMC propagation
+            return AsymmetricBlochDMQMC._propagate_core(
+                p, self.system.hamiltonian, self._shift, self._rng, *args, **kwargs
+            )

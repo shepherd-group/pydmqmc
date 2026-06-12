@@ -6,4 +6,4 @@ from .fci import FullConfigurationInteraction
 
 from .dmqmc import DensityMatrixQMC, AsymmetricBlochDMQMC, SymmetricBlochDMQMC
 
-from .ipdmqmc import InteractionPictureDMQMC
+from .ipdmqmc import InteractionPictureDMQMC, PiecewiseIPDMQMC

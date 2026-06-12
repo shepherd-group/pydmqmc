@@ -219,7 +219,7 @@ class DensityMatrixQMC(Iterative):
 
         Notes
         -----
-        The shift update follows Equation 16 in Blunt et al. 2014 [1]_.
+        The shift update follows Equation 16 in [1]_.
         For more about the various approximations available, see
         :ref:`initiator-approximations`.
 
