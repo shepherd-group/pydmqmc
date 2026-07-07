@@ -55,7 +55,7 @@ class DensityMatrixQMC(Iterative):
 
     @property
     def density_matrix(self) -> None | Array:
-        """Density matrix."""
+        """Density matrix at current inverse temperature."""
         return self._density_matrix
 
     @property
@@ -233,7 +233,7 @@ class DensityMatrixQMC(Iterative):
 
         # Perform sanity checks
         if self._density_matrix is None:
-            raise RuntimeError("You must first run the setup() method!")
+            raise RuntimeError("You must call setup() before run().")
 
         if ilevel is not None and not isinstance(ilevel, int):
             raise TypeError(
@@ -357,7 +357,7 @@ class DensityMatrixQMC(Iterative):
 
         return npsip
 
-    def _propagate(self, p, *args, **kwargs) -> Array:
+    def _propagate(self, p: Array, *args, **kwargs) -> Array:
         """
         Wrap `_propagate_core` with the expected call signature.
 
@@ -368,7 +368,7 @@ class DensityMatrixQMC(Iterative):
             p, self.system.hamiltonian, self._shift, self._rng, *args, **kwargs
         )
 
-    def _propagate_core(self, p, *args, **kwargs):
+    def _propagate_core(self, p, *args, **kwargs) -> Array:
         raise NotImplementedError(
             "DensityMatrixQMC does not have it's own psip propagation "
             "method defined. Please use either SymmetricBlochDMQMC or "
@@ -485,7 +485,7 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
         nadd: float,
         ilvl: int,
         nex: Array,
-    ):
+    ) -> Array:
         dets = p.shape[0]
         dp = np.zeros_like(p, dtype=np.float64)
 
@@ -579,12 +579,13 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
         nadd: float,
         ilvl: int,
         nex: Array,
-    ):
+    ) -> Array:
         dets = p.shape[0]
         dp = np.zeros_like(p, dtype=np.float64)
 
         for i in range(start, end):  # only loop over assigned rows in parallel
             for j in range(dets):
+                # Diagonal update (death/cloning)
                 Stot = H[0, 0] + S[i]
                 dp[i, j] = p[i, j] / 2 * (Stot - H[i, i])
                 dp[i, j] += p[i, j] / 2 * (Stot - H[j, j])
@@ -592,6 +593,7 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
                 p_ij = abs(p[i, j])
 
                 # Iterate over sites that may spawn here at p_ij
+                # Off-diagonal update
                 for k in range(dets):
                     if k != j:
                         # While the docs write the rules as p_ij spawning at
