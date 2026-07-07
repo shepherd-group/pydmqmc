@@ -349,7 +349,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         spawn_cutoff: float = 0.01,
         n_add: float | None = None,
         ilevel: int | None = None,
-        update_method: str = "euler",
+        integrator: str = "euler",
         quiet: bool = False,
     ):
         r"""
@@ -388,8 +388,8 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             and :math:`j` is less than ``ilevel``. Requires the system's
             ``excitation_matrix`` to be defineable
             if :math:`\texttt{ilevel} > 0`.
-        update_method : str, default "euler"
-            One of the supported update methods from
+        integrator : str, default "euler"
+            One of the supported integration methods from
             :meth:`pydmqmc.methods.Iterative.parse_integrator()`
         quiet : boolean, default False
             Silence printing the iteration report as the simulation runs.
@@ -413,16 +413,16 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             spawn_cutoff,
             n_add,
             ilevel,
-            update_method,
+            integrator,
             quiet,
         )
 
     @staticmethod
     @njit
-    def _propagate_core(
+    def _spawn_core(
+        dt: float,
         p: Array,
         H: Array,
-        S: Array,
         rng,
         start: int,
         end: int,
@@ -430,14 +430,12 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         nadd: float,
         ilvl: int,
         nex: Array,
-    ):
+    ) -> Array:
         dets = p.shape[0]
-        dp = np.zeros_like(p, dtype=np.float64)
+        new_psips = np.zeros_like(p, dtype=np.float64)
 
         for i in range(start, end):  # only loop over assigned rows in parallel
-            for j in range(dets):  # asymetric??
-                dp[i, j] = p[i, j] * (H[i, i] - H[j, j] + S[i])
-
+            for j in range(dets):
                 p_ij = abs(p[i, j])
 
                 # Iterate over sites that may spawn here at p_ij
@@ -453,7 +451,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
                     ichk = nex[i, k] <= ilvl
 
                     if abs(p[i, k]) > nadd or p_ij != 0.0 or ichk:
-                        pr = p[i, k] * H[k, j]
+                        pr = -dt * p[i, k] * H[k, j]
 
                         if abs(pr) < cutoff:
                             pr /= cutoff
@@ -461,7 +459,25 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
                             pr = np.trunc(pr)
                             pr *= cutoff
 
-                        dp[i, j] -= pr
+                        new_psips[i, j] += pr
+
+        return new_psips
+
+    @staticmethod
+    @njit
+    def _derivative_core(
+        p: Array,
+        H: Array,
+        S: Array,
+        start: int,
+        end: int,
+    ) -> Array:
+        dets = p.shape[0]
+        dp = np.zeros_like(p, dtype=np.float64)
+
+        for i in range(start, end):  # only loop over assigned rows in parallel
+            for j in range(dets):
+                dp[i, j] = p[i, j] * (H[i, i] - H[j, j] + S[i])
 
         return dp
 
@@ -599,31 +615,57 @@ class PiecewiseIPDMQMC(InteractionPictureDMQMC, AsymmetricBlochDMQMC):
             quiet,
         )
 
-    def _propagate(self, p, *args, **kwargs) -> Array:
-        """
-        Wrap `_propagate_core` and dispatch based on current beta.
+    def _update_switch_state(self) -> None:
+        """Advance the current beta and report when the switch threshold is crossed."""
+        if self._dbeta is None or self._switch_beta is None:
+            return
 
-        Routes to InteractionPictureDMQMC._propagate_core when
-        current_beta < switch_beta, otherwise routes to
-        AsymmetricBlochDMQMC._propagate_core.
-        """
-        # Update beta
+        previous_beta = self._current_beta
         self._current_beta += self._dbeta
         if (
             self.is_reporter
-            and self._current_beta > self._switch_beta
-            and self._current_beta - self._dbeta < self._switch_beta
+            and previous_beta < self._switch_beta
+            and self._current_beta >= self._switch_beta
         ):
             print(f"Beta {self._current_beta}; switching to DMQMC")
 
-        # Choose appropriate _propagate_core method based on switch_beta
+    def _spawn(self, dt: float, p: Array, *args, **kwargs) -> Array:
+        """Dispatch spawning to the active propagation method for the current beta."""
+        self._update_switch_state()
         if self._current_beta < self._switch_beta:
-            # Use IP-DMQMC propagation
-            return InteractionPictureDMQMC._propagate_core(
-                p, self.system.hamiltonian, self._shift, self._rng, *args, **kwargs
+            return InteractionPictureDMQMC._spawn_core(
+                dt,
+                p,
+                self.system.hamiltonian,
+                self._rng,
+                *args,
+                **kwargs,
             )
-        else:
-            # Use AsymmetricBlochDMQMC propagation
-            return AsymmetricBlochDMQMC._propagate_core(
-                p, self.system.hamiltonian, self._shift, self._rng, *args, **kwargs
+
+        return AsymmetricBlochDMQMC._spawn_core(
+            dt,
+            p,
+            self.system.hamiltonian,
+            self._rng,
+            *args,
+            **kwargs,
+        )
+
+    def _derivative(self, p: Array, *args, **kwargs) -> Array:
+        """Dispatch the integration derivative to the active propagation method."""
+        if self._current_beta < self._switch_beta:
+            return InteractionPictureDMQMC._derivative_core(
+                p,
+                self.system.hamiltonian,
+                self._shift,
+                *args,
+                **kwargs,
             )
+
+        return AsymmetricBlochDMQMC._derivative_core(
+            p,
+            self.system.hamiltonian,
+            self._shift,
+            *args,
+            **kwargs,
+        )

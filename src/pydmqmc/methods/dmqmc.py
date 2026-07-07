@@ -2,7 +2,6 @@
 
 from .method import Iterative
 from ..systems import System
-from ..report.registry import report_registry
 from ..utils import save_array, ParallelHelper
 
 import numpy as np
@@ -174,7 +173,7 @@ class DensityMatrixQMC(Iterative):
         spawn_cutoff: float = 0.01,
         n_add: float | None = None,
         ilevel: int | None = None,
-        update_method: str = "euler",
+        integrator: str = "euler",
         quiet: bool = False,
     ):
         r"""
@@ -211,8 +210,8 @@ class DensityMatrixQMC(Iterative):
             and :math:`j` is less than `ilevel`. Requires the system's
             `excitation_matrix` to be defineable
             if :math:`\texttt{ilevel} > 0`.
-        update_method : str, default "euler"
-            One of the supported update methods from
+        integrator : str, default "euler"
+            One of the supported integration methods from
             :meth:`pydmqmc.methods.Iterative.parse_integrator()`
         quiet : boolean, default False
             Silence printing the iteration report as the simulation runs.
@@ -277,7 +276,7 @@ class DensityMatrixQMC(Iterative):
             ) - np.eye(self.system.n_determinants)
 
         n_shifts = int(self._final_beta / (dbeta * cycles_per_shift))
-        update_func = super().parse_integrator(update_method)
+        integrator_func = super().parse_integrator(integrator)
         rbr = 1 if shift_by_rows else None
 
         # set initial shift
@@ -298,12 +297,11 @@ class DensityMatrixQMC(Iterative):
 
         for shift in range(n_shifts):
             for cycle in range(cycles_per_shift):
-                self._density_matrix = update_func(
-                    self._propagate,  # f(dy/dt)
-                    self._density_matrix,  # y
-                    dbeta,  # stepsize dt
-                    self._ph,  # parallel helper (if applicable)
-                    start=start_index,  # kwargs for _propagate_core
+                # Spawn psips
+                psips = self._spawn(
+                    dbeta,
+                    self._density_matrix,
+                    start=start_index,
                     end=end_index,
                     cutoff=spawn_cutoff,
                     nadd=n_add,
@@ -311,17 +309,23 @@ class DensityMatrixQMC(Iterative):
                     nex=n_ex,
                 )
 
-                # Only store |p_ij| > 1.0, otherwise
-                # round below this threshold in a non-biased manner
-                # (stochastic rounding)
-                replace = np.trunc(
-                    self._density_matrix
-                    + np.sign(self._density_matrix)
-                    * self._rng.random(self._density_matrix.shape)
+                # Perform death/cloning
+                self._density_matrix = integrator_func(
+                    self._derivative,  # f(dy/dt)
+                    self._density_matrix,  # y
+                    dbeta,  # stepsize dt
+                    self._ph,  # parallel helper (if applicable)
+                    start=start_index,  # kwargs for _propagate_core
+                    end=end_index,
                 )
-                np.where(
-                    np.abs(self._density_matrix) < 1.0, replace, self._density_matrix
-                )
+
+                # Perform annihilation (any oppositely signed psips will cancel)
+                self._density_matrix += psips
+
+                # Synchronize across processes a final time
+                # (density matrix is also synchronized within the integration)
+                if self._parallel:
+                    self._ph.allreduce_sum(self._density_matrix)
 
             # update shift every report period
             npsip = self._update_shift(
@@ -335,6 +339,59 @@ class DensityMatrixQMC(Iterative):
 
             # do periodic reporting
             self.do_report("beta", (shift + 1) * cycles_per_shift * dbeta, quiet)
+
+    def _spawn(self, dt: float, p: Array, *args, **kwargs) -> Array:
+        """
+        Wrap `_spawn_core`, a Numba-compiled function.
+
+        Numba-compiled functions do not have access to class attributes.
+        """
+        return self._stochastic_round(
+            self._spawn_core(dt, p, self.system.hamiltonian, self._rng, *args, **kwargs)
+        )
+
+    def _stochastic_round(self, matrix: Array) -> Array:
+        # Only store |p_ij| > 1.0, otherwise
+        # round below this threshold in a non-biased manner
+        # (stochastic rounding)
+        replace = np.trunc(matrix + np.sign(matrix) * self._rng.random(matrix.shape))
+        np.where(np.abs(matrix) < 1.0, replace, matrix)
+        return matrix
+
+    def _spawn_core(
+        self,
+        dt: float,
+        p: Array,
+        hamiltonian: Array,
+        rng: np.random.Generator,
+        *args,
+        **kwargs,
+    ) -> Array:
+        raise NotImplementedError(
+            "DensityMatrixQMC does not have it's own psip spawning "
+            "method defined. Please use either SymmetricBlochDMQMC or "
+            "AsymmetricBlochDMQMC, or a custom child class."
+        )
+
+    def _derivative(self, p: Array, *args, **kwargs) -> Array:
+        """
+        Wrap `_propagate_core` with the expected call signature.
+
+        Numba-compiled functions do not have access to class attributes.
+        Call signature is dictated by the "integrator" functions.
+        """
+        return self._derivative_core(
+            p, self.system.hamiltonian, self._shift, *args, **kwargs
+        )
+
+    def _derivative_core(
+        self, p: Array, hamiltonian: Array, shift: Array, *args, **kwargs
+    ) -> Array:
+        raise NotImplementedError(
+            "DensityMatrixQMC does not have it's own derivative "
+            "method defined. Please use either SymmetricBlochDMQMC or "
+            "AsymmetricBlochDMQMC, or a custom child class."
+        )
 
     def _update_shift(
         self,
@@ -356,24 +413,6 @@ class DensityMatrixQMC(Iterative):
             self._shift -= (zeta / (A * dbeta)) * np.log(npsip / np_old)
 
         return npsip
-
-    def _propagate(self, p: Array, *args, **kwargs) -> Array:
-        """
-        Wrap `_propagate_core` with the expected call signature.
-
-        Numba-compiled functions do not have access to class attributes.
-        Call signature is dictated by the "integrator" functions.
-        """
-        return self._propagate_core(
-            p, self.system.hamiltonian, self._shift, self._rng, *args, **kwargs
-        )
-
-    def _propagate_core(self, p, *args, **kwargs) -> Array:
-        raise NotImplementedError(
-            "DensityMatrixQMC does not have it's own psip propagation "
-            "method defined. Please use either SymmetricBlochDMQMC or "
-            "AsymmetricBlochDMQMC, or a custom child class."
-        )
 
     def save_data(
         self,
@@ -474,17 +513,12 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
 
     @staticmethod
     @njit
-    def _propagate_core(
+    def _derivative_core(
         p: Array,
         H: Array,
         S: Array,
-        rng,
         start: int,
         end: int,
-        cutoff: float,
-        nadd: float,
-        ilvl: int,
-        nex: Array,
     ) -> Array:
         dets = p.shape[0]
         dp = np.zeros_like(p, dtype=np.float64)
@@ -494,6 +528,27 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
             for j in range(dets):
                 dp[i, j] = p[i, j] * (Stot - H[j, j])  # -(H_jj - S)
 
+        return dp
+
+    @staticmethod
+    @njit
+    def _spawn_core(
+        dt: float,
+        p: Array,
+        H: Array,
+        rng: np.random.Generator,
+        start: int,
+        end: int,
+        cutoff: float,
+        nadd: float,
+        ilvl: int,
+        nex: Array,
+    ) -> Array:
+        dets = p.shape[0]
+        new_psips = np.zeros_like(p, dtype=np.float64)  # TODO make sparse
+
+        for i in range(start, end):  # only loop over assigned rows in parallel
+            for j in range(dets):
                 p_ij = abs(p[i, j])
 
                 # Iterate over sites that may spawn here at p_ij
@@ -509,7 +564,7 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
                     ichk = nex[i, k] <= ilvl
 
                     if abs(p[i, k]) > nadd or p_ij != 0.0 or ichk:
-                        pr = p[i, k] * H[k, j]
+                        pr = -dt * p[i, k] * H[k, j]
 
                         if abs(pr) < cutoff:
                             pr /= cutoff
@@ -517,9 +572,9 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
                             pr = np.trunc(pr)
                             pr *= cutoff
 
-                        dp[i, j] -= pr  # -sum_k!=j(p_ik * H_kj)
+                        new_psips[i, j] += pr  # sum_k!=j(p_ik * H_kj)
 
-        return dp
+        return new_psips
 
 
 class SymmetricBlochDMQMC(DensityMatrixQMC):
@@ -568,17 +623,12 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
 
     @staticmethod
     @njit
-    def _propagate_core(
+    def _derivative_core(
         p: Array,
         H: Array,
         S: Array,
-        rng,
         start: int,
         end: int,
-        cutoff: float,
-        nadd: float,
-        ilvl: int,
-        nex: Array,
     ) -> Array:
         dets = p.shape[0]
         dp = np.zeros_like(p, dtype=np.float64)
@@ -590,10 +640,30 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
                 dp[i, j] = p[i, j] / 2 * (Stot - H[i, i])
                 dp[i, j] += p[i, j] / 2 * (Stot - H[j, j])
 
+        return dp
+
+    @staticmethod
+    @njit
+    def _spawn_core(
+        dt: float,
+        p: Array,
+        H: Array,
+        rng: np.random.Generator,
+        start: int,
+        end: int,
+        cutoff: float,
+        nadd: float,
+        ilvl: int,
+        nex: Array,
+    ) -> Array:
+        dets = p.shape[0]
+        new_psips = np.zeros_like(p, dtype=np.float64)  # TODO make sparse
+
+        for i in range(start, end):  # only loop over assigned rows in parallel
+            for j in range(dets):
                 p_ij = abs(p[i, j])
 
                 # Iterate over sites that may spawn here at p_ij
-                # Off-diagonal update
                 for k in range(dets):
                     if k != j:
                         # While the docs write the rules as p_ij spawning at
@@ -603,7 +673,7 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
                         ichk = nex[i, k] <= ilvl
 
                         if abs(p[i, k]) > nadd or p_ij != 0.0 or ichk:
-                            pr = 0.5 * p[i, k] * H[k, j]
+                            pr = -dt * 0.5 * p[i, k] * H[k, j]
 
                             if abs(pr) < cutoff:
                                 pr /= cutoff
@@ -611,7 +681,7 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
                                 pr = np.trunc(pr)
                                 pr *= cutoff
 
-                            dp[i, j] -= pr
+                            new_psips[i, j] += pr
 
                     if k != i:
                         # Now we check if p_kj can spwan at p_ij thru H_ik.
@@ -619,7 +689,7 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
                         ichk = nex[k, j] <= ilvl
 
                         if abs(p[k, j]) >= nadd or p_ij != 0.0:
-                            pr = 0.5 * H[i, k] * p[k, j]
+                            pr = -dt * 0.5 * H[i, k] * p[k, j]
 
                             if abs(pr) < cutoff:
                                 pr /= cutoff
@@ -627,6 +697,6 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
                                 pr = np.trunc(pr)
                                 pr *= cutoff
 
-                            dp[i, j] -= pr
+                            new_psips[i, j] += pr
 
-        return dp
+        return new_psips
