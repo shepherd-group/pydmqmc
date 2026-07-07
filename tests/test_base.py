@@ -123,14 +123,14 @@ class TestIterative():
             self._mtd.setup(["trace"])
 
     def test_parse_method(self):
-        f_euler = self._mtd.parse_method("euler")
+        f_euler = self._mtd.parse_integrator("euler")
         assert f_euler is utils.euler
 
-        f_rk4 = self._mtd.parse_method("rk4")
+        f_rk4 = self._mtd.parse_integrator("rk4")
         assert f_rk4 is utils.rk4
 
         with raises(RuntimeError):
-            self._mtd.parse_method("junk")
+            self._mtd.parse_integrator("junk")
 
     def test_save_data(self):
         self._mtd.setup(["trace"])
@@ -160,11 +160,11 @@ class TestIterative_Parallel():
 
     @mark.parallel([1,2,3])
     def test_parse_method(self):
-        f_euler = self._mtd.parse_method("euler")
+        f_euler = self._mtd.parse_integrator("euler")
         parallel_assert(f_euler is utils.parallel_euler)
 
-        f_rk4 = self._mtd.parse_method("rk4")
+        f_rk4 = self._mtd.parse_integrator("rk4")
         parallel_assert(f_rk4 is utils.parallel_rk4)
 
         with raises(RuntimeError):
-            self._mtd.parse_method("junk")
+            self._mtd.parse_integrator("junk")

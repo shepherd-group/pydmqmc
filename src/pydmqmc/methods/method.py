@@ -299,7 +299,7 @@ class Iterative(Method):
                 pickle_protocol,
             )
 
-    def parse_method(
+    def parse_integrator(
         self, method: str = "euler"
     ) -> Callable[
         [Callable[[float, ...], float], float, float, ParallelHelper | None, ...], float

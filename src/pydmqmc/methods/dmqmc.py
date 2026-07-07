@@ -213,7 +213,7 @@ class DensityMatrixQMC(Iterative):
             if :math:`\texttt{ilevel} > 0`.
         update_method : str, default "euler"
             One of the supported update methods from
-            :meth:`pydmqmc.methods.Iterative.parse_method()`
+            :meth:`pydmqmc.methods.Iterative.parse_integrator()`
         quiet : boolean, default False
             Silence printing the iteration report as the simulation runs.
 
@@ -277,7 +277,7 @@ class DensityMatrixQMC(Iterative):
             ) - np.eye(self.system.n_determinants)
 
         n_shifts = int(self._final_beta / (dbeta * cycles_per_shift))
-        update_func = super().parse_method(update_method)
+        update_func = super().parse_integrator(update_method)
         rbr = 1 if shift_by_rows else None
 
         # set initial shift

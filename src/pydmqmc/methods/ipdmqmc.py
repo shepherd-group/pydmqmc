@@ -390,7 +390,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             if :math:`\texttt{ilevel} > 0`.
         update_method : str, default "euler"
             One of the supported update methods from
-            :meth:`pydmqmc.methods.Iterative.parse_method()`
+            :meth:`pydmqmc.methods.Iterative.parse_integrator()`
         quiet : boolean, default False
             Silence printing the iteration report as the simulation runs.
 
@@ -556,7 +556,7 @@ class PiecewiseIPDMQMC(InteractionPictureDMQMC, AsymmetricBlochDMQMC):
             if :math:`\texttt{ilevel} > 0`.
         update_method : str, default "euler"
             One of the supported update methods from
-            :meth:`pydmqmc.methods.Iterative.parse_method()`
+            :meth:`pydmqmc.methods.Iterative.parse_integrator()`
         quiet : boolean, default False
             Silence printing the iteration report as the simulation runs.
 
