@@ -22,7 +22,7 @@ class _ReportRegistry:
         self._registry = {
             "total particles": total_particles,
             "total walkers": total_particles,
-            "occupied states": n_occupied_states,
+            "number occupied states": n_occupied_states,
             "trace": trace,
             "energy numerator": energy_numerator,
             "energy expectation": energy_expectation,
