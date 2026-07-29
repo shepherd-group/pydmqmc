@@ -68,7 +68,12 @@ class DensityMatrixQMC(Iterative):
         initialization: str = "deterministic",
         n_particles: int = 1,
         fixed_diagonal: ArrayLike | None = None,
-        report_quants: list[str] = ["trace", "energy expectation"],
+        report_quants: list[str] = [
+            "trace",
+            "energy numerator",
+            "total particles",
+            "number occupied states",
+        ],
     ) -> None:
         r"""
         Specify conditions for the DMQMC realization.
