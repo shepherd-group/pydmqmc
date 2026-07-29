@@ -5,6 +5,16 @@ import numpy as np
 from numpy.typing import NDArray as Array
 
 
+def total_particles(matrix: Array):
+    """Return the total number of particles (aka walkers) in a matrix."""
+    return np.abs(matrix).sum()
+
+
+def n_occupied_states(matrix: Array):
+    """Return the number of occupied states in a given matrix."""
+    return np.count_nonzero(matrix)
+
+
 def trace(matrix: Array):
     """Calculate the trace of a given matrix."""
     return np.trace(matrix)
@@ -22,7 +32,9 @@ def energy_expectation(matrix: Array, hamiltonian: Array):
 
 def von_neumann_numerator(matrix: Array):
     """Numerator of the von Neumann estimator."""
-    return -(matrix @ np.log(matrix)).trace()
+    # Tell NumPy to throw errors on "divide by zero" and "invalid value" issues with log
+    with np.errstate(divide="raise", invalid="raise"):
+        return -(matrix @ np.log(matrix)).trace()
 
 
 def von_neumann_expectation(matrix: Array):

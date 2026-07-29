@@ -1,6 +1,8 @@
 """Class for associating strings with functions that calculate observables."""
 
 from .report_functions import (
+    total_particles,
+    n_occupied_states,
     trace,
     energy_numerator,
     energy_expectation,
@@ -15,7 +17,12 @@ class _ReportRegistry:
     """Class for associating functions and their dependencies with a string."""
 
     def __init__(self):
+        # Total particles and total walkers are two names for the same underlying function
+        # These names are used because one may make more sense in a given context/model
         self._registry = {
+            "total particles": total_particles,
+            "total walkers": total_particles,
+            "occupied states": n_occupied_states,
             "trace": trace,
             "energy numerator": energy_numerator,
             "energy expectation": energy_expectation,
