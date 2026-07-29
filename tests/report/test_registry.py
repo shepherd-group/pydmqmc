@@ -8,6 +8,9 @@ from pydmqmc import report_registry, enroll
 from pydmqmc.report.report_functions import trace, energy_expectation
 
 default_enrolled =  [
+    "total particles",
+    "total walkers",
+    "number occupied states"
     "trace", 
     "energy numerator",
     "energy expectation",
