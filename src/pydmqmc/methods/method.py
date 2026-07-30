@@ -9,6 +9,7 @@ import numpy as np
 
 from typing import Callable
 from numpy.typing import ArrayLike
+from numpy.random import Generator
 
 
 class Method:
@@ -98,6 +99,11 @@ class Iterative(Method):
         self._parallel: bool = parallel
         self._ph: ParallelHelper | None = None
         self._rng = None
+
+    @property
+    def rng(self) -> Generator | None:
+        """Get the rng Generator object."""
+        return self._rng
 
     @property
     def report_values(self) -> list[str] | None:
