@@ -54,6 +54,7 @@ jobs:
       env:
         OMPI_MCA_btl: self,tcp
         OMPI_MCA_oob: tcp
+        OMPI_MCA_pml: ob1
       run: |
         pytest
         ./tests/run_parallel_tests.sh
