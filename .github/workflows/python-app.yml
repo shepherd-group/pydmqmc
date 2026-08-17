@@ -55,6 +55,8 @@ jobs:
         OMPI_MCA_btl: self,tcp
         OMPI_MCA_oob: tcp
         OMPI_MCA_pml: ob1
+        OMPI_MCA_psm3_ib_disable_ud: 1
+        OMPI_MCA_ofi_provider: tcp
       run: |
         pytest
         ./tests/run_parallel_tests.sh
