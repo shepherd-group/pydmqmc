@@ -1,6 +1,6 @@
 import numpy as np
 from pytest import fixture, raises, mark
-from os.path import dirname, join
+from os.path import dirname, join, exists
 
 from pydmqmc.systems import Integral
 from pydmqmc.methods import InteractionPictureDMQMC, PiecewiseIPDMQMC
