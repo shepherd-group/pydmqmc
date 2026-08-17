@@ -10,12 +10,12 @@ from pydmqmc.report.report_functions import trace, energy_expectation
 default_enrolled =  [
     "total particles",
     "total walkers",
-    "number occupied states"
-    "trace", 
+    "number occupied states",
+    "trace",
     "energy numerator",
     "energy expectation",
     "von Neumann numerator",
-    "von Neumann expectation"
+    "von Neumann expectation",
 ]
 
 class TestReportRegistry():

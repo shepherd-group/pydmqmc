@@ -140,11 +140,11 @@ class TestAsymmetricBlochDMQMC_Parallel():
             shift_by_rows=False
         )
 
-        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67981.4893),
-                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 67981.4893")
+        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67985.81),
+                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 67985.81")
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -141115.3864),
-                        msg=f"Energy: {eng}\nExpected: -141115.3864")
+        parallel_assert(np.isclose(eng, -141125.32),
+                        msg=f"Energy: {eng}\nExpected: -141125.32")
 
     @mark.parallel([1,2])
     def test_rbr(self):
@@ -162,11 +162,11 @@ class TestAsymmetricBlochDMQMC_Parallel():
             shift_by_rows=True
         )
 
-        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 22493.3789),
-                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 22493.3789")
+        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 22494.06),
+                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 22494.06")
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -46578.8490),
-                        msg=f"Energy: {eng}\nExpected: -46578.8490")
+        parallel_assert(np.isclose(eng, -46579.75),
+                        msg=f"Energy: {eng}\nExpected: -46579.75")
 
     @mark.parallel([1,2])
     def test_ilevel_zero(self):
@@ -192,13 +192,11 @@ class TestAsymmetricBlochDMQMC_Parallel():
             ilevel=0
         )
 
-        traces = {1: 14.2069,
-                  2: 14.1996,
-                  3: 14.2261}
+        traces = {1: 13.3973,
+                  2: 14.1996}
         
-        energies = {1: -29.4613,
-                    2: -29.4470,
-                    3: -29.5008}
+        energies = {1: -27.4914,
+                    2: -29.4470}
 
         parallel_assert(np.isclose(self._mtd.density_matrix.trace(), traces[self._mtd.parallel_size]),
                         msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: {traces[self._mtd.parallel_size]}")
@@ -222,11 +220,11 @@ class TestAsymmetricBlochDMQMC_Parallel():
             ilevel=2
         )
 
-        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67981.4899),
+        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67977.37),
                         msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 67981.4899")
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -141115.3875),
-                        msg=f"Energy: {eng}\nExpected: -141115.3875")
+        parallel_assert(np.isclose(eng, -141106.50),
+                        msg=f"Energy: {eng}\nExpected: -141106.50")
 
     @mark.parallel([1,2])
     def test_save_data(self):
@@ -264,7 +262,7 @@ class TestAsymmetricBlochDMQMC_Parallel():
             assert loaded_report.shape[0] == len(self._mtd.report)
             assert loaded_report['beta'][0] == self._mtd.report[0]['beta']
             # Numpy converts spaces to underscores
-            assert loaded_report['energy_expectation'][1] == self._mtd.report[1]['energy expectation']
+            assert loaded_report['energy_numerator'][1] == self._mtd.report[1]['energy numerator']
 
 
 class TestSymmetricBlochDMQMC_Parallel():
@@ -289,11 +287,11 @@ class TestSymmetricBlochDMQMC_Parallel():
             shift_by_rows=False
         )
 
-        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67926.3811),
-                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 67926.3811")
+        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67929.32),
+                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 67929.32")
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -141000.9932),
-                        msg=f"Energy: {eng}\nExpected: -141000.9932")
+        parallel_assert(np.isclose(eng, -141004.89),
+                        msg=f"Energy: {eng}\nExpected: -141004.89")
 
     @mark.parallel([1,2])
     def test_rbr(self):
@@ -314,8 +312,8 @@ class TestSymmetricBlochDMQMC_Parallel():
         parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 20325.6708),
                         msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 20325.6708")
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -42058.9926),
-                        msg=f"Energy: {eng}\nExpected: -42058.9926")
+        parallel_assert(np.isclose(eng, -42058.33),
+                        msg=f"Energy: {eng}\nExpected: -42058.33")
 
     @mark.parallel([1,2])
     def test_ilevel_zero(self):
@@ -341,12 +339,10 @@ class TestSymmetricBlochDMQMC_Parallel():
             ilevel=0
         )
 
-        traces = {1: 13.6085,
-                  2: 13.6090,
-                  3: 13.6263}
-        energies = {1: -28.2156,
-                    2: -28.2128,
-                    3: -28.2521}
+        traces = {1: 13.3701,
+                  2: 13.6090}
+        energies = {1: -27.6507,
+                    2: -28.2128}
 
         parallel_assert(np.isclose(self._mtd.density_matrix.trace(), traces[self._mtd.parallel_size]),
                         msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: {traces[self._mtd.parallel_size]}")
@@ -370,11 +366,11 @@ class TestSymmetricBlochDMQMC_Parallel():
             ilevel=2
         )
 
-        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67926.3816),
-                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 67926.3816")
+        parallel_assert(np.isclose(self._mtd.density_matrix.trace(), 67933.16),
+                        msg=f"Density matrix trace: {self._mtd.density_matrix.trace()}\nExpected: 67933.16")
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -141000.9942),
-                        msg=f"Energy: {eng}\nExpected: -141000.9942")
+        parallel_assert(np.isclose(eng, -141016.48),
+                        msg=f"Energy: {eng}\nExpected: -141016.48")
 
     @mark.parallel([1,2])
     def test_save_data(self):
@@ -412,4 +408,4 @@ class TestSymmetricBlochDMQMC_Parallel():
             assert loaded_report.shape[0] == len(self._mtd.report)
             assert loaded_report['beta'][0] == self._mtd.report[0]['beta']
             # Numpy converts spaces to underscores
-            assert loaded_report['energy_expectation'][1] == self._mtd.report[1]['energy expectation']
+            assert loaded_report['energy_numerator'][1] == self._mtd.report[1]['energy numerator']

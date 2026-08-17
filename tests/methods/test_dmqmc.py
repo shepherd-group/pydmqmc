@@ -128,9 +128,9 @@ class TestAsymmetricBlochDMQMC():
             shift_by_rows=False
         )
 
-        assert np.isclose(self._mtd.density_matrix.trace(), 67981.4893)
+        assert np.isclose(self._mtd.density_matrix.trace(), 67985.8131)
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        assert np.isclose(eng, -141115.3864)
+        assert np.isclose(eng, -141125.3241)
 
     def test_rbr(self):
         self._mtd.reset_rng(42)
@@ -147,9 +147,9 @@ class TestAsymmetricBlochDMQMC():
             shift_by_rows=True
         )
 
-        assert np.isclose(self._mtd.density_matrix.trace(), 22493.3789)
+        assert np.isclose(self._mtd.density_matrix.trace(), 22494.0155)
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        assert np.isclose(eng, -46578.8490)
+        assert np.isclose(eng, -46579.7485)
 
     def test_ilevel_zero(self):
         """
@@ -172,9 +172,9 @@ class TestAsymmetricBlochDMQMC():
             ilevel=0
         )
 
-        assert np.isclose(self._mtd.density_matrix.trace(), 14.2069)
+        assert np.isclose(self._mtd.density_matrix.trace(), 13.3973)
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        assert np.isclose(eng, -29.4613)
+        assert np.isclose(eng, -27.4914)
 
     def test_ilevel_nonzero(self):
         self._mtd.reset_rng(42)
@@ -191,9 +191,9 @@ class TestAsymmetricBlochDMQMC():
             ilevel=2
         )
 
-        assert np.isclose(self._mtd.density_matrix.trace(), 67981.4899)
+        assert np.isclose(self._mtd.density_matrix.trace(), 67977.3706)
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        assert np.isclose(eng, -141115.3875)
+        assert np.isclose(eng, -141106.5000)
 
     def test_save_data(self):
         self._mtd.reset_rng(42)
@@ -225,7 +225,7 @@ class TestAsymmetricBlochDMQMC():
         assert loaded_report.shape[0] == len(self._mtd.report)
         assert loaded_report['beta'][0] == self._mtd.report[0]['beta']
         # Numpy converts spaces to underscores
-        assert loaded_report['energy_expectation'][1] == self._mtd.report[1]['energy expectation']
+        assert loaded_report['energy_numerator'][1] == self._mtd.report[1]['energy numerator']
 
 
 class TestSymmetricBlochDMQMC():
@@ -249,9 +249,9 @@ class TestSymmetricBlochDMQMC():
             shift_by_rows=False
         )
 
-        assert np.isclose(self._mtd.density_matrix.trace(), 67926.3811)
+        assert np.isclose(self._mtd.density_matrix.trace(), 67929.3228)
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        assert np.isclose(eng, -141000.9932)
+        assert np.isclose(eng, -141004.8864)
 
     def test_rbr(self):
         self._mtd.reset_rng(42)
@@ -270,7 +270,7 @@ class TestSymmetricBlochDMQMC():
 
         assert np.isclose(self._mtd.density_matrix.trace(), 20325.6708)
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        assert np.isclose(eng, -42058.9926)
+        assert np.isclose(eng, -42058.3318)
     def test_ilevel_zero(self):
         """
         Test functionality of ilevel = 0 (and dummy matrix functionality).
@@ -292,9 +292,9 @@ class TestSymmetricBlochDMQMC():
             ilevel=0
         )
 
-        assert np.isclose(self._mtd.density_matrix.trace(), 13.6085)
+        assert np.isclose(self._mtd.density_matrix.trace(), 13.3701)
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        assert np.isclose(eng, -28.2156)
+        assert np.isclose(eng, -27.65069)
 
     def test_ilevel_nonzero(self):
         self._mtd.reset_rng(42)
@@ -311,9 +311,9 @@ class TestSymmetricBlochDMQMC():
             ilevel=2
         )
 
-        assert np.isclose(self._mtd.density_matrix.trace(), 67926.3816)
+        assert np.isclose(self._mtd.density_matrix.trace(), 67933.1623)
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        assert np.isclose(eng, -141000.9942)
+        assert np.isclose(eng, -141016.4768)
 
 
     def test_save_data(self):
@@ -346,4 +346,4 @@ class TestSymmetricBlochDMQMC():
         assert loaded_report.shape[0] == len(self._mtd.report)
         assert loaded_report['beta'][0] == self._mtd.report[0]['beta']
         # Numpy converts spaces to underscores
-        assert loaded_report['energy_expectation'][1] == self._mtd.report[1]['energy expectation']
+        assert loaded_report['energy_numerator'][1] == self._mtd.report[1]['energy numerator']

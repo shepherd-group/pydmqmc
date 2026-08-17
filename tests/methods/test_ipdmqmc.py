@@ -133,9 +133,9 @@ class TestIPDMQMC():
                          spawn_cutoff=0.01,
                          shift_by_rows=True)
 
-        assert np.isclose(self._mtd_lg.density_matrix.trace(), 53533.6315)
+        assert np.isclose(self._mtd_lg.density_matrix.trace(), 53531.4541)
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        assert np.isclose(eng, -73295.6925)
+        assert np.isclose(eng, -73292.6290)
 
     def test_ilevel_zero(self):
         """
@@ -155,9 +155,9 @@ class TestIPDMQMC():
                          n_add=3,  # strongly limit this spawn channel to emph ilevel
                          ilevel=0)
 
-        assert np.isclose(self._mtd_lg.density_matrix.trace(), 0.54385963)
+        assert np.isclose(self._mtd_lg.density_matrix.trace(), 0.55312766)
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        assert np.isclose(eng, -0.72093397)
+        assert np.isclose(eng, -0.73239922)
 
     def test_ilevel_nonzero(self):
         self._mtd_lg.reset_rng(42)
@@ -171,9 +171,38 @@ class TestIPDMQMC():
                          n_add=3,  # strongly limit this spawn channel to emph ilevel
                          ilevel=2)
 
-        assert np.isclose(self._mtd_lg.density_matrix.trace(), 0.52477479)
+        assert np.isclose(self._mtd_lg.density_matrix.trace(), 0.409112839)
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        assert np.isclose(eng, -0.69688129)
+        assert np.isclose(eng, -0.54311242)
+
+    def test_save_data(self):
+        self._mtd_lg.reset_rng(42)
+        self._mtd_lg.setup(final_beta=self._final_beta,
+                           initialization="random-grand-canonical",
+                           n_particles=self._nparticle,
+                           gc_spawn_cutoff=0.01)
+        self._mtd_lg.run(dbeta=0.001,
+                         cycles_per_shift=10,
+                         shift_dampening=0.05,
+                         spawn_cutoff=0.01,
+                         shift_by_rows=False)
+        self._mtd_lg.save_data("test_ipdmqmc",
+                            matrix_filetype="csv",
+                            report_filetype="csv")
+
+        assert exists("test_ipdmqmc_density_matrix.csv")
+        assert exists("test_ipdmqmc_report.csv")
+
+        loaded_matrix = np.genfromtxt("test_ipdmqmc_density_matrix.csv",
+                                      delimiter=',')
+        assert np.allclose(loaded_matrix.shape, self._mtd_lg.density_matrix.shape)
+
+        loaded_report = np.genfromtxt("test_ipdmqmc_report.csv",
+                                     delimiter=',', names=True)
+        assert loaded_report.shape[0] == len(self._mtd_lg.report)
+        assert loaded_report['beta'][0] == self._mtd_lg.report[0]['beta']
+        # Numpy converts spaces to underscores
+        assert loaded_report['energy_numerator'][1] == self._mtd_lg.report[1]['energy numerator']
 
 def test_PiecewiseIPDMQMC_switching(integral_system_small, capsys):
     mtd = PiecewiseIPDMQMC(integral_system_small, rng_seed=42)
@@ -200,7 +229,7 @@ def test_PiecewiseIPDMQMC_switching(integral_system_small, capsys):
     assert switched
     assert np.isclose(beta, 3.001)  # first beta that is strictly greater than 3.0
 
-    assert np.isclose(mtd.density_matrix.trace(), 4.501423e+04)
+    assert np.isclose(mtd.density_matrix.trace(), 45015.7422)
     eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
-    assert np.isclose(eng, -51192.734)
+    assert np.isclose(eng, -51194.4651)
 

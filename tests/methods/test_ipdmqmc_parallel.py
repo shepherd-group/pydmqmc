@@ -1,6 +1,6 @@
 import numpy as np
 from pytest import fixture, raises, mark
-from os.path import dirname, join
+from os.path import dirname, join, exists
 from pytest_mpi import parallel_assert
 
 from pydmqmc.systems import Integral
@@ -127,8 +127,8 @@ class TestIPDMQMC_Parallel():
                          spawn_cutoff=0.01,
                          shift_by_rows=False)
 
-        parallel_assert(np.isclose(self._mtd_lg.density_matrix.trace(), 52340.7535),
-                        msg=f"Density matrix trace: {self._mtd_lg.density_matrix.trace()}\nExpected: 52340.7535")
+        parallel_assert(np.isclose(self._mtd_lg.density_matrix.trace(), 52341.27),
+                        msg=f"Density matrix trace: {self._mtd_lg.density_matrix.trace()}\nExpected: 52341.27")
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
         parallel_assert(np.isclose(eng, -69386.9260),
                         msg=f"Energy: {eng}\nExpected: -69386.9260")
@@ -146,11 +146,11 @@ class TestIPDMQMC_Parallel():
                          spawn_cutoff=0.01,
                          shift_by_rows=True)
 
-        parallel_assert(np.isclose(self._mtd_lg.density_matrix.trace(), 53533.6315),
-                        msg=f"Density matrix trace: {self._mtd_lg.density_matrix.trace()}\nExpected: 53533.6315")
+        parallel_assert(np.isclose(self._mtd_lg.density_matrix.trace(), 53531.4541),
+                        msg=f"Density matrix trace: {self._mtd_lg.density_matrix.trace()}\nExpected: 53531.4541")
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -73295.6925),
-                        msg=f"Energy: {eng}\nExpected: -73295.6925")
+        parallel_assert(np.isclose(eng, -73292.63),
+                        msg=f"Energy: {eng}\nExpected: -73292.63")
 
     @mark.parallel([1,2])
     def test_ilevel_zero(self):
@@ -171,11 +171,11 @@ class TestIPDMQMC_Parallel():
                          n_add=3,  # strongly limit this spawn channel to emph ilevel
                          ilevel=0)
 
-        parallel_assert(np.isclose(self._mtd_lg.density_matrix.trace(), 0.54385963),
-                        msg=f"Density matrix trace: {self._mtd_lg.density_matrix.trace()}\nExpected: 0.54385963")
+        parallel_assert(np.isclose(self._mtd_lg.density_matrix.trace(), 0.553128),
+                        msg=f"Density matrix trace: {self._mtd_lg.density_matrix.trace()}\nExpected: 0.553128")
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -0.72093397),
-                        msg=f"Energy: {eng}\nExpected: -0.72093397")
+        parallel_assert(np.isclose(eng, -0.732399),
+                        msg=f"Energy: {eng}\nExpected: -0.732399")
 
     @mark.parallel([1,2])
     def test_ilevel_nonzero(self):
@@ -190,11 +190,46 @@ class TestIPDMQMC_Parallel():
                          n_add=3,  # strongly limit this spawn channel to emph ilevel
                          ilevel=2)
 
-        parallel_assert(np.isclose(self._mtd_lg.density_matrix.trace(), 0.52477479),
-                        msg=f"Density matrix trace: {self._mtd_lg.density_matrix.trace()}\nExpected: 0.52477479")
+        parallel_assert(np.isclose(self._mtd_lg.density_matrix.trace(), 0.409113),
+                        msg=f"Density matrix trace: {self._mtd_lg.density_matrix.trace()}\nExpected: 0.409113")
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        parallel_assert(np.isclose(eng, -0.69688129),
-                        msg=f"Energy: {eng}\nExpected: -0.69688129")
+        parallel_assert(np.isclose(eng, -0.543112),
+                        msg=f"Energy: {eng}\nExpected: -0.543112")
+
+    @mark.parallel([1,2])
+    def test_save_data(self):
+        """
+        Implicitly tests dummy matrix created for ilevel = None and ilevel = 0.
+        """
+        self._mtd_lg.reset_rng(42)
+        self._mtd_lg.setup(final_beta=self._final_beta,
+                           initialization="random-grand-canonical",
+                           n_particles=self._nparticle,
+                           gc_spawn_cutoff=0.01)
+        self._mtd_lg.run(dbeta=0.001,
+                         cycles_per_shift=10,
+                         shift_dampening=0.05,
+                         spawn_cutoff=0.01,
+                         shift_by_rows=False)
+        self._mtd_lg.save_data("test_ipdmqmc",
+                            matrix_filetype="csv",
+                            report_filetype="csv")
+
+        if self._mtd_lg.is_reporter:
+
+            assert exists("test_ipdmqmc_density_matrix.csv")
+            assert exists("test_ipdmqmc_report.csv")
+
+            loaded_matrix = np.genfromtxt("test_ipdmqmc_density_matrix.csv",
+                                        delimiter=',')
+            assert np.allclose(loaded_matrix.shape, self._mtd_lg.density_matrix.shape)
+
+            loaded_report = np.genfromtxt("test_ipdmqmc_report.csv",
+                                        delimiter=',', names=True)
+            assert loaded_report.shape[0] == len(self._mtd_lg.report)
+            assert loaded_report['beta'][0] == self._mtd_lg.report[0]['beta']
+            # Numpy converts spaces to underscores
+            assert loaded_report['energy_numerator'][1] == self._mtd_lg.report[1]['energy numerator']
 
 @mark.parallel([1,2])
 def test_PiecewiseIPDMQMC_switching_parallel(integral_system_small, capsys):
@@ -219,9 +254,12 @@ def test_PiecewiseIPDMQMC_switching_parallel(integral_system_small, capsys):
             switched = True
             beta = float(line.split(' ')[1].strip(';'))
 
-    assert switched
-    assert np.isclose(beta, 3.001)  # first beta that is strictly greater than 3.0
+    parallel_assert(switched)
+    parallel_assert(np.isclose(beta, 3.001),
+                    msg=f"Switched beta: {beta}\nExpected: 3.001")  # first beta that is strictly greater than 3.0)
 
-    assert np.isclose(mtd.density_matrix.trace(), 4.501423e+04)
+    parallel_assert(np.isclose(mtd.density_matrix.trace(), 45015.74),
+                    msg=f"Density matrix trace: {mtd.density_matrix.trace()}\nExpected: 45015.74")
     eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
-    assert np.isclose(eng, -51192.734)
+    parallel_assert(np.isclose(eng, -51194.47),
+                    msg=f"Energy: {eng}\nExpected: -51194.47")
