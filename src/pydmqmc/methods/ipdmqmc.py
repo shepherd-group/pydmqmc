@@ -57,7 +57,12 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         gc_spawn_cutoff: float = 0.01,
         defined_thermal_weights: ArrayLike | None = None,
         fixed_diagonal: ArrayLike | None = None,
-        report_quants: list[str] = ["trace", "energy expectation"],
+        report_quants: list[str] = [
+            "trace",
+            "energy numerator",
+            "total particles",
+            "number occupied states",
+        ],
     ) -> None:
         r"""
         Set parameters for each of the realizations.
