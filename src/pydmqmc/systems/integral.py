@@ -339,6 +339,7 @@ class Integral(System):
         super().generate_determinant_bitarrays()
         self._ndets = self._bitarrays.shape[0]
 
+    # TODO accelerate
     def generate_hamiltonian(self) -> None:
         """
         Generate the Hamiltonian for the system.

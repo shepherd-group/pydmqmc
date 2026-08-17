@@ -291,6 +291,33 @@ you'll need multiple objects:
 
         mtd.save_data(f"seed_{seed}")
 
+Saving the iteration results to file is best for data longevity, but nothing stops you from analyzing the results *in situ*.
+If you have `pandas <https://pandas.pydata.org/>_` installed, the method's ``report`` member can easily be converted into a
+dataframe. You can then make a list of dataframes to, say, plot. Extending the example above:
+
+.. code-block:: python
+    :emphasize-lines: 3, 9, 19
+
+    from pydmqmc.systems import Integral
+    from pydmqmc.methods import SymmetricBlochDMQMC
+    import pandas as pd
+
+    # Instantiate necessary objects
+    sys = Integral("tests/inputs/integrals/STRICT-STO3G-STR-H4.FCIDUMP")
+    sys.generate_hamiltonian()  # Not strictly necessary as is called during method init
+
+    data_tables = []
+    for seed in range(40, 50):
+
+        # Create a unique method object
+        mtd = SymmetricBlochDMQMC(sys, rng_seed=seed)
+
+        ...
+
+        mtd.save_data(f"seed_{seed}")
+
+        data_tables.append(pd.DataFrame(mtd.report))
+
 Can I Run a Calculation in Parallel?
 ************************************
 
@@ -349,7 +376,12 @@ Within the source code, search for the class's definition. This will look like:
     class SymmetricBlochDMQMC(DensityMatrixQMC):
 
 Within this class definition, look for a method called ``_propagate_core``.
+TODO THIS IS NO LONGER THE CORRECT NAME
 This will contain the code for actually performing an iterative update.
+
+MAYBE ALSO POINT TO INITIALIZATION METHODS FOR THE DENSITY MATRIX
+
+AND EXPLAIN WHAT'S UP WITH ALL THESE UNDERSCORES
 
 Finding the math at the heart of Analytic Methods is easier: simply look for the
 ``run`` method under the class definition.

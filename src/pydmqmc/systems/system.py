@@ -180,6 +180,7 @@ class System:
                 "The Hamiltonian is currently `None` and cannot be shifted."
             )
 
+    # TODO accelerate
     def generate_determinant_bitarrays(self) -> None:
         """
         Generate all determinants as bitarrays.
