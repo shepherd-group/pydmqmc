@@ -302,7 +302,7 @@ class DensityMatrixQMC(Iterative):
 
         for shift in range(n_shifts):
             for cycle in range(cycles_per_shift):
-                # Spawn psips
+                # Spawn psips; sync across procs
                 psips = self._spawn(
                     dbeta,
                     self._density_matrix,
@@ -313,6 +313,8 @@ class DensityMatrixQMC(Iterative):
                     ilvl=ilevel,
                     nex=n_ex,
                 )
+                if self._parallel:
+                    psips = self._ph.allreduce_sum(psips)
 
                 # Perform death/cloning
                 self._density_matrix = integrator_func(
