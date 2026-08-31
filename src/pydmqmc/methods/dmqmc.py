@@ -558,20 +558,17 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
             for j in range(dets):
                 p_ij = abs(p[i, j])
 
-                # Iterate over sites that may spawn here at p_ij
+                # For an occupied source site p_ij, determine which target
+                # sites p_ik are spawned from it through H_jk.
                 for k in range(dets):
                     if k == j:
                         continue
 
-                    # While the docs write the rules as p_ij spawning at p_ik,
-                    # we are actually checking if p_ik will
-                    # spawn at/contribute to p_ij through the action of H_kj.
-
                     # The excitation matrix is not required for ilvl 0.
-                    ichk = nex[i, k] <= ilvl
+                    ichk = nex[i, j] <= ilvl
 
-                    if abs(p[i, k]) > nadd or p_ij != 0.0 or ichk:
-                        pr = -dt * p[i, k] * H[k, j]
+                    if abs(p_ij) > nadd or abs(p[i, k]) != 0.0 or ichk:
+                        pr = -dt * p[i, j] * H[j, k]
 
                         if abs(pr) < cutoff:
                             pr /= cutoff
@@ -579,7 +576,7 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
                             pr = np.trunc(pr)
                             pr *= cutoff
 
-                        new_psips[i, j] += pr  # sum_k!=j(p_ik * H_kj)
+                        new_psips[i, k] += pr  # sum_k!=j(p_ij * H_jk)
 
         return new_psips
 
@@ -669,18 +666,15 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
         for i in range(start, end):  # only loop over assigned rows in parallel
             for j in range(dets):
                 p_ij = abs(p[i, j])
+                ichk = nex[i, j] <= ilvl
 
-                # Iterate over sites that may spawn here at p_ij
+                # For each occupied source site p_ij, determine which target
+                # sites in row i are reached through the left-multiplication term.
                 for k in range(dets):
                     if k != j:
-                        # While the docs write the rules as p_ij spawning at
-                        # p_ik, we are actually checking if p_ik will
-                        # spawn at/contribute to p_ij thru the action of H_kj.
 
-                        ichk = nex[i, k] <= ilvl
-
-                        if abs(p[i, k]) > nadd or p_ij != 0.0 or ichk:
-                            pr = -dt * 0.5 * p[i, k] * H[k, j]
+                        if abs(p_ij) > nadd or abs(p[i, k]) != 0.0 or ichk:
+                            pr = -dt * 0.5 * p[i, j] * H[j, k]
 
                             if abs(pr) < cutoff:
                                 pr /= cutoff
@@ -688,15 +682,14 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
                                 pr = np.trunc(pr)
                                 pr *= cutoff
 
-                            new_psips[i, j] += pr
+                            new_psips[i, k] += pr
 
                     if k != i:
-                        # Now we check if p_kj can spwan at p_ij thru H_ik.
+                        # Also account for the right-multiplication term, where
+                        # the source site p_ij spawns into column j of row k.
 
-                        ichk = nex[k, j] <= ilvl
-
-                        if abs(p[k, j]) >= nadd or p_ij != 0.0:
-                            pr = -dt * 0.5 * H[i, k] * p[k, j]
+                        if abs(p_ij) > nadd or abs(p[k, j]) != 0.0 or ichk:
+                            pr = -dt * 0.5 * H[i, k] * p[i, j]
 
                             if abs(pr) < cutoff:
                                 pr /= cutoff
@@ -704,6 +697,6 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
                                 pr = np.trunc(pr)
                                 pr *= cutoff
 
-                            new_psips[i, j] += pr
+                            new_psips[k, j] += pr
 
         return new_psips

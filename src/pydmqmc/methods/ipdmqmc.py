@@ -443,20 +443,17 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             for j in range(dets):
                 p_ij = abs(p[i, j])
 
-                # Iterate over sites that may spawn here at p_ij
+                # For an occupied source site p_ij, determine which target
+                # sites p_ik are spawned from it through H_jk.
                 for k in range(dets):
                     if k == j:
                         continue
 
-                    # While the docs write the rules as p_ij spawning at p_ik,
-                    # we are actually checking if p_ik will
-                    # spawn at/contribute to p_ij through the action of H_kj.
-
                     # The excitation matrix is not required for ilvl 0.
-                    ichk = nex[i, k] <= ilvl
+                    ichk = nex[i, j] <= ilvl
 
-                    if abs(p[i, k]) > nadd or p_ij != 0.0 or ichk:
-                        pr = -dt * p[i, k] * H[k, j]
+                    if abs(p_ij) > nadd or abs(p[i, k]) != 0.0 or ichk:
+                        pr = -dt * p[i, j] * H[j, k]
 
                         if abs(pr) < cutoff:
                             pr /= cutoff
@@ -464,7 +461,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
                             pr = np.trunc(pr)
                             pr *= cutoff
 
-                        new_psips[i, j] += pr
+                        new_psips[i, k] += pr
 
         return new_psips
 
