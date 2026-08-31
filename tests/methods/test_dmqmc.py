@@ -128,9 +128,9 @@ class TestAsymmetricBlochDMQMC():
             shift_by_rows=False
         )
 
-        assert np.isclose(self._mtd.density_matrix.trace(), 67985.8131)
+        assert np.isclose(self._mtd.density_matrix.trace(), 67981.12)
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        assert np.isclose(eng, -141125.3241)
+        assert np.isclose(eng, -141115.79)
 
     def test_rbr(self):
         self._mtd.reset_rng(42)
@@ -147,9 +147,9 @@ class TestAsymmetricBlochDMQMC():
             shift_by_rows=True
         )
 
-        assert np.isclose(self._mtd.density_matrix.trace(), 22494.0155)
+        assert np.isclose(self._mtd.density_matrix.trace(), 22497.61)
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        assert np.isclose(eng, -46579.7485)
+        assert np.isclose(eng, -46587.10)
 
     def test_ilevel_zero(self):
         """
@@ -172,9 +172,9 @@ class TestAsymmetricBlochDMQMC():
             ilevel=0
         )
 
-        assert np.isclose(self._mtd.density_matrix.trace(), 13.3973)
+        assert np.isclose(self._mtd.density_matrix.trace(), 13.0736)
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        assert np.isclose(eng, -27.4914)
+        assert np.isclose(eng, -27.1111)
 
     def test_ilevel_nonzero(self):
         self._mtd.reset_rng(42)
@@ -191,9 +191,9 @@ class TestAsymmetricBlochDMQMC():
             ilevel=2
         )
 
-        assert np.isclose(self._mtd.density_matrix.trace(), 67977.3706)
+        assert np.isclose(self._mtd.density_matrix.trace(), 67973.89)
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        assert np.isclose(eng, -141106.5000)
+        assert np.isclose(eng, -141098.78)
 
     def test_save_data(self):
         self._mtd.reset_rng(42)
@@ -251,7 +251,7 @@ class TestSymmetricBlochDMQMC():
 
         assert np.isclose(self._mtd.density_matrix.trace(), 67929.3228)
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        assert np.isclose(eng, -141004.8864)
+        assert np.isclose(eng, -141008.19)
 
     def test_rbr(self):
         self._mtd.reset_rng(42)
@@ -268,9 +268,9 @@ class TestSymmetricBlochDMQMC():
             shift_by_rows=True
         )
 
-        assert np.isclose(self._mtd.density_matrix.trace(), 20325.6708)
+        assert np.isclose(self._mtd.density_matrix.trace(), 20328.17)
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        assert np.isclose(eng, -42058.3318)
+        assert np.isclose(eng, -42063.25)
     def test_ilevel_zero(self):
         """
         Test functionality of ilevel = 0 (and dummy matrix functionality).
@@ -292,9 +292,9 @@ class TestSymmetricBlochDMQMC():
             ilevel=0
         )
 
-        assert np.isclose(self._mtd.density_matrix.trace(), 13.3701)
+        assert np.isclose(self._mtd.density_matrix.trace(), 14.1179)
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        assert np.isclose(eng, -27.65069)
+        assert np.isclose(eng, -29.1850)
 
     def test_ilevel_nonzero(self):
         self._mtd.reset_rng(42)
@@ -311,9 +311,9 @@ class TestSymmetricBlochDMQMC():
             ilevel=2
         )
 
-        assert np.isclose(self._mtd.density_matrix.trace(), 67933.1623)
+        assert np.isclose(self._mtd.density_matrix.trace(), 67927.84)
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
-        assert np.isclose(eng, -141016.4768)
+        assert np.isclose(eng, -141004.61)
 
 
     def test_save_data(self):

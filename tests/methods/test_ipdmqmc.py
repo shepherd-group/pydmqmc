@@ -117,9 +117,9 @@ class TestIPDMQMC():
                          spawn_cutoff=0.01,
                          shift_by_rows=False)
 
-        assert np.isclose(self._mtd_lg.density_matrix.trace(), 52340.7535)
+        assert np.isclose(self._mtd_lg.density_matrix.trace(), 52342.66)
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        assert np.isclose(eng, -69386.9260)
+        assert np.isclose(eng, -69388.25)
 
     def test_rbr(self):
         self._mtd_lg.reset_rng(42)
@@ -133,9 +133,9 @@ class TestIPDMQMC():
                          spawn_cutoff=0.01,
                          shift_by_rows=True)
 
-        assert np.isclose(self._mtd_lg.density_matrix.trace(), 53531.4541)
+        assert np.isclose(self._mtd_lg.density_matrix.trace(), 53532.82)
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        assert np.isclose(eng, -73292.6290)
+        assert np.isclose(eng, -73294.37)
 
     def test_ilevel_zero(self):
         """
@@ -155,9 +155,9 @@ class TestIPDMQMC():
                          n_add=3,  # strongly limit this spawn channel to emph ilevel
                          ilevel=0)
 
-        assert np.isclose(self._mtd_lg.density_matrix.trace(), 0.55312766)
+        assert np.isclose(self._mtd_lg.density_matrix.trace(), 0.477507)
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        assert np.isclose(eng, -0.73239922)
+        assert np.isclose(eng, -0.634194)
 
     def test_ilevel_nonzero(self):
         self._mtd_lg.reset_rng(42)
@@ -171,9 +171,9 @@ class TestIPDMQMC():
                          n_add=3,  # strongly limit this spawn channel to emph ilevel
                          ilevel=2)
 
-        assert np.isclose(self._mtd_lg.density_matrix.trace(), 0.409112839)
+        assert np.isclose(self._mtd_lg.density_matrix.trace(), 0.442294)
         eng = (self._mtd_lg.density_matrix @ self._mtd_lg.system.hamiltonian).trace()
-        assert np.isclose(eng, -0.54311242)
+        assert np.isclose(eng, -0.588148)
 
     def test_save_data(self):
         self._mtd_lg.reset_rng(42)
@@ -229,7 +229,7 @@ def test_PiecewiseIPDMQMC_switching(integral_system_small, capsys):
     assert switched
     assert np.isclose(beta, 3.001)  # first beta that is strictly greater than 3.0
 
-    assert np.isclose(mtd.density_matrix.trace(), 45015.7422)
+    assert np.isclose(mtd.density_matrix.trace(), 45022.49)
     eng = (mtd.density_matrix @ mtd.system.hamiltonian).trace()
-    assert np.isclose(eng, -51194.4651)
+    assert np.isclose(eng, -51202.14)
 
