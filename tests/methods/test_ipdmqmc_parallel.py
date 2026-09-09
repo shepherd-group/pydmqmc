@@ -197,7 +197,7 @@ class TestIPDMQMC_Parallel():
                         msg=f"Energy: {eng}\nExpected: -0.588148")
 
     @mark.parallel([1,2])
-    def test_save_data(self):
+    def test_save_data(self, tmp_path):
         """
         Implicitly tests dummy matrix created for ilevel = None and ilevel = 0.
         """
@@ -211,21 +211,22 @@ class TestIPDMQMC_Parallel():
                          shift_dampening=0.05,
                          spawn_cutoff=0.01,
                          shift_by_rows=False)
-        self._mtd_lg.save_data("test_ipdmqmc",
+        self._mtd_lg.save_data(str(tmp_path/"test_ipdmqmc"),
                             matrix_filetype="csv",
                             report_filetype="csv")
 
         if self._mtd_lg.is_reporter:
 
-            assert exists("test_ipdmqmc_density_matrix.csv")
-            assert exists("test_ipdmqmc_report.csv")
+            file_matrix = tmp_path/"test_ipdmqmc_density_matrix.csv"
+            file_report = tmp_path/"test_ipdmqmc_report.csv"
 
-            loaded_matrix = np.genfromtxt("test_ipdmqmc_density_matrix.csv",
-                                        delimiter=',')
+            assert exists(file_matrix)
+            assert exists(file_report)
+
+            loaded_matrix = np.genfromtxt(file_matrix, delimiter=',')
             assert np.allclose(loaded_matrix.shape, self._mtd_lg.density_matrix.shape)
 
-            loaded_report = np.genfromtxt("test_ipdmqmc_report.csv",
-                                        delimiter=',', names=True)
+            loaded_report = np.genfromtxt(file_report, delimiter=',', names=True)
             assert loaded_report.shape[0] == len(self._mtd_lg.report)
             assert loaded_report['beta'][0] == self._mtd_lg.report[0]['beta']
             # Numpy converts spaces to underscores

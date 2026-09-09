@@ -98,7 +98,7 @@ class TestDMQMC():
         with raises(TypeError):
             self._mtd.run(0.01, 10, 0.05, ilevel=0.1)
 
-    def test_save_data(self):
+    def test_save_data(self, tmp_path):
         self._mtd.setup(1.0, "deterministic")
         with raises(RuntimeError):
             self._mtd.save_data("test")
@@ -195,7 +195,7 @@ class TestAsymmetricBlochDMQMC():
         eng = (self._mtd.density_matrix @ self._mtd.system.hamiltonian).trace()
         assert np.isclose(eng, -141098.78)
 
-    def test_save_data(self):
+    def test_save_data(self, tmp_path):
         self._mtd.reset_rng(42)
         self._mtd.setup(
             final_beta=25,
@@ -209,18 +209,21 @@ class TestAsymmetricBlochDMQMC():
             spawn_cutoff=0.01,
             shift_by_rows=False
         )
-        self._mtd.save_data("test_asymmetric_bloch_dmqmc",
+        self._mtd.save_data(str(tmp_path/"test_asymmetric_bloch_dmqmc"),
                             matrix_filetype="csv",
                             report_filetype="csv")
 
-        assert exists("test_asymmetric_bloch_dmqmc_density_matrix.csv")
-        assert exists("test_asymmetric_bloch_dmqmc_report.csv")
+        file_matrix = tmp_path/"test_asymmetric_bloch_dmqmc_density_matrix.csv"
+        file_report = tmp_path/"test_asymmetric_bloch_dmqmc_report.csv"
 
-        loaded_matrix = np.genfromtxt("test_asymmetric_bloch_dmqmc_density_matrix.csv",
+        assert exists(file_matrix)
+        assert exists(file_report)
+
+        loaded_matrix = np.genfromtxt(file_matrix,
                                       delimiter=',')
         assert np.allclose(loaded_matrix.shape, self._mtd.density_matrix.shape)
 
-        loaded_report = np.genfromtxt("test_asymmetric_bloch_dmqmc_report.csv",
+        loaded_report = np.genfromtxt(file_report,
                                      delimiter=',', names=True)
         assert loaded_report.shape[0] == len(self._mtd.report)
         assert loaded_report['beta'][0] == self._mtd.report[0]['beta']
@@ -316,7 +319,7 @@ class TestSymmetricBlochDMQMC():
         assert np.isclose(eng, -141004.61)
 
 
-    def test_save_data(self):
+    def test_save_data(self, tmp_path):
         self._mtd.reset_rng(42)
         self._mtd.setup(
             final_beta=25,
@@ -330,19 +333,20 @@ class TestSymmetricBlochDMQMC():
             spawn_cutoff=0.01,
             shift_by_rows=False
         )
-        self._mtd.save_data("test_symmetric_bloch_dmqmc",
+        self._mtd.save_data(str(tmp_path/"test_symmetric_bloch_dmqmc"),
                             matrix_filetype="csv",
                             report_filetype="csv")
 
-        assert exists("test_symmetric_bloch_dmqmc_density_matrix.csv")
-        assert exists("test_symmetric_bloch_dmqmc_report.csv")
+        file_matrix = tmp_path/"test_symmetric_bloch_dmqmc_density_matrix.csv"
+        file_report = tmp_path/"test_symmetric_bloch_dmqmc_report.csv"
 
-        loaded_matrix = np.genfromtxt("test_symmetric_bloch_dmqmc_density_matrix.csv",
-                                      delimiter=',')
+        assert exists(file_matrix)
+        assert exists(file_report)
+
+        loaded_matrix = np.genfromtxt(file_matrix, delimiter=',')
         assert np.allclose(loaded_matrix.shape, self._mtd.density_matrix.shape)
 
-        loaded_report = np.genfromtxt("test_symmetric_bloch_dmqmc_report.csv",
-                                     delimiter=',', names=True)
+        loaded_report = np.genfromtxt(file_report, delimiter=',', names=True)
         assert loaded_report.shape[0] == len(self._mtd.report)
         assert loaded_report['beta'][0] == self._mtd.report[0]['beta']
         # Numpy converts spaces to underscores
