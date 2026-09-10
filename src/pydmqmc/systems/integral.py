@@ -364,12 +364,13 @@ class Integral(System):
         esortind = np.argsort(hii)
         hii = hii[esortind]
         self._bitarrays = self._bitarrays[esortind]
-        self._H = np.diag(hii)
-        for i, b1 in enumerate(self._bitarrays):
-            for j, b2 in enumerate(self._bitarrays[i + 1 :]):
-                j += i + 1
-                hij = self._get_hij(b1, b2)
-                self._H[i, j], self._H[j, i] = hij, hij
+        self._H = utils.generate_hamiltonian(
+            self._bitarrays,
+            self._h0e,
+            self._h1e,
+            self._h2e,
+            self._nel,
+        )
 
     def _get_hij(self, b1: Array, b2: Array, tol: float = 1e-16) -> float:
         nex, abrs, perms = utils.get_ex_info(b1, b2, self.n_electrons)

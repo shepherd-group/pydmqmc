@@ -17,6 +17,8 @@ from .symmetry import pg_sym_cross_prod, orb_sym, pg_sym_conj
 
 from .slater_condon import sc0, sc1, sc2
 
+from .numba_hamiltonian import generate_hamiltonian
+
 from .permute import generate_ijab_symmetries_array
 
 from .integrators import euler, rk4
