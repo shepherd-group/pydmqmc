@@ -148,28 +148,17 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         # Set values for use in run()
         self._final_beta = final_beta
 
-        if self._parallel:
-            self._density_matrix = self._ph.safe_noncollective(
-                self._init_dm,
-                initialization,
-                final_beta,
-                n_particles,
-                gc_spawn_cutoff,
-                defined_thermal_weights,
-                fixed_diagonal,
-            )
-        else:
-            # Initialize density matrix
-            self._density_matrix = self._init_dm(
-                initialization,
-                final_beta,
-                n_particles,
-                gc_spawn_cutoff,
-                defined_thermal_weights,
-                fixed_diagonal,
-            )
+        self._density_matrix = self._init_dm(
+            initialization,
+            final_beta,
+            n_particles,
+            gc_spawn_cutoff,
+            defined_thermal_weights,
+            fixed_diagonal,
+        )
 
-        self._shift = np.zeros(self.system.n_determinants, dtype=np.float64)
+        nrows = self._ph.nrows if self._parallel else self.system.n_determinants
+        self._shift = np.zeros(nrows, dtype=np.float64)
 
     def _init_dm(
         self,
@@ -186,21 +175,29 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
             thermal_weights = np.exp(-target * np.diag(self.system.hamiltonian))
             thermal_weights /= thermal_weights.sum()
 
+        # For parallel execution, non-root ranks get empty arrays that will be filled later.
+        # The root rank does all of the initialization and then each process takes it's assigned "chunk" of rows
         if init == "deterministic":
             randomrows = np.copy(thermal_weights)
         elif init == "random-uniform":
-            randomrows = self._rng.choice(self.system.n_determinants, size=particles)
-            randomrows = np.bincount(
-                randomrows, minlength=self.system.n_determinants
-            ).astype(np.float64)
-            randomrows *= thermal_weights
+            if self._parallel and not self._ph.is_root:
+                randomrows = np.empty(self.system.n_determinants, dtype=np.float64)
+            else:
+                randomrows = self._rng.choice(self.system.n_determinants, size=particles)
+                randomrows = np.bincount(
+                    randomrows, minlength=self.system.n_determinants
+                ).astype(np.float64)
+                randomrows *= thermal_weights
         elif init == "random-thermal":
-            randomrows = self._rng.choice(
-                self.system.n_determinants, size=particles, p=thermal_weights
-            )
-            randomrows = np.bincount(
-                randomrows, minlength=self.system.n_determinants
-            ).astype(np.float64)
+            if self._parallel and not self._ph.is_root:
+                randomrows = np.empty(self.system.n_determinants, dtype=np.float64)
+            else:
+                randomrows = self._rng.choice(
+                    self.system.n_determinants, size=particles, p=thermal_weights
+                )
+                randomrows = np.bincount(
+                    randomrows, minlength=self.system.n_determinants
+                ).astype(np.float64)
         elif init == "fixed":
             if len(diag) != self.system.n_determinants:
                 raise RuntimeError(
@@ -208,13 +205,23 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
                     "must be equal to the number of "
                     "determinants in the system."
                 )
-            randomrows = diag
+            randomrows = np.asarray(diag, dtype=np.float64)
         elif init == "random-grand-canonical":
-            randomrows = self._grand_canonical(particles, spawn_cutoff)
+            if self._parallel and not self._ph.is_root:
+                randomrows = np.empty(self.system.n_determinants, dtype=np.float64)
+            else:
+                randomrows = self._grand_canonical(particles, spawn_cutoff)
         else:
             raise RuntimeError(f"Unknown initalization method {init}")
 
-        f = np.diag(randomrows)
+        randomrows = np.asarray(randomrows, dtype=np.float64)
+        if self._parallel:
+            randomrows = self._ph.broadcast(randomrows)
+            f = np.zeros((self._ph.nrows, self.system.n_determinants), dtype=np.float64)
+            local_rows = np.arange(self._ph.imin, self._ph.imax)
+            f[np.arange(self._ph.nrows), local_rows] = randomrows[local_rows]
+        else:
+            f = np.diag(randomrows)
         return f
 
     def _grand_canonical(self, init_part, cutoff):
@@ -429,17 +436,17 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         p: Array,
         H: Array,
         rng,
-        start: int,
-        end: int,
         cutoff: float,
         nadd: float,
         ilvl: int,
         nex: Array,
+        row_offset: int,
     ) -> Array:
-        dets = p.shape[0]
+        dets = p.shape[1]
         new_psips = np.zeros_like(p, dtype=np.float64)
 
-        for i in range(start, end):  # only loop over assigned rows in parallel
+        for i in range(p.shape[0]):
+            global_i = row_offset + i
             for j in range(dets):
                 p_ij = abs(p[i, j])
 
@@ -450,7 +457,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
                         continue
 
                     # The excitation matrix is not required for ilvl 0.
-                    ichk = nex[i, j] <= ilvl
+                    ichk = nex[global_i, j] <= ilvl
 
                     if abs(p_ij) > nadd or abs(p[i, k]) != 0.0 or ichk:
                         pr = -dt * p[i, j] * H[j, k]
@@ -471,15 +478,15 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
         p: Array,
         H: Array,
         S: Array,
-        start: int,
-        end: int,
+        row_offset: int,
     ) -> Array:
-        dets = p.shape[0]
+        dets = p.shape[1]
         dp = np.zeros_like(p, dtype=np.float64)
 
-        for i in range(start, end):  # only loop over assigned rows in parallel
+        for i in range(p.shape[0]):
+            global_i = row_offset + i
             for j in range(dets):
-                dp[i, j] = p[i, j] * (H[i, i] - H[j, j] + S[i])
+                dp[i, j] = p[i, j] * (H[global_i, global_i] - H[j, j] + S[i])
 
         return dp
 

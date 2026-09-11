@@ -43,6 +43,7 @@ class DensityMatrixQMC(Iterative):
 
         self._final_beta: float | None = None
         self._density_matrix: Array | None = None
+        self._report_matrix: Array | None = None
         self._shift: Array | None = None
 
         if parallel:
@@ -54,7 +55,12 @@ class DensityMatrixQMC(Iterative):
 
     @property
     def density_matrix(self) -> None | Array:
-        """Density matrix at current inverse temperature."""
+        """Density matrix at current inverse temperature.
+
+        In parallel calculations, only the rows owned by the current process
+        are stored. The global row indices are `ParallelHelper.imin` through
+        `ParallelHelper.imax`.
+        """
         return self._density_matrix
 
     @property
@@ -132,27 +138,40 @@ class DensityMatrixQMC(Iterative):
         # know the final beta ahead of time.
         self._final_beta = final_beta
 
-        if self._parallel:
-            self._density_matrix = self._ph.safe_noncollective(
-                self._init_dm, initialization, n_particles, fixed_diagonal
-            )
-        else:
-            self._density_matrix = self._init_dm(
-                initialization, n_particles, fixed_diagonal
-            )
+        self._density_matrix = self._init_dm(
+            initialization, n_particles, fixed_diagonal
+        )
 
-        self._shift = np.zeros(self.system.n_determinants, dtype=np.float64)
+        nrows = self._ph.nrows if self._parallel else self.system.n_determinants
+        self._shift = np.zeros(nrows, dtype=np.float64)
 
     def _init_dm(self, init: str, particles: int, diag: ArrayLike | None) -> Array:
         if init == "deterministic":
             randomrows = np.ones(self.system.n_determinants, dtype=np.float64)
 
         elif init == "random-uniform":
-            randomrows = self._rng.choice(self.system.n_determinants, size=particles)
-            randomrows = np.bincount(
-                randomrows,
-                minlength=self.system.n_determinants,
-            )
+            if self._parallel:
+                # For parallel runs, generate the full initial matrix on the root process and broadcast.
+                # Individual processes will later pick out the individual rows that they need.
+                if self._ph.is_root:
+                    randomrows = self._rng.choice(
+                        self.system.n_determinants, size=particles
+                    )
+                    randomrows = np.bincount(
+                        randomrows,
+                        minlength=self.system.n_determinants,
+                    ).astype(np.float64)
+                else:
+                    randomrows = np.empty(self.system.n_determinants, dtype=np.float64)
+                randomrows = self._ph.broadcast(randomrows)
+            else:  # serial
+                randomrows = self._rng.choice(
+                    self.system.n_determinants, size=particles
+                )
+                randomrows = np.bincount(
+                    randomrows,
+                    minlength=self.system.n_determinants,
+                ).astype(np.float64)
 
         elif init == "fixed":
             if len(diag) != self.system.n_determinants:
@@ -166,7 +185,16 @@ class DensityMatrixQMC(Iterative):
         else:
             raise RuntimeError(f"Unknown initalization method {init}")
 
-        f = np.diag(randomrows).astype(np.float64)
+        randomrows = np.asarray(randomrows, dtype=np.float64)
+
+        if self._parallel:
+            # "Downselect" the rows needed for this process
+            f = np.zeros((self._ph.nrows, self.system.n_determinants), dtype=np.float64)
+            local_rows = np.arange(self._ph.imin, self._ph.imax)
+            f[np.arange(self._ph.nrows), local_rows] = randomrows[local_rows]
+        else:
+            f = np.diag(randomrows).astype(np.float64)
+
         return f
 
     def run(
@@ -246,12 +274,9 @@ class DensityMatrixQMC(Iterative):
             )
 
         if self._parallel:
-            self._ph.allocate_reduce_buffers()
-            start_index = self._ph.imin
-            end_index = self._ph.imax
+            row_offset = self._ph.imin
         else:
-            start_index = 0
-            end_index = self.system.n_determinants
+            row_offset = 0
 
         # While it makes sense for a parameter to be None when a feature
         # is disabled, Numba-compiled `propagate` methods in child classes
@@ -284,9 +309,11 @@ class DensityMatrixQMC(Iterative):
         integrator_func = super().parse_integrator(integrator)
         rbr = 1 if shift_by_rows else None
 
-        # set initial shift
-        # npsip will not be altered in this instance
+        # set initial shift using the initial number of psips
         npsip = np.sum(self._density_matrix, axis=rbr)
+        if self._parallel and not rbr:
+            npsip = self._ph.allreduce_sum(npsip)
+        # npsip will not be altered in this instance
         npsip = self._update_shift(
             self._density_matrix, npsip, cycles_per_shift, shift_dampening, dbeta, rbr
         )
@@ -298,23 +325,21 @@ class DensityMatrixQMC(Iterative):
                 for value in self._report_quants:
                     header += f" {value:>14}"
                 print(header)
+        self._prepare_report_matrix()
         self.do_report("beta", 0.0, quiet)
 
         for shift in range(n_shifts):
             for cycle in range(cycles_per_shift):
-                # Spawn psips; sync across procs
+                # Spawn psips
                 psips = self._spawn(
                     dbeta,
                     self._density_matrix,
-                    start=start_index,
-                    end=end_index,
                     cutoff=spawn_cutoff,
                     nadd=n_add,
                     ilvl=ilevel,
                     nex=n_ex,
+                    row_offset=row_offset,
                 )
-                if self._parallel:
-                    psips = self._ph.allreduce_sum(psips)
 
                 # Perform death/cloning
                 self._density_matrix = integrator_func(
@@ -322,17 +347,11 @@ class DensityMatrixQMC(Iterative):
                     self._density_matrix,  # y
                     dbeta,  # stepsize dt
                     self._ph,  # parallel helper (if applicable)
-                    start=start_index,  # kwargs for _propagate_core
-                    end=end_index,
+                    row_offset=row_offset,
                 )
 
                 # Perform annihilation (any oppositely signed psips will cancel)
                 self._density_matrix += psips
-
-                # Synchronize across processes a final time
-                # (density matrix is also synchronized within the integration)
-                if self._parallel:
-                    self._ph.allreduce_sum(self._density_matrix)
 
             # update shift every report period
             npsip = self._update_shift(
@@ -345,6 +364,7 @@ class DensityMatrixQMC(Iterative):
             )
 
             # do periodic reporting
+            self._prepare_report_matrix()
             self.do_report("beta", (shift + 1) * cycles_per_shift * dbeta, quiet)
 
     def _spawn(self, dt: float, p: Array, *args, **kwargs) -> Array:
@@ -417,6 +437,8 @@ class DensityMatrixQMC(Iterative):
                         npsip[i] / np_old[i]
                     )
         else:
+            if self._parallel:
+                npsip = self._ph.allreduce_sum(npsip)
             self._shift -= (zeta / (A * dbeta)) * np.log(npsip / np_old)
 
         return npsip
@@ -464,14 +486,23 @@ class DensityMatrixQMC(Iterative):
             Protocol version to use if either `filetype` is "pkl".
             If none, uses `pickle`'s default.
         """
+        if self._parallel:
+            self._prepare_report_matrix()
+
         if self.is_reporter:
             super().save_data(basename, "beta", report_filetype, pickle_protocol)
             save_array(
-                self._density_matrix,
+                self._report_matrix,
                 basename + "_density_matrix",
                 matrix_filetype,
                 pickle_protocol,
             )
+
+    def _prepare_report_matrix(self) -> None:
+        if self._parallel:
+            self._report_matrix = self._ph.gather_rows(self._density_matrix)
+        else:
+            self._report_matrix = self._density_matrix
 
 
 class AsymmetricBlochDMQMC(DensityMatrixQMC):
@@ -524,13 +555,12 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
         p: Array,
         H: Array,
         S: Array,
-        start: int,
-        end: int,
+        row_offset: int,
     ) -> Array:
-        dets = p.shape[0]
+        dets = p.shape[1]
         dp = np.zeros_like(p, dtype=np.float64)
 
-        for i in range(start, end):  # only loop over assigned rows in parallel
+        for i in range(p.shape[0]):
             Stot = H[0, 0] + S[i]
             for j in range(dets):
                 dp[i, j] = p[i, j] * (Stot - H[j, j])  # -(H_jj - S)
@@ -544,17 +574,17 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
         p: Array,
         H: Array,
         rng: np.random.Generator,
-        start: int,
-        end: int,
         cutoff: float,
         nadd: float,
         ilvl: int,
         nex: Array,
+        row_offset: int,
     ) -> Array:
-        dets = p.shape[0]
+        dets = p.shape[1]
         new_psips = np.zeros_like(p, dtype=np.float64)  # TODO make sparse
 
-        for i in range(start, end):  # only loop over assigned rows in parallel
+        for i in range(p.shape[0]):
+            global_i = row_offset + i
             for j in range(dets):
                 p_ij = abs(p[i, j])
 
@@ -565,7 +595,7 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
                         continue
 
                     # The excitation matrix is not required for ilvl 0.
-                    ichk = nex[i, j] <= ilvl
+                    ichk = nex[global_i, j] <= ilvl
 
                     if abs(p_ij) > nadd or abs(p[i, k]) != 0.0 or ichk:
                         pr = -dt * p[i, j] * H[j, k]
@@ -631,20 +661,53 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
         p: Array,
         H: Array,
         S: Array,
-        start: int,
-        end: int,
+        row_offset: int,
     ) -> Array:
-        dets = p.shape[0]
+        dets = p.shape[1]
         dp = np.zeros_like(p, dtype=np.float64)
 
-        for i in range(start, end):  # only loop over assigned rows in parallel
+        for i in range(p.shape[0]):
+            global_i = row_offset + i
             for j in range(dets):
                 # Diagonal update (death/cloning)
                 Stot = H[0, 0] + S[i]
-                dp[i, j] = p[i, j] / 2 * (Stot - H[i, i])
+                dp[i, j] = p[i, j] / 2 * (Stot - H[global_i, global_i])
                 dp[i, j] += p[i, j] / 2 * (Stot - H[j, j])
 
         return dp
+
+    def _spawn(self, dt: float, p: Array, *args, **kwargs) -> Array:
+        """
+        Wrap `_spawn_core`, a Numba-compiled function.
+
+        Numba-compiled functions do not have access to class attributes.
+        We must overwrite the super() version of this class because for
+        parallel/distributed calculations, we need global knowledge of
+        the density matrix (specifically, which entries are nonzero)
+        """
+        if self._parallel:
+            nonzero_p = self._ph.gather_rows(p != 0)
+            if not self._ph.is_root:
+                nonzero_p = np.empty(self._ph.bufshape, dtype=np.bool)
+            nonzero_p = self._ph.broadcast(nonzero_p)
+        else:
+            nonzero_p = p != 0
+
+        kwargs["nonzero"] = nonzero_p
+        spawned = self._stochastic_round(
+            self._spawn_core(
+                dt,
+                p,
+                self.system.hamiltonian,
+                self._rng,
+                *args,
+                **kwargs,
+            )
+        )
+        if self._parallel:
+            spawned = self._ph.allreduce_sum(spawned)
+            return spawned[self._ph.imin : self._ph.imax]
+        return spawned
 
     @staticmethod
     @njit
@@ -653,27 +716,27 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
         p: Array,
         H: Array,
         rng: np.random.Generator,
-        start: int,
-        end: int,
         cutoff: float,
         nadd: float,
         ilvl: int,
         nex: Array,
+        row_offset: int,
+        nonzero: Array[bool],
     ) -> Array:
-        dets = p.shape[0]
-        new_psips = np.zeros_like(p, dtype=np.float64)  # TODO make sparse
+        dets = p.shape[1]
+        new_psips = np.zeros((dets, dets), dtype=np.float64)  # full size matrix
 
-        for i in range(start, end):  # only loop over assigned rows in parallel
+        for i in range(p.shape[0]):
+            global_i = row_offset + i
             for j in range(dets):
                 p_ij = abs(p[i, j])
-                ichk = nex[i, j] <= ilvl
+                ichk = nex[global_i, j] <= ilvl
 
                 # For each occupied source site p_ij, determine which target
                 # sites in row i are reached through the left-multiplication term.
                 for k in range(dets):
                     if k != j:
-
-                        if abs(p_ij) > nadd or abs(p[i, k]) != 0.0 or ichk:
+                        if abs(p_ij) > nadd or nonzero[global_i, k] or ichk:
                             pr = -dt * 0.5 * p[i, j] * H[j, k]
 
                             if abs(pr) < cutoff:
@@ -682,14 +745,14 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
                                 pr = np.trunc(pr)
                                 pr *= cutoff
 
-                            new_psips[i, k] += pr
+                            new_psips[global_i, k] += pr
 
-                    if k != i:
+                    if k != global_i:
                         # Also account for the right-multiplication term, where
                         # the source site p_ij spawns into column j of row k.
 
-                        if abs(p_ij) > nadd or abs(p[k, j]) != 0.0 or ichk:
-                            pr = -dt * 0.5 * H[i, k] * p[i, j]
+                        if abs(p_ij) > nadd or nonzero[k, j] or ichk:
+                            pr = -dt * 0.5 * H[global_i, k] * p[i, j]
 
                             if abs(pr) < cutoff:
                                 pr /= cutoff

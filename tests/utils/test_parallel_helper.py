@@ -48,6 +48,26 @@ class TestParallelHelper_Parallel():
         with raises(ValueError):
             ParallelHelper(shape=(1, 10))
 
+    @mark.parallel([1, 2])
+    def test_gather_rows_uneven(self):
+        ph = ParallelHelper(shape=(11, 2))
+        local = np.full((ph.nrows, 2), ph.rank + 1.0)
+        gathered = ph.gather_rows(local)
+
+        if ph.is_root:
+            expected = np.empty((11, 2))
+            for rank, (start, end) in ph.rank_index_bounds.items():
+                expected[start:end] = rank + 1.0
+            assert np.array_equal(gathered, expected)
+        else:
+            assert gathered is None
+
+    @mark.parallel([1, 2])
+    def test_gather_rows_invalid_shape(self):
+        ph = ParallelHelper(shape=(11, 2))
+        with raises(ValueError):
+            ph.gather_rows(np.empty((ph.nrows, 3)))
+
     @mark.parallel(1)
     def test_get_rng_seed_1proc(self):
         seed = self._ph.get_rng_seed(100)
@@ -59,24 +79,6 @@ class TestParallelHelper_Parallel():
         seed = self._ph.get_rng_seed(100)
         parallel_assert(seed == seeds[self._ph.rank],
                         msg=f"rank {self._ph.rank}: seed expected {seeds[self._ph.rank]}, got {seed}")
-
-    @mark.parallel([1,2])
-    def test_allocate_buffers(self):
-        self._ph.allocate_reduce_buffers()
-        parallel_assert(self._ph._recvbuf is not None,
-                        msg=f"rank {self._ph.rank}: _recvbuf should not be None after allocation")
-        parallel_assert(self._ph._recvbuf.shape == self._matrix_shape,
-                        msg=f"rank {self._ph.rank}: recvbuf shape expected {self._matrix_shape}, got {self._ph._recvbuf.shape}")
-
-    @mark.parallel([1,2])
-    def test_allocate_buffers_twice(self, capsys):
-        self._ph.allocate_reduce_buffers()
-        self._ph.allocate_reduce_buffers()
-
-        if self._ph.is_root:
-            captured = capsys.readouterr()
-            messages = captured.out.split("\n")  # last entry will be empty str
-            assert messages[-2] == "Buffers already allocated; skipping."
 
     @mark.parallel([1,2])
     def test_broadcast(self):
@@ -94,24 +96,27 @@ class TestParallelHelper_Parallel():
                         msg=f"rank {self._ph.rank}: broadcast array expected {answer}, got {array}")
 
     @mark.parallel([1,2])
-    def test_allreduce_sum_without_allocation(self):
+    def test_allreduce_sum_accepts_unallocated_array(self):
         array = np.zeros(self._matrix_shape)
-        with raises(RuntimeError):
-            self._ph.allreduce_sum(array)
+        result = self._ph.allreduce_sum(array)
+        parallel_assert(np.array_equal(result, array),
+                        msg=f"rank {self._ph.rank}: allreduce sum returned unexpected values")
 
     @mark.parallel([1,2])
-    def test_allreduce_sum_incorrect_size(self):
-        self._ph.allocate_reduce_buffers()
-        array = np.zeros((self._matrix_shape[0], self._matrix_shape[1] + 1))
-        with raises(ValueError):
-            self._ph.allreduce_sum(array)
+    def test_allreduce_sum_accepts_different_shape_and_dtype(self):
+        local_array = np.ones(3, dtype=np.float32)
+        answer = local_array * self._ph.size
+
+        result = self._ph.allreduce_sum(local_array)
+
+        parallel_assert(np.array_equal(result, answer),
+                        msg=f"rank {self._ph.rank}: allreduce sum expected {answer}, got {result}")
+        assert result.dtype == local_array.dtype
 
     @mark.parallel([1,2])
     def test_allreduce_sum(self):
         local_array = np.ones(self._matrix_shape)
         answer = local_array * self._ph.size
-        
-        self._ph.allocate_reduce_buffers()
         
         res = self._ph.allreduce_sum(local_array)
         

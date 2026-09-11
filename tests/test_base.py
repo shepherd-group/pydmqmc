@@ -161,10 +161,10 @@ class TestIterative_Parallel():
     @mark.parallel([1,2,3])
     def test_parse_method(self):
         f_euler = self._mtd.parse_integrator("euler")
-        parallel_assert(f_euler is utils.parallel_euler)
+        parallel_assert(f_euler is utils.euler)
 
         f_rk4 = self._mtd.parse_integrator("rk4")
-        parallel_assert(f_rk4 is utils.parallel_rk4)
+        parallel_assert(f_rk4 is utils.rk4)
 
         with raises(RuntimeError):
             self._mtd.parse_integrator("junk")

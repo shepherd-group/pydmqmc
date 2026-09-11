@@ -194,9 +194,10 @@ class Iterative(Method):
         if self.is_reporter:
             current_data = {itr_var_name: itr_var_value}
             rep_str = f"{itr_var_value:>14e}"
+            report_matrix = getattr(self, "_report_matrix", self._density_matrix)
             for value in self._report_quants:
                 data = report_registry[value](
-                    self._density_matrix, **self._report_reqs[value]
+                    report_matrix, **self._report_reqs[value]
                 )
 
                 current_data[value] = data
@@ -331,19 +332,9 @@ class Iterative(Method):
             The associated function from :mod:`pydmqmc.utils.integrators`
         """
         method = method.lower()
-        if not self.parallel:
-            if method == "euler":
-                return utils.euler
-            elif method == "rk4":
-                return utils.rk4
-            else:
-                raise RuntimeError(f"Update method {method} is not recognized.")
+        if method == "euler":
+            return utils.euler
+        elif method == "rk4":
+            return utils.rk4
         else:
-            if method == "euler":
-                return utils.parallel_euler
-            elif method == "rk4":
-                return utils.parallel_rk4
-            else:
-                raise RuntimeError(
-                    f"Parallel update method {method} is not recognized."
-                )
+            raise RuntimeError(f"Update method {method} is not recognized.")
