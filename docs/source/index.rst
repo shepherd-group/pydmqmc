@@ -7,8 +7,7 @@ pydmqmc documentation
 =====================
 
 The pydmqmc package let's you quickly assemble
-finite-temperature many-electron calculations (is that a suitable
-name for the range of calculations spanned by DMQMC, FCI and others?).
+finite-temperature many-electron calculations.
 It serves as library with which your own scripts can be written
 and executed.
 
