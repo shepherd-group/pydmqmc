@@ -343,7 +343,7 @@ class DensityMatrixQMC(Iterative):
 
                 # Perform death/cloning
                 self._density_matrix = integrator_func(
-                    self._derivative,  # f(dy/dt)
+                    self._integral,  # f(dy/dt)
                     self._density_matrix,  # y
                     dbeta,  # stepsize dt
                     self._ph,  # parallel helper (if applicable)
@@ -400,22 +400,22 @@ class DensityMatrixQMC(Iterative):
             "AsymmetricBlochDMQMC, or a custom child class."
         )
 
-    def _derivative(self, p: Array, *args, **kwargs) -> Array:
+    def _integral(self, p: Array, *args, **kwargs) -> Array:
         """
         Wrap `_propagate_core` with the expected call signature.
 
         Numba-compiled functions do not have access to class attributes.
         Call signature is dictated by the "integrator" functions.
         """
-        return self._derivative_core(
+        return self._integral_core(
             p, self.system.hamiltonian, self._shift, *args, **kwargs
         )
 
-    def _derivative_core(
+    def _integral_core(
         self, p: Array, hamiltonian: Array, shift: Array, *args, **kwargs
     ) -> Array:
         raise NotImplementedError(
-            "DensityMatrixQMC does not have it's own derivative "
+            "DensityMatrixQMC does not have it's own integral "
             "method defined. Please use either SymmetricBlochDMQMC or "
             "AsymmetricBlochDMQMC, or a custom child class."
         )
@@ -551,7 +551,7 @@ class AsymmetricBlochDMQMC(DensityMatrixQMC):
 
     @staticmethod
     @njit
-    def _derivative_core(
+    def _integral_core(
         p: Array,
         H: Array,
         S: Array,
@@ -657,7 +657,7 @@ class SymmetricBlochDMQMC(DensityMatrixQMC):
 
     @staticmethod
     @njit
-    def _derivative_core(
+    def _integral_core(
         p: Array,
         H: Array,
         S: Array,

@@ -474,7 +474,7 @@ class InteractionPictureDMQMC(DensityMatrixQMC):
 
     @staticmethod
     @njit
-    def _derivative_core(
+    def _integral_core(
         p: Array,
         H: Array,
         S: Array,
@@ -660,10 +660,10 @@ class PiecewiseIPDMQMC(InteractionPictureDMQMC, AsymmetricBlochDMQMC):
             **kwargs,
         )
 
-    def _derivative(self, p: Array, *args, **kwargs) -> Array:
-        """Dispatch the integration derivative to the active propagation method."""
+    def _integral(self, p: Array, *args, **kwargs) -> Array:
+        """Dispatch the integral to the active propagation method."""
         if self._current_beta < self._switch_beta:
-            return InteractionPictureDMQMC._derivative_core(
+            return InteractionPictureDMQMC._integral_core(
                 p,
                 self.system.hamiltonian,
                 self._shift,
@@ -671,7 +671,7 @@ class PiecewiseIPDMQMC(InteractionPictureDMQMC, AsymmetricBlochDMQMC):
                 **kwargs,
             )
 
-        return AsymmetricBlochDMQMC._derivative_core(
+        return AsymmetricBlochDMQMC._integral_core(
             p,
             self.system.hamiltonian,
             self._shift,

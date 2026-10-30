@@ -1,5 +1,5 @@
 """
-Generic ODE integrators for use in DMQMC and derivatives.
+Generic ODE integrators for use in DMQMC and its variants.
 
 Each function in this module must have the same call signature.
 """
