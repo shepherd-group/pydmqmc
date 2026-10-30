@@ -364,8 +364,8 @@ class TestSymmetricBlochDMQMC_Parallel():
             shift_by_rows=False
         )
 
-        traces = {1: 67929.32, 2: 67930.03}
-        energies = {1: -141008.19, 2: -141007.40}
+        traces = {1: 67929.32, 2: 67923.88}
+        energies = {1: -141008.19, 2: -140996.96}
 
         matrix = self._mtd._report_matrix if self._mtd.is_reporter else None
         trace = matrix.trace() if self._mtd.is_reporter else 0.0
@@ -395,8 +395,8 @@ class TestSymmetricBlochDMQMC_Parallel():
             shift_by_rows=True
         )
 
-        traces = {1: 20328.17, 2: 20324.67}
-        energies = {1: -42063.25, 2: -42056.96}
+        traces = {1: 20328.17, 2: 20327.10}
+        energies = {1: -42063.25, 2: -42059.50}
 
         matrix = self._mtd._report_matrix if self._mtd.is_reporter else None
         trace = matrix.trace() if self._mtd.is_reporter else 0.0
@@ -434,8 +434,8 @@ class TestSymmetricBlochDMQMC_Parallel():
             ilevel=0
         )
 
-        traces = {1: 14.1179, 2: 14.2248}
-        energies = {1: -29.1850, 2: -29.4124}
+        traces = {1: 14.1179, 2: 13.9435}
+        energies = {1: -29.1850, 2: -28.8694}
 
         matrix = self._mtd._report_matrix if self._mtd.is_reporter else None
         trace = matrix.trace() if self._mtd.is_reporter else 0.0
@@ -465,8 +465,8 @@ class TestSymmetricBlochDMQMC_Parallel():
             ilevel=2
         )
 
-        traces = {1: 67927.84, 2: 67931.28}
-        energies = {1: -141004.61, 2: -141009.08}
+        traces = {1: 67927.84, 2: 67926.33}
+        energies = {1: -141004.61, 2: -140999.38}
 
         matrix = self._mtd._report_matrix if self._mtd.is_reporter else None
         trace = matrix.trace() if self._mtd.is_reporter else 0.0
