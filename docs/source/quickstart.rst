@@ -356,8 +356,8 @@ To run a script with e.g. four processes, you must use the following on the comm
 
     mpirun -np 4 python my_script.py
 
-Navigating the Source Code
---------------------------
+Inspecting the Math
+-------------------
 
 All information about what classes and their methods require as parameters is available
 in the :ref:`api-reference`. That said, sometimes it is useful to look at the source code
@@ -367,21 +367,38 @@ Because of pydmqmc's reliance on class inheritance for its :ref:`dev-philosophy`
 its commitment to a flexible choice of integration methods, and
 :ref:`use of Numba<dev-numba>` for better performance, the core elements of an 
 :ref:`Iterative method <methods-iterative>`
-like :class:`~pydmqmc.methods.SymmetricBlochDMQMC` are somewhat obfuscated.
+like :class:`~pydmqmc.methods.AsymmetricBlochDMQMC` are somewhat obfuscated.
 
 Within the source code, search for the class's definition. This will look like:
 
 .. code-block:: python
 
-    class SymmetricBlochDMQMC(DensityMatrixQMC):
+    class AsymmetricBlochDMQMC(DensityMatrixQMC):
 
-Within this class definition, look for a method called ``_propagate_core``.
-TODO THIS IS NO LONGER THE CORRECT NAME
-This will contain the code for actually performing an iterative update.
+Within this class definition, you'll see functions with names like ``_spawn_core``
+and ``_integral_core`` "decorated" with ``@`` calls for use with :ref:`Numba<dev-numba>`:
 
-MAYBE ALSO POINT TO INITIALIZATION METHODS FOR THE DENSITY MATRIX
+.. code-block:: python
 
-AND EXPLAIN WHAT'S UP WITH ALL THESE UNDERSCORES
+    @staticmethod
+    @njit
+    def _integral_core(
+        p: Array,
+        H: Array,
+        S: Array,
+        row_offset: int,
+    ) -> Array:
+
+These functions with contain the actual math for the various stages of an iterative update
+(e.g. integrating the diagonal of a density matrix and spawning psips on the off-diagonal).
+
+The names may vary depending on the details of the numerical method, but all will follow the
+``_<operation>_core`` naming convention. The leading underscore designates a method that is only
+available to the class itself and should not be accessed, for instance, by a user in a script.
+
+The math for initializing an :ref:`Iterative method <methods-iterative>` is also preceeded by
+an underscore for a similar reason. You can check what methods are called during ``setup``
+and then search for those function definitions.
 
 Finding the math at the heart of Analytic Methods is easier: simply look for the
 ``run`` method under the class definition.
