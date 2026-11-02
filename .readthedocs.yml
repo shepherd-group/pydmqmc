@@ -3,7 +3,7 @@ version: 2
 build:
   os: ubuntu-26.04
   tools:
-    python: "miniconda3-3.14"
+    python: "miniforge-latest"
 
 sphinx:
   configuration: docs/source/conf.py
