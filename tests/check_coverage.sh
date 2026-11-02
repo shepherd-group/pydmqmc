@@ -20,4 +20,4 @@ coverage xml
 coverage html
 
 # If genbadge is installed, uncomment the following to generate a new badge
-#genbadge coverage -i coverage.xml -o .coverage-badge.svg
+#genbadge coverage -i coverage.xml -o ../coverage-badge.svg

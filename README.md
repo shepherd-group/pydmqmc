@@ -1,6 +1,6 @@
 <!-- The coverage badge was generated using the genbadge package: https://smarie.github.io/python-genbadge/ -->
 [![Test Status](https://github.com/shepherd-group/pydmqmc/actions/workflows/python-app.yml/badge.svg)](https://github.com/shepherd-group/pydmqmc/actions/workflows/python-app.yml)
-![Coverage Status](.coverage-badge.svg?dummy=8484744)
+![Coverage Status](coverage-badge.svg?dummy=8484744)
 [![Documentation Status](https://readthedocs.org/projects/pydmqmc/badge/?version=latest)](https://pydmqmc.readthedocs.io/en/latest/?badge=latest)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19614801.svg)](https://doi.org/10.5281/zenodo.19614801)
 
