@@ -39,9 +39,7 @@ Integrators
     :toctree: stubs
 
     pydmqmc.utils.euler
-    pydmqmc.utils.parallel_euler
     pydmqmc.utils.rk4
-    pydmqmc.utils.parallel_rk4
 
 .. _api-parallel:
 
